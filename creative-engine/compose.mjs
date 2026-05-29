@@ -39,13 +39,14 @@ function chrome() {
   return cands.find((c) => fs.existsSync(c));
 }
 
-// Gold-italic the strongest span: a $-figure/range if present, else the last word.
-function emphasize(h) {
-  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+// Gold-italic the chosen emphasis (if the record carries one), else a $-figure, else last word.
+function emphasize(h, chosen) {
+  const e = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  if (chosen) { const i = h.indexOf(chosen); if (i >= 0) return e(h.slice(0, i)) + `<em>${e(chosen)}</em>` + e(h.slice(i + chosen.length)); }
   const money = h.match(/\$[\d,]+(?:\s?[–-]\s?\$?[\d,]+)?(?:\s?\/\s?(?:mo|month))?/);
-  if (money) return esc(h).replace(esc(money[0]), `<em>${esc(money[0])}</em>`);
+  if (money) return e(h).replace(e(money[0]), `<em>${e(money[0])}</em>`);
   const m = h.match(/^(.*\s)(\S+?)([.?!]?)$/);
-  return m ? `${esc(m[1])}<em>${esc(m[2])}</em>${esc(m[3])}` : esc(h);
+  return m ? `${e(m[1])}<em>${e(m[2])}</em>${e(m[3])}` : e(h);
 }
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
@@ -82,7 +83,7 @@ function buildHtml(rec) {
   <div class="wm">Revarity</div>
   <div class="body-wrap">
     <div class="eyebrow">Done-for-you short-term rentals</div>
-    <h1>${emphasize(rec.headline)}</h1>
+    <h1>${emphasize(rec.headline, rec.emphasis)}</h1>
     ${rec.body ? `<p class="sub">${esc(rec.body)}</p>` : ""}
   </div>
   <div class="cta-wrap"><div class="cta">${LINK_SVG}<span>${esc(rec.cta)}</span></div></div>
