@@ -29,6 +29,9 @@ const p = brand.palette;
 const argv = process.argv.slice(2);
 const only = argv.includes("--only") ? argv[argv.indexOf("--only") + 1] : null;
 const PHOTO = argv.includes("--photo");
+const LIGHT = argv.includes("--light");
+const BACKDROP = LIGHT ? "light" : PHOTO ? "photo" : "ink";
+const SUFFIX = LIGHT ? "-light" : PHOTO ? "-photo" : ""; // ink → <base>.ad.png
 
 function chrome() {
   const cands = [
@@ -50,43 +53,68 @@ function emphasize(h, chosen) {
 }
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
-const LINK_SVG = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${p.gold_deep}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+const linkSvg = (stroke) => `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
 
 function buildHtml(rec) {
   const vertical = (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical");
   const W = 1080, H = vertical ? 1920 : 1080;
-  const bg = PHOTO && rec._imgDataUri
-    ? `background:#000 url('${rec._imgDataUri}') center/cover no-repeat;`
-    : `background:radial-gradient(120% 80% at 22% 32%, rgba(201,169,97,0.20) 0%, transparent 55%), ${p.ink};`;
-  const scrim = PHOTO ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,11,.55),rgba(10,10,11,.78))"></div>` : "";
+  // theme tokens per backdrop (light inverts ink↔cream; gold accent holds on both)
+  const fg = LIGHT ? p.ink : p.cream;
+  const subC = LIGHT ? "rgba(20,20,22,.62)" : "rgba(245,241,232,.72)";
+  const eyebrowC = LIGHT ? p.gold_deep : p.gold_bright;
+  const wmC = LIGHT ? p.ink : p.gold;
+  const ctaBg = LIGHT ? p.ink : p.cream, ctaFg = LIGHT ? p.cream : p.ink;
+  const linkStroke = LIGHT ? p.gold : p.gold_deep;
+  const lineC = LIGHT ? "rgba(10,10,11,.16)" : "rgba(245,241,232,.22)";
+  const bg = LIGHT
+    ? `background:radial-gradient(120% 80% at 22% 30%, rgba(201,169,97,0.16) 0%, transparent 55%), ${p.paper};`
+    : (PHOTO && rec._imgDataUri
+      ? `background:#000 url('${rec._imgDataUri}') center/cover no-repeat;`
+      : `background:radial-gradient(120% 80% at 22% 32%, rgba(201,169,97,0.20) 0%, transparent 55%), ${p.ink};`);
+  const scrim = PHOTO && !LIGHT ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,11,.55),rgba(10,10,11,.78))"></div>` : "";
+  const feats = Array.isArray(rec.features) ? rec.features.slice(0, 3) : [];
+  const featsHtml = feats.length ? `<div class="feats">${feats.map((f) => `<span class="feat">${esc(f)}</span>`).join("")}</div>` : "";
+  const proofHtml = rec.proof
+    ? `<div class="proof"><span class="proof-v">${esc(rec.proof.value || rec.proof)}</span>${rec.proof.label ? `<span class="proof-l">${esc(rec.proof.label)}</span>` : ""}</div>`
+    : "";
   return `<!doctype html><html><head><meta charset="utf-8">
 <link href="${brand.typography.google_fonts_import}" rel="stylesheet">
 <style>
   *{margin:0;box-sizing:border-box}
   html,body{width:${W}px;height:${H}px;overflow:hidden}
-  .ad{position:relative;width:${W}px;height:${H}px;${bg}color:${p.cream};
+  .ad{position:relative;width:${W}px;height:${H}px;${bg}color:${fg};
     font-family:'Manrope',sans-serif;padding:${vertical ? "150px 96px 130px" : "90px 90px"};
     display:flex;flex-direction:column;}
-  .wm{font-family:'Fraunces',serif;font-size:34px;font-weight:500;color:${p.gold};letter-spacing:.5px;position:relative;z-index:2}
+  .wm{font-family:'Fraunces',serif;font-size:34px;font-weight:500;color:${wmC};letter-spacing:.5px;position:relative;z-index:2}
   .body-wrap{flex:1;display:flex;flex-direction:column;justify-content:${vertical ? "flex-start" : "center"};padding-top:${vertical ? "70px" : "0"};position:relative;z-index:2}
   h1{font-family:'Fraunces',serif;font-weight:500;font-size:${vertical ? "104px" : "78px"};line-height:1.02;
-    letter-spacing:-.02em;color:${p.cream};max-width:14ch}
+    letter-spacing:-.02em;color:${fg};max-width:14ch}
   h1 em{font-style:italic;font-weight:300;color:${p.gold}}
-  .sub{font-size:34px;line-height:1.45;color:rgba(245,241,232,.72);margin-top:40px;max-width:24ch;font-weight:400}
+  .feats{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+  .feat{font-family:'JetBrains Mono',monospace;font-size:20px;letter-spacing:.04em;color:${fg};
+    border:1px solid ${lineC};border-radius:999px;padding:12px 22px;opacity:.92}
+  .sub{font-size:34px;line-height:1.45;color:${subC};margin-top:34px;max-width:24ch;font-weight:400}
+  .proof{position:relative;z-index:2;display:inline-flex;flex-direction:column;gap:6px;align-self:flex-start;
+    margin:0 0 30px;padding:22px 28px;border:1px solid ${lineC};border-left:4px solid ${p.gold};border-radius:6px}
+  .proof-v{font-family:'Fraunces',serif;font-size:48px;font-weight:500;color:${fg};line-height:1}
+  .proof-v em{font-style:normal;color:${p.gold}}
+  .proof-l{font-family:'JetBrains Mono',monospace;font-size:18px;letter-spacing:.18em;text-transform:uppercase;color:${eyebrowC}}
   .cta-wrap{position:relative;z-index:2;display:flex;justify-content:center;margin-top:auto}
-  .cta{display:inline-flex;align-items:center;gap:14px;background:${p.cream};color:${p.ink};
+  .cta{display:inline-flex;align-items:center;gap:14px;background:${ctaBg};color:${ctaFg};
     font-weight:700;font-size:38px;padding:26px 44px;border-radius:999px;letter-spacing:-.01em}
   .eyebrow{font-family:'JetBrains Mono',monospace;font-size:20px;letter-spacing:.34em;text-transform:uppercase;
-    color:${p.gold_bright};margin-bottom:26px;position:relative;z-index:2;font-weight:500}
+    color:${eyebrowC};margin-bottom:26px;position:relative;z-index:2;font-weight:500}
 </style></head>
 <body><div class="ad">${scrim}
   <div class="wm">Revarity</div>
   <div class="body-wrap">
     <div class="eyebrow">Done-for-you short-term rentals</div>
     <h1>${emphasize(rec.headline, rec.emphasis)}</h1>
+    ${featsHtml}
     ${rec.body ? `<p class="sub">${esc(rec.body)}</p>` : ""}
   </div>
-  <div class="cta-wrap"><div class="cta">${LINK_SVG}<span>${esc(rec.cta)}</span></div></div>
+  ${proofHtml}
+  <div class="cta-wrap"><div class="cta">${linkSvg(linkStroke)}<span>${esc(rec.cta)}</span></div></div>
 </div></body></html>`;
 }
 
@@ -113,7 +141,7 @@ function jobs() {
   const exe = chrome();
   if (!exe) { console.error("No Chrome/Edge found. Install Chrome or set executablePath."); process.exit(2); }
   const list = jobs();
-  console.log(`compose: ${list.length} ad(s) | backdrop=${PHOTO ? "photo" : "ink"} | chrome=${path.basename(exe)}`);
+  console.log(`compose: ${list.length} ad(s) | backdrop=${BACKDROP} | chrome=${path.basename(exe)}`);
   const browser = await puppeteer.launch({ executablePath: exe, headless: "new", args: ["--no-sandbox"] });
   let ok = 0, skipped = 0;
   for (const j of list) {
@@ -122,7 +150,7 @@ function jobs() {
     await page.setViewport({ width: 1080, height: j.vertical ? 1920 : 1080, deviceScaleFactor: 1 });
     await page.setContent(buildHtml(j.rec), { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
-    const dest = path.join(j.dir, `${j.base}.ad${PHOTO ? "-photo" : ""}.png`);
+    const dest = path.join(j.dir, `${j.base}.ad${SUFFIX}.png`);
     await page.screenshot({ path: dest, type: "png" });
     await page.close();
     console.log(`  ✓ ${j.id} → ${j.base}.ad.png`);
