@@ -1,0 +1,143 @@
+{
+  "generatedBy": "army-of-content workflow",
+  "generated": 18,
+  "brand_safe": 17,
+  "concepts": [
+    {
+      "headline": "What could your address earn nightly?",
+      "body": "A local short-term rental can pull a real nightly rate. We model the typical range for your market before you commit a dollar.",
+      "cta": "See the estimate",
+      "visual_direction": "Overhead flat-lay of brass keys, a city map, and a coffee cup on warm oak",
+      "emphasis": "earn nightly",
+      "archetype": "income-curiosity"
+    },
+    {
+      "headline": "The number your spare lease leaves behind.",
+      "body": "An empty unit earns nothing while the lease runs. We estimate the typical monthly range a furnished STR could return instead.",
+      "cta": "Run my range",
+      "visual_direction": "Sunlit empty living room, bare floor, soft shadows from tall windows",
+      "emphasis": "spare lease",
+      "archetype": "income-curiosity"
+    },
+    {
+      "headline": "Curious what this market actually rents for?",
+      "body": "Occupancy and nightly rates vary by block. We pull comparable listings and give you an honest estimated range, not a single hero number.",
+      "cta": "Pull the comps",
+      "visual_direction": "Close crop of a furnished bedside table at dusk, lamp glow, linen bedding",
+      "emphasis": "actually rents for",
+      "archetype": "income-curiosity"
+    },
+    {
+      "headline": "You own it. We run it.",
+      "body": "You fund the unit and sign the lease. We handle setup, guests, cleaning, and the day-to-day so it stays hands-off.",
+      "cta": "See how it works",
+      "visual_direction": "Styled short-term rental living room at golden hour, keys resting on a clean console table, no people",
+      "emphasis": "We run it",
+      "archetype": "done-for-you"
+    },
+    {
+      "headline": "An asset, not a second job.",
+      "body": "This is a real short-term rental you fund and control. We operate it end to end, so it does not become work for you.",
+      "cta": "Get the breakdown",
+      "visual_direction": "Overhead flat-lay of a tidy property binder, coffee, and a single brass key on a marble surface, no people",
+      "emphasis": "not a second job",
+      "archetype": "done-for-you"
+    },
+    {
+      "headline": "Done-for-you, from lease to payout.",
+      "body": "We manage the listing, the turnovers, and the guests on a flat monthly fee, no revenue share [PENDING-D01]. Typical setup runs a few weeks, an estimate that varies by market.",
+      "cta": "Request the details",
+      "visual_direction": "Editorial close-up of a made-up guest bed with crisp linens and soft window light, no people",
+      "emphasis": "from lease to payout",
+      "archetype": "done-for-you"
+    },
+    {
+      "headline": "You don't need to own it to run it",
+      "body": "You fund the deal, you sign the lease, we run the property. Ownership was never the requirement.",
+      "cta": "See how it works",
+      "visual_direction": "Overhead editorial shot of a styled rental living room, warm window light, no people",
+      "emphasis": "own it",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "The deed is not the deal",
+      "body": "Lease the right unit and operate it as a short-term rental. Estimated returns vary by market and unit, typical of a managed arbitrage setup with a flat monthly fee, no revenue share.",
+      "cta": "Get the model",
+      "visual_direction": "Close-up of brass keys resting on a clean stone counter beside a folded linen towel, soft daylight",
+      "emphasis": "deed",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "Skip the mortgage. Keep the operation.",
+      "body": "No purchase, no property tax, no thirty-year loan. You hold the lease, we handle guests, turnovers, and pricing.",
+      "cta": "Walk me through it",
+      "visual_direction": "Editorial flat lay of a signed lease document, fountain pen, and coffee cup on a walnut desk, morning light",
+      "emphasis": "Skip the mortgage",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "You fund it. You sign the lease. We run it.",
+      "body": "That is the whole model. No revenue share, no hidden cut, just a flat monthly fee of [PENDING-D01].",
+      "cta": "See how it works",
+      "visual_direction": "Overhead editorial shot of a signed lease, a set of keys, and a bank statement on a clean walnut desk in soft daylight",
+      "emphasis": "We run it",
+      "archetype": "transparency"
+    },
+    {
+      "headline": "Most months land in a range, not a promise",
+      "body": "Typical net returns fall within an estimated range, and we show you the math before you commit a dollar. Some months run low.",
+      "cta": "Get the real numbers",
+      "visual_direction": "Close-up of a printed spreadsheet with a range of figures highlighted, beside a black coffee on a marble surface",
+      "emphasis": "a range, not a promise",
+      "archetype": "transparency"
+    },
+    {
+      "headline": "Here is what we will not tell you",
+      "body": "No invented countdowns, no single hero number, no hype. Just the model, the estimated ranges, and the risks in writing.",
+      "cta": "Read the honest version",
+      "visual_direction": "A single document on a linen surface under window light, one corner gently lifted, muted editorial tones",
+      "emphasis": "will not tell you",
+      "archetype": "transparency"
+    },
+    {
+      "headline": "When the slot is gone, it's gone.",
+      "body": "We cap how many properties we take on so each one is run right. Real availability this month, no waitlist theater. Flat monthly fee, no revenue share [PENDING-D01].",
+      "cta": "Check availability",
+      "visual_direction": "Editorial close-up of a single furnished living room photographed through an open doorway, warm late-afternoon light",
+      "emphasis": "the slot is gone",
+      "archetype": "deal-scarcity"
+    },
+    {
+      "headline": "We run a few. Not everyone.",
+      "body": "Capacity is the constraint, not demand. If a spot is open in your area this month, you fund and lease the unit and we operate it end to end. Typical returns quoted as a range, never a single promise.",
+      "cta": "See if we have room",
+      "visual_direction": "Minimal editorial flat-lay of a city map, lease folder, and a coffee cup on a dark walnut desk",
+      "emphasis": "a few",
+      "archetype": "deal-scarcity"
+    },
+    {
+      "headline": "We learned on 100+ units. Not yours.",
+      "body": "Most operators practice on your money. We already ran the playbook across 100-plus units before you signed a lease. You get the version that survived.",
+      "cta": "See how we run it",
+      "visual_direction": "Overhead flat-lay of a worn leather-bound operations binder, tabbed dividers, and a brass key on a dark walnut desk, warm window light",
+      "emphasis": "100+ units",
+      "archetype": "founder-credibility"
+    },
+    {
+      "headline": "A hundred units of mistakes. Already made.",
+      "body": "Every pricing miss, bad cleaner, and slow turnover happened on our units, not yours. You fund it, you sign the lease, we run it with what those units taught us.",
+      "cta": "Talk to the operators",
+      "visual_direction": "Close-up of a city wall map with clustered pins marking many managed properties, soft directional desk lamp glow",
+      "emphasis": "Already made",
+      "archetype": "founder-credibility"
+    },
+    {
+      "headline": "Operators, not a course. 100+ doors run.",
+      "body": "We don't sell you a how-to. We run the units ourselves, 100-plus of them, and report estimated typical returns as a range so you know what you actually fund.",
+      "cta": "Review the model",
+      "visual_direction": "Editorial still life of a tablet showing a clean occupancy dashboard beside a stacked set of unit keys, muted morning light",
+      "emphasis": "100+ doors",
+      "archetype": "founder-credibility"
+    }
+  ]
+}

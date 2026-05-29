@@ -41,21 +41,19 @@ for (const angle of fs.readdirSync(OUTPUT_DIR).sort()) {
     const rec = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
     const base = f.replace(/\.json$/, "");
     const id = `${angle}/${base}`;
-    const pngPath = path.join(dir, `${base}.png`);
-    let imageUrl = null;
-    if (fs.existsSync(pngPath)) {
-      const blob = await put(`creatives/${id}.png`, fs.readFileSync(pngPath), opts("image/png"));
-      imageUrl = blob.url;
-    }
+    const upload = async (file, key) => fs.existsSync(file) ? (await put(key, fs.readFileSync(file), opts("image/png"))).url : null;
+    const imageUrl = await upload(path.join(dir, `${base}.png`), `creatives/${id}.png`);            // background
+    const adUrl = await upload(path.join(dir, `${base}.ad.png`), `creatives/${id}.ad.png`);          // finished ad — ink
+    const adPhotoUrl = await upload(path.join(dir, `${base}.ad-photo.png`), `creatives/${id}.ad-photo.png`); // finished ad — photo
     cards.push({
       id, angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
       headline: rec.headline, body: rec.body, cta: rec.cta, pricing_flag: rec.pricing_flag || null,
       qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
       qa_model: rec.qa?.qa_model || "",
       vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
-      hasImg: !!imageUrl, image_url: imageUrl,
+      hasImg: !!imageUrl, image_url: imageUrl, ad_url: adUrl, ad_photo_url: adPhotoUrl,
     });
-    console.log(`  ✓ ${id}${imageUrl ? "" : " (no image)"}`);
+    console.log(`  ✓ ${id}${adUrl ? " +ink" : ""}${adPhotoUrl ? "+photo" : ""}`);
   }
 }
 await put("state/queue.json", JSON.stringify(cards), opts("application/json"));

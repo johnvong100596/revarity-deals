@@ -29,9 +29,11 @@ const step = (label, file, args = []) => {
   execFileSync(process.execPath, [path.join(__dirname, file), ...args], { stdio: "inherit" });
 };
 
-step("1/3 generate (copy + image prompts + text QA)", "engine.mjs");
-step("2/3 render (Nano Banana / Gemini)", "render.mjs");
-step("3/3 screenshot QA (vision reviewer)", "qa.mjs");
+step("1/5 generate (copy + image prompts + text QA)", "engine.mjs");
+step("2/5 render (Nano Banana / Gemini)", "render.mjs");
+step("3/5 screenshot QA (vision reviewer)", "qa.mjs");
+step("4/5 compose finished ads — ink", "compose.mjs");
+step("5/5 compose finished ads — photo", "compose.mjs", ["--photo"]);
 
-console.log("\nPipeline complete. Passing creatives are queued in output/; failures parked in output/_parked/.");
+console.log("\nPipeline complete. Finished ads (<base>.ad.png + .ad-photo.png) queued in output/; failures parked in output/_parked/.");
 console.log("HUMAN GATE next — engine does not publish. (D-04)");

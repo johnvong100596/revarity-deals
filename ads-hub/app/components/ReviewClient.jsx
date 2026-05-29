@@ -6,6 +6,12 @@ export default function ReviewClient() {
   const [state, setState] = useState({});
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState("");
+  const [mode, setMode] = useState("ink"); // ink | photo backdrop
+
+  const adSrc = (c) => {
+    const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
+    return mode === "photo" ? (c.ad_photo_url || c.ad_url || bg) : (c.ad_url || c.ad_photo_url || bg);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,6 +47,7 @@ export default function ReviewClient() {
       <div className="bar">
         <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}</div>
         <div style={{ display: "flex", gap: 9 }}>
+          <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
           <button className="btn ghost" onClick={approveAllPass}>Approve all QA-pass</button>
           <button className="btn ghost" onClick={save}>Save decisions</button>
           <button className="btn" onClick={exportSet}>Export approved ↓</button>
@@ -56,8 +63,7 @@ export default function ReviewClient() {
             return (
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
-                  {c.hasImg && <img src={c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`} alt={c.headline} />}
-                  <div className={`qov ${c.vertical ? "bot" : "top"}`}><div className="h">{c.headline}</div></div>
+                  <img src={adSrc(c)} alt={c.headline} />
                   <span className={`qbadge ${badge}`}>QA {c.qa}</span>
                 </div>
                 <div className="qbody">

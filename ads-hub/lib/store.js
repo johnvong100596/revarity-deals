@@ -18,16 +18,17 @@ const APPROVAL_NOTE = "Approved set is marked ready. Pushing live to Meta is a h
 export const QUEUE_KEY = "state/queue.json";
 export const APPROVALS_KEY = "state/approvals.json";
 
-function shape(rec, id, hasImg, image_url) {
+function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
   return {
     id, angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
     headline: rec.headline, body: rec.body, cta: rec.cta, pricing_flag: rec.pricing_flag || null,
     qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
     qa_model: rec.qa?.qa_model || "",
     vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
-    hasImg, image_url: image_url || null,
+    hasImg, image_url: image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
   };
 }
+const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
 
 /* ───────────────────────── filesystem driver ───────────────────────── */
 function fsReadQueue() {
@@ -40,14 +41,17 @@ function fsReadQueue() {
       if (!f.endsWith(".json")) continue;
       const rec = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
       const base = f.replace(/\.json$/, "");
-      cards.push(shape(rec, `${angle}/${base}`, fs.existsSync(path.join(dir, `${base}.png`))));
+      const id = `${angle}/${base}`, q = encodeURIComponent(id);
+      const adUrl = fs.existsSync(path.join(dir, `${base}.ad.png`)) ? `/api/image?id=${q}&v=ad` : null;
+      const adPhotoUrl = fs.existsSync(path.join(dir, `${base}.ad-photo.png`)) ? `/api/image?id=${q}&v=ad-photo` : null;
+      cards.push(shape(rec, id, fs.existsSync(path.join(dir, `${base}.png`)), null, adUrl, adPhotoUrl));
     }
   }
   return cards;
 }
-function fsGetImage(id) {
+function fsGetImage(id, variant) {
   const safe = id.replace(/\.\./g, "").replace(/^\/+/, "");
-  const p = path.join(OUTPUT_DIR, `${safe}.png`);
+  const p = path.join(OUTPUT_DIR, `${safe}${suffixFor(variant)}`);
   if (!p.startsWith(OUTPUT_DIR) || !fs.existsSync(p)) return null;
   return { kind: "file", path: p };
 }
@@ -78,8 +82,8 @@ async function cloudReadQueue() {
   const url = await blobUrl(QUEUE_KEY);
   return (url && (await fetchJson(url))) || [];
 }
-async function cloudGetImage(id) {
-  const url = await blobUrl(`creatives/${id}.png`);
+async function cloudGetImage(id, variant) {
+  const url = await blobUrl(`creatives/${id}${suffixFor(variant)}`);
   return url ? { kind: "url", url } : null;
 }
 async function cloudReadApprovals() {
@@ -95,7 +99,7 @@ async function cloudWriteApprovals(decisions) {
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
 export async function readQueue() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }
-export async function getImage(id) { return DRIVER === "cloud" ? cloudGetImage(id) : fsGetImage(id); }
+export async function getImage(id, variant) { return DRIVER === "cloud" ? cloudGetImage(id, variant) : fsGetImage(id, variant); }
 export async function readApprovals() { return DRIVER === "cloud" ? cloudReadApprovals() : fsReadApprovals(); }
 export async function writeApprovals(decisions) {
   const allowed = new Set(["approve", "hold", "reject"]);
