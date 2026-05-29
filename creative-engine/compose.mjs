@@ -120,7 +120,7 @@ function jobs() {
     await page.setViewport({ width: 1080, height: j.vertical ? 1920 : 1080, deviceScaleFactor: 1 });
     await page.setContent(buildHtml(j.rec), { waitUntil: "networkidle0" });
     await page.evaluateHandle("document.fonts.ready");
-    const dest = path.join(j.dir, `${j.base}.ad.png`);
+    const dest = path.join(j.dir, `${j.base}.ad${PHOTO ? "-photo" : ""}.png`);
     await page.screenshot({ path: dest, type: "png" });
     await page.close();
     console.log(`  ✓ ${j.id} → ${j.base}.ad.png`);
