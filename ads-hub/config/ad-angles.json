@@ -1,0 +1,94 @@
+{
+  "$schema": "https://revarity.com/schemas/ad-angles.v1.json",
+  "version": "1.0",
+  "source": "3A__AD_COPY.docx (David, approved baseline) — DO NOT alter copy without David sign-off",
+  "campaign_budget_monthly_usd": 7000,
+  "platforms": ["facebook", "instagram"],
+  "targeting": {
+    "geo": ["CA", "US"],
+    "age": [25, 45],
+    "interests": ["Airbnb", "real estate investing", "passive income", "entrepreneurship", "short-term rentals"],
+    "behaviours": ["small business owners", "online purchasers", "frequent travellers"]
+  },
+
+  "pricing_lock_warning": "The flat-fee figure ($375/mo) and setup range ($12K-$35K) appear in this copy. These are UNRESOLVED against the master-flow 4-tier model. The Creative Engine MUST NOT generate copy that hardcodes a pricing claim until DECISIONS.md D-01 is resolved by Malcolm. Until then, generate pricing-agnostic variants OR flag pricing as a [PENDING-D01] token.",
+
+  "angles": [
+    {
+      "id": "AD1_DEAL_LIST",
+      "type": "lead_magnet",
+      "audience": "Investors / people looking for opportunities",
+      "lead_magnet": "List of available Airbnb lease deals in their city",
+      "delivery": "PDF or link to deals.revarity.com",
+      "form_redirect": "book-a-call",
+      "variants": [
+        { "id": "A", "hook": "curiosity", "headline": "We just found 3 Airbnb lease deals in your city.", "cta": "See the deals" },
+        { "id": "B", "hook": "income", "headline": "$2,400/month. One property. Zero daily involvement.", "cta": "Get the deal list", "pricing_flag": "PENDING-D01" },
+        { "id": "C", "hook": "fomo", "headline": "This deal closed in 9 days.", "cta": "Send me the deals" }
+      ],
+      "visual_direction": "Deal-card aesthetic. Map pin or city skyline. Clean data on cream. Ties to RevDeal card visual language."
+    },
+    {
+      "id": "AD2_CLEANING_QUOTE",
+      "type": "lead_magnet",
+      "audience": "Existing Airbnb hosts who need services",
+      "lead_magnet": "Free STR cleaning quote",
+      "delivery": "Short form or direct contact confirmation",
+      "form_redirect": "book-a-call",
+      "variants": [
+        { "id": "A", "hook": "pain", "headline": "Is your cleaner actually costing you reviews?", "cta": "Get my free cleaning quote" },
+        { "id": "B", "hook": "direct", "headline": "STR cleaning from $90. Fully coordinated.", "cta": "Get a quote" }
+      ],
+      "visual_direction": "Pristine turned-over unit. Detail shots — folded towels, restocked amenities. Operational competence, not lifestyle."
+    },
+    {
+      "id": "AD3_INCOME_ESTIMATE",
+      "type": "lead_magnet",
+      "audience": "Curious beginners who want the numbers",
+      "lead_magnet": "Free Airbnb income estimate (the Income Calculator asset)",
+      "delivery": "Income Calculator page + emailed PDF estimate",
+      "form_redirect": "book-a-call",
+      "asset_ref": "lead-magnets/income-calculator",
+      "variants": [
+        { "id": "A", "hook": "calculator", "headline": "How much could your area make on Airbnb?", "cta": "Get my free income estimate" },
+        { "id": "B", "hook": "surprise", "headline": "Most people underestimate this by $800/month.", "cta": "Show me the numbers" }
+      ],
+      "visual_direction": "Calculator UI preview, a tasteful revenue range chart on cream. Conservative-to-optimistic band, never a single inflated number."
+    },
+    {
+      "id": "AD4_STARTER_GUIDE",
+      "type": "lead_magnet",
+      "audience": "Complete beginners who want a starting point",
+      "lead_magnet": "Free guide: How to start your first Airbnb without buying property",
+      "delivery": "PDF download link",
+      "form_redirect": "book-a-call",
+      "variants": [
+        { "id": "A", "hook": "empathy", "headline": "Tried to figure out Airbnb arbitrage. Got overwhelmed. Sound familiar?", "cta": "Get the free guide" },
+        { "id": "B", "hook": "authority", "headline": "What we learned running 100+ Airbnb units \u2014 in one free guide.", "cta": "Download the guide" }
+      ],
+      "visual_direction": "Guide/document mockup. Authoritative, editorial. The Fraunces cover treatment."
+    },
+    {
+      "id": "AD5_DIRECT_OFFER",
+      "type": "direct_offer",
+      "audience": "Ready buyers \u2014 skips lead form, goes to master landing page",
+      "form_redirect": "master-landing-page",
+      "variants": [
+        { "id": "A", "hook": "done_for_you", "headline": "We Source the Deal. You Sign the Lease. We Run It.", "cta": "Book a free strategy call", "pricing_flag": "PENDING-D01" },
+        { "id": "B", "hook": "founder_story", "headline": "4 guys. Nearly a decade. A lot of mistakes. This is what we built.", "cta": "See how it works" }
+      ],
+      "visual_direction": "Founder/operator credibility. Real team or real units. The most premium treatment of the set."
+    }
+  ],
+
+  "kpi_targets": {
+    "cpc_usd_max": 3,
+    "cpl_usd_max": 50,
+    "calls_booked_monthly_min": 20,
+    "cost_per_call_usd_max": 200,
+    "cpa_usd_max": 1500,
+    "kill_creative_cpl_usd_over": 75,
+    "kill_creative_after_impressions": 500,
+    "scale_creative_cpl_usd_under": 40
+  }
+}

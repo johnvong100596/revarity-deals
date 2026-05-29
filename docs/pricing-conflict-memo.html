@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing Model — Decision Memo (D-01)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0b;--ink-soft:#141416;--cream:#f5f1e8;--cream-soft:#ece6d6;--paper:#f9f6ee;
+    --gold:#c9a961;--gold-bright:#e0c074;--gold-deep:#a88842;--muted:#8a857a;--muted-dark:#5a554b;
+    --line:rgba(201,169,97,0.25);--line-dark:rgba(201,169,97,0.12);--line-light:rgba(0,0,0,0.08);
+    --green:#7ba05b;--red:#b86a55;--amber:#d4a24a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--ink);line-height:1.65;letter-spacing:-0.005em}
+  .display{font-family:'Fraunces',serif;font-weight:400;letter-spacing:-0.025em;line-height:1.05}
+  .cover{background:var(--ink);color:var(--cream);padding:72px 8vw 88px;position:relative;overflow:hidden}
+  .cover::before{content:'';position:absolute;top:-40%;right:-15%;width:70%;height:180%;background:radial-gradient(ellipse at center,rgba(201,169,97,0.14) 0%,transparent 60%);pointer-events:none}
+  .cover-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:40px;border-bottom:1px solid var(--line-dark);margin-bottom:56px;position:relative;z-index:2;flex-wrap:wrap;gap:16px}
+  .wordmark{font-family:'Fraunces',serif;font-weight:500;font-size:15px;letter-spacing:0.2em;text-transform:uppercase}
+  .wordmark em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-meta-inline{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase}
+  .doc-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.35em;text-transform:uppercase;margin-bottom:26px;font-weight:500;position:relative;z-index:2;display:flex;align-items:center;gap:14px}
+  .doc-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 12px rgba(201,169,97,0.6)}
+  .cover h1{font-size:clamp(40px,6.5vw,84px);margin-bottom:28px;max-width:16ch;position:relative;z-index:2;line-height:1.0}
+  .cover h1 em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-sub{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:clamp(18px,2vw,25px);color:rgba(245,241,232,0.72);max-width:54ch;line-height:1.4;margin-bottom:48px;position:relative;z-index:2}
+  .cover-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;padding-top:36px;border-top:1px solid var(--line-dark);position:relative;z-index:2}
+  @media(max-width:800px){.cover-meta-grid{grid-template-columns:repeat(2,1fr);gap:18px}}
+  .cover-meta-grid .label{color:var(--gold);letter-spacing:0.25em;font-size:10px;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+  .cover-meta-grid .value{color:var(--cream);font-size:14px}
+  section{padding:80px 8vw}
+  @media(max-width:800px){section{padding:56px 6vw}}
+  .sec-cream{background:var(--cream)}
+  .sec-paper{background:var(--paper)}
+  .sec-ink{background:var(--ink);color:var(--cream)}
+  .eyebrow{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:20px}
+  .sec-ink .eyebrow{color:var(--gold-bright)}
+  h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,4vw,52px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:28px;max-width:22ch}
+  h2 em{font-style:italic;font-weight:300;color:var(--gold)}
+  h3{font-family:'Fraunces',serif;font-weight:500;font-size:21px;line-height:1.25;margin-bottom:12px;letter-spacing:-0.01em}
+  p{font-size:16px;margin-bottom:18px;max-width:72ch}
+  .sec-ink p{color:rgba(245,241,232,0.82)}
+  p.lead{font-size:19px;line-height:1.55;font-weight:300;max-width:62ch;color:var(--muted-dark)}
+  strong{font-weight:600}
+  .conflict{display:grid;grid-template-columns:1fr 60px 1fr;gap:0;margin:36px 0;align-items:stretch}
+  @media(max-width:760px){.conflict{grid-template-columns:1fr;gap:14px}}
+  .conflict-card{padding:28px 26px;background:var(--cream);border:1px solid var(--line-dark);border-top:3px solid var(--red);border-radius:2px}
+  .conflict-card.alt{border-top-color:var(--amber)}
+  .conflict-card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted-dark);margin-bottom:10px}
+  .conflict-card h4{font-family:'Fraunces',serif;font-size:18px;margin-bottom:10px}
+  .conflict-card p{font-size:14px;color:var(--muted-dark);line-height:1.6;margin:0}
+  .conflict-vs{display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-style:italic;font-size:18px;color:var(--gold)}
+  @media(max-width:760px){.conflict-vs{padding:4px 0}}
+  .options{margin:32px 0;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .opt{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--line-dark)}
+  .opt:last-child{border-bottom:none}
+  .opt.rec{background:rgba(201,169,97,0.09)}
+  .opt-letter{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--gold-deep);font-weight:500;display:flex;align-items:flex-start;justify-content:center;padding:24px 0;background:rgba(201,169,97,0.06)}
+  .opt.rec .opt-letter{color:var(--ink);background:var(--gold)}
+  .opt-body{padding:22px 26px}
+  .opt-body h4{font-family:'Fraunces',serif;font-size:18px;margin-bottom:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .opt-pill{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;padding:3px 9px;border-radius:2px;font-weight:600;background:var(--gold);color:var(--ink)}
+  .opt-body p{font-size:14px;color:var(--muted-dark);line-height:1.6;margin:0 0 8px}
+  .opt-tradeoff{font-size:13px;color:var(--ink)}
+  .opt-tradeoff b{color:var(--gold-deep)}
+  .rec-box{margin:36px 0 0;padding:32px 34px;background:var(--ink);color:var(--cream);border-radius:3px;position:relative;overflow:hidden}
+  .rec-box::before{content:'';position:absolute;top:-50%;left:-10%;width:50%;height:200%;background:radial-gradient(ellipse,rgba(201,169,97,0.16),transparent 60%)}
+  .rec-box .eyebrow{color:var(--gold-bright);position:relative;z-index:2}
+  .rec-box .rec-text{font-family:'Fraunces',serif;font-size:23px;line-height:1.4;font-weight:300;font-style:italic;position:relative;z-index:2;margin:0;color:var(--cream)}
+  .rec-box .rec-text em{font-style:normal;color:var(--gold)}
+  .signoff{margin-top:32px;padding:26px 30px;background:var(--cream);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:2px}
+  .signoff .deadline{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--red);margin-bottom:12px;font-weight:500}
+  .signoff-row{display:flex;gap:40px;margin-top:18px;flex-wrap:wrap}
+  .signoff-row .sig{flex:1;min-width:180px}
+  .signoff-row .sig-line{border-bottom:1px solid var(--muted);height:32px;margin-bottom:6px}
+  .signoff-row .sig-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted-dark)}
+  .footer{background:var(--ink);color:var(--muted);padding:40px 8vw;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="cover-top">
+    <div class="wordmark">Rev<em>arity</em></div>
+    <div class="cover-meta-inline">Decision Memo · D-01</div>
+  </div>
+  <div class="doc-tag"><span class="dot"></span>Requires sign-off · Malcolm + Cena</div>
+  <h1 class="display">The pricing model <em>contradicts itself</em>. Pick one before we spend.</h1>
+  <p class="cover-sub">David's blueprint sells a flat $375/month. The master flow sells a four-tier model. Running both in one funnel breaks trust on the call and makes the CPA targets fiction.</p>
+  <div class="cover-meta-grid">
+    <div class="col"><div class="label">Decision</div><div class="value">Flat-fee vs 4-tier</div></div>
+    <div class="col"><div class="label">Blocks</div><div class="value">Paid ad launch</div></div>
+    <div class="col"><div class="label">Owner</div><div class="value">Malcolm + Cena</div></div>
+    <div class="col"><div class="label">Date</div><div class="value">May 2026</div></div>
+  </div>
+</header>
+
+<section class="sec-cream">
+  <div class="eyebrow">The conflict</div>
+  <h2>Two offers, <em>one funnel</em>.</h2>
+  <p class="lead">The same prospect would hear two different prices depending on which document we built from. That isn't a detail to paper over — it's the single thing that decides whether the $7,000/month in ad spend has a coherent offer behind it.</p>
+
+  <div class="conflict">
+    <div class="conflict-card">
+      <div class="tag">Blueprint (David) · ad copy + landing page</div>
+      <h4>Flat $375/month</h4>
+      <p>"$375/month flat fee. No revenue share. Everything in your name." Setup quoted as $12K–$35K, actuals, no markup. Clean, simple, one number. Built for a cold ad.</p>
+    </div>
+    <div class="conflict-vs">vs</div>
+    <div class="conflict-card alt">
+      <div class="tag">Master flow · Stone 03</div>
+      <h4>Four tiers</h4>
+      <p>Entry / Core / Premium / Portfolio, with AI prequalification routing each prospect to a tier and a tier-specific proposal. Built to capture margin across segments.</p>
+    </div>
+  </div>
+
+  <p>If the ad promises a flat $375 and the closer opens with tiers, the prospect feels switched on. Conversion drops and every CPA / cost-per-call target in the blueprint becomes guesswork, because they were modeled against one offer, not two.</p>
+</section>
+
+<section class="sec-paper">
+  <div class="eyebrow">The options</div>
+  <h2>Three ways to resolve it.</h2>
+
+  <div class="options">
+    <div class="opt">
+      <div class="opt-letter">A</div>
+      <div class="opt-body">
+        <h4>Flat-fee everywhere</h4>
+        <p>Kill the tiers. One price, one offer, everywhere. Simplest to run and to advertise.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> leaves margin on the table — no structured upsell, no capture of higher-willingness segments. The model the master flow was built around goes away.</div>
+      </div>
+    </div>
+    <div class="opt">
+      <div class="opt-letter">B</div>
+      <div class="opt-body">
+        <h4>Tiers everywhere</h4>
+        <p>Run the four-tier model in the ads too. Preserves margin structure.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> kills the clean cold-traffic hook. "Book a call to find out which of four tiers you qualify for" is a worse ad than "$375/month flat." Cold CPL suffers.</div>
+      </div>
+    </div>
+    <div class="opt rec">
+      <div class="opt-letter">C</div>
+      <div class="opt-body">
+        <h4>Two funnels, one truth <span class="opt-pill">Recommended</span></h4>
+        <p>Flat-fee is the cold-paid hook — a simple, honest entry price that gets the call booked. On the call, fit is revealed and the right structure is proposed. Tiers stay the engine for SEO/inbound, where the prospect arrives warmer and educated.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> two funnels to maintain — but they share the same backend, pipeline, and close motion. The flat-fee entry must be a real, deliverable offer, not a bait number.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rec-box">
+    <div class="eyebrow">Recommendation</div>
+    <p class="rec-text">Take <em>C</em>. Flat-fee earns the cold click; the call reveals fit; tiers run the inbound motion. One condition: the $375 entry has to be a genuine offer we'll honor, or it's a switch — and a switch costs more in trust than it earns in clicks.</p>
+  </div>
+
+  <div class="signoff">
+    <div class="deadline">Decision needed before any of the $7K/mo ad spend goes live</div>
+    <p style="margin:0;font-size:15px;color:var(--muted-dark)">Until this is resolved, the Creative Engine generates pricing-agnostic copy and the income calculator omits its cost side. Both unblock the moment D-01 is decided.</p>
+    <div class="signoff-row">
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Malcolm — decision</div></div>
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Cena — noted</div></div>
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Date</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">Revarity · Internal · Decision Memo D-01 · Pricing Model</div>
+
+</body>
+</html>

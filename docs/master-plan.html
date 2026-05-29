@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revarity Marketing Engine — Master Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0b;--ink-soft:#141416;--cream:#f5f1e8;--cream-soft:#ece6d6;--paper:#f9f6ee;
+    --gold:#c9a961;--gold-bright:#e0c074;--gold-deep:#a88842;--muted:#8a857a;--muted-dark:#5a554b;
+    --line:rgba(201,169,97,0.25);--line-dark:rgba(201,169,97,0.12);--line-light:rgba(0,0,0,0.08);
+    --green:#7ba05b;--red:#b86a55;--amber:#d4a24a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--ink);line-height:1.65;letter-spacing:-0.005em}
+  .display{font-family:'Fraunces',serif;font-weight:400;letter-spacing:-0.025em;line-height:1.05}
+  .cover{background:var(--ink);color:var(--cream);padding:76px 8vw 96px;position:relative;overflow:hidden}
+  .cover::before{content:'';position:absolute;top:-40%;right:-15%;width:70%;height:180%;background:radial-gradient(ellipse at center,rgba(201,169,97,0.14) 0%,transparent 60%);pointer-events:none}
+  .cover-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:44px;border-bottom:1px solid var(--line-dark);margin-bottom:60px;position:relative;z-index:2;flex-wrap:wrap;gap:16px}
+  .wordmark{font-family:'Fraunces',serif;font-weight:500;font-size:15px;letter-spacing:0.2em;text-transform:uppercase}
+  .wordmark em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-meta-inline{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase}
+  .doc-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.35em;text-transform:uppercase;margin-bottom:28px;font-weight:500;position:relative;z-index:2;display:flex;align-items:center;gap:14px}
+  .doc-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 12px rgba(201,169,97,0.6)}
+  .cover h1{font-size:clamp(42px,7vw,96px);margin-bottom:30px;max-width:15ch;position:relative;z-index:2;line-height:0.99}
+  .cover h1 em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-sub{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:clamp(18px,2.1vw,27px);color:rgba(245,241,232,0.72);max-width:56ch;line-height:1.4;margin-bottom:52px;position:relative;z-index:2}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;padding-top:38px;border-top:1px solid var(--line-dark);position:relative;z-index:2}
+  @media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr);gap:20px}}
+  .stat-label{color:var(--gold);letter-spacing:0.25em;font-size:10px;text-transform:uppercase;margin-bottom:8px;font-weight:500}
+  .stat-value{font-family:'Fraunces',serif;font-size:30px;color:var(--cream)}
+  .stat-value em{color:var(--gold);font-style:italic;font-weight:300}
+  section{padding:88px 8vw}
+  @media(max-width:800px){section{padding:60px 6vw}}
+  .sec-cream{background:var(--cream)}
+  .sec-paper{background:var(--paper)}
+  .sec-ink{background:var(--ink);color:var(--cream)}
+  .sec-soft{background:var(--cream-soft)}
+  .eyebrow{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:22px}
+  .sec-ink .eyebrow{color:var(--gold-bright)}
+  h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(32px,4.4vw,56px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:30px;max-width:22ch}
+  h2 em{font-style:italic;font-weight:300;color:var(--gold)}
+  .sec-ink h2 em{color:var(--gold-bright)}
+  h3{font-family:'Fraunces',serif;font-weight:500;font-size:22px;line-height:1.25;margin-bottom:12px;letter-spacing:-0.01em}
+  p{font-size:16px;margin-bottom:18px;max-width:72ch}
+  .sec-ink p{color:rgba(245,241,232,0.82)}
+  p.lead{font-size:19px;line-height:1.55;font-weight:300;max-width:62ch;color:var(--muted-dark)}
+  .sec-ink p.lead{color:rgba(245,241,232,0.72)}
+  strong{font-weight:600}
+  .northstar{margin:36px 0 0;padding:34px 38px;background:rgba(201,169,97,0.1);border-left:3px solid var(--gold);border-radius:2px}
+  .northstar .label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-deep);letter-spacing:0.25em;text-transform:uppercase;font-weight:500;margin-bottom:14px}
+  .northstar p{font-family:'Fraunces',serif;font-size:22px;line-height:1.4;color:var(--ink);margin:0;font-style:italic;font-weight:300}
+  .northstar p em{font-style:normal;color:var(--gold-deep)}
+  .lines{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px}
+  @media(max-width:760px){.lines{grid-template-columns:1fr}}
+  .line-card{padding:28px 26px;background:var(--ink-soft);border:1px solid var(--line-dark);border-top:3px solid var(--gold);border-radius:2px}
+  .line-card .x{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:10px}
+  .line-card h4{font-family:'Fraunces',serif;font-size:19px;margin-bottom:8px;color:var(--cream)}
+  .line-card p{font-size:14px;color:rgba(245,241,232,0.7);margin:0;line-height:1.6}
+  .dec-table{margin-top:32px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .dec-row{display:grid;grid-template-columns:70px 1fr 130px;gap:0;border-bottom:1px solid var(--line-dark);align-items:center}
+  .dec-row:last-child{border-bottom:none}
+  .dec-row.head{background:rgba(201,169,97,0.08);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold-deep)}
+  .dec-row.head > div{padding:14px 18px}
+  .dec-id{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold-deep);font-weight:500;padding:18px 18px}
+  .dec-desc{padding:16px 18px;font-size:14px;line-height:1.5}
+  .dec-desc b{font-weight:600}
+  .dec-status{padding:16px 18px;text-align:right}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:4px 10px;border-radius:2px;font-weight:600}
+  .badge.open{background:rgba(184,106,85,0.15);color:var(--red)}
+  .badge.done{background:rgba(123,160,91,0.18);color:var(--green)}
+  .streams{margin-top:40px;display:flex;flex-direction:column;gap:12px}
+  .stream{display:grid;grid-template-columns:90px 1fr 150px;gap:24px;padding:24px 28px;background:var(--cream);border:1px solid var(--line-dark);border-left:3px solid var(--gold);border-radius:2px;align-items:center}
+  @media(max-width:860px){.stream{grid-template-columns:1fr;gap:10px}}
+  .stream.s0{border-left-color:var(--red)}
+  .stream.phase2{border-left-color:var(--amber);background:rgba(212,162,74,0.04)}
+  .stream-id{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold-deep);font-weight:500}
+  .stream-body h4{font-family:'Fraunces',serif;font-size:19px;margin-bottom:5px}
+  .stream-body p{font-size:13.5px;color:var(--muted-dark);margin:0;line-height:1.55}
+  .stream-when{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold-deep);letter-spacing:0.1em;text-transform:uppercase;text-align:right}
+  @media(max-width:860px){.stream-when{text-align:left}}
+  .hb{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:34px}
+  @media(max-width:760px){.hb{grid-template-columns:1fr}}
+  .hb-card{padding:30px 28px;border:1px solid var(--line);border-radius:2px}
+  .hb-bot{background:rgba(212,162,74,0.06);border-top:3px solid var(--amber)}
+  .hb-human{background:rgba(123,160,91,0.06);border-top:3px solid var(--green)}
+  .hb-card .tag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:14px;font-weight:600}
+  .hb-bot .tag{color:var(--gold-deep)}
+  .hb-human .tag{color:var(--green)}
+  .hb-card p{font-size:14px;color:var(--muted-dark);margin:0;line-height:1.65}
+  .risk{margin-top:32px;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .risk-row{display:grid;grid-template-columns:1fr 90px 1.4fr;border-bottom:1px solid var(--line-dark)}
+  .risk-row:last-child{border-bottom:none}
+  .risk-row.head{background:rgba(201,169,97,0.08);font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold-deep)}
+  .risk-row > div{padding:15px 18px;font-size:13.5px;line-height:1.5}
+  .risk-row.head > div{padding:13px 18px}
+  .sev{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:3px 9px;border-radius:2px;font-weight:600;display:inline-block}
+  .sev.high{background:rgba(184,106,85,0.16);color:var(--red)}
+  .sev.med{background:rgba(212,162,74,0.16);color:var(--gold-deep)}
+  .closing{background:var(--ink);color:var(--cream);padding:100px 8vw;text-align:center;position:relative;overflow:hidden}
+  .closing::before{content:'';position:absolute;top:-30%;left:50%;transform:translateX(-50%);width:60%;height:160%;background:radial-gradient(ellipse,rgba(201,169,97,0.16),transparent 60%)}
+  .closing .eyebrow{color:var(--gold-bright);position:relative;z-index:2}
+  .closing-text{font-family:'Fraunces',serif;font-size:clamp(26px,3.5vw,42px);line-height:1.25;font-weight:300;max-width:20ch;margin:0 auto;position:relative;z-index:2}
+  .closing-text em{font-style:italic;color:var(--gold)}
+  .footer{background:var(--ink-soft);color:var(--muted);padding:40px 8vw;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="cover-top">
+    <div class="wordmark">Rev<em>arity</em></div>
+    <div class="cover-meta-inline">Master Plan · CTO Initiative</div>
+  </div>
+  <div class="doc-tag"><span class="dot"></span>Marketing Engine · Internal</div>
+  <h1 class="display">Build the <em>engine</em>. Humans run the campaigns.</h1>
+  <p class="cover-sub">The CTO's tooling layer for marketing and content — a brand-locked creative engine and the real lead-magnet assets the funnel needs. It feeds David's ads, Vu's content, and Malcolm's spend calls, without removing the human judgment that protects a high-ticket brand.</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Workstreams</div><div class="stat-value"><em>7</em></div></div>
+    <div class="stat"><div class="stat-label">Open decisions</div><div class="stat-value"><em>2</em> gating</div></div>
+    <div class="stat"><div class="stat-label">Phase 1</div><div class="stat-value"><em>4</em> wks</div></div>
+    <div class="stat"><div class="stat-label">End state</div><div class="stat-value">Self-<em>refreshing</em></div></div>
+  </div>
+</header>
+
+<section class="sec-ink">
+  <div class="eyebrow">The premise</div>
+  <h2>This is <em>tooling</em>, not a campaign.</h2>
+  <p class="lead">David runs the funnel. Vu owns content. Malcolm signs off on spend. The CTO builds the layer underneath all three: a creative engine that produces brand-locked, QA'd ad creatives at roughly ten times manual throughput, plus the lead magnets — the income calculator and the deal list — that the funnel actually needs.</p>
+  <p>The discipline is David's own filter: anything built on Claude either serves the SaaS or ties to what Revarity is already doing — otherwise, question why it's being built. Every piece here passes that test. The income calculator <em>is</em> the master-flow profitability calculator. The deal list <em>is</em> the RevDeal teaser. The engine feeds the live funnel. We explicitly rejected the "autonomous AI ad factory" everyone's demoing, because it failed the filter — no proven use yet, and the wrong tool for a high-trust offer.</p>
+
+  <div class="lines">
+    <div class="line-card">
+      <div class="x">✕ We do not</div>
+      <h4>Generate AI fake-testimonial video</h4>
+      <p>For a $12K–$35K offer sold to people with real capital, AI talking-head UGC is a brand risk and dishonest. Video social proof comes from real clients. AI handles static, before/after, and B-roll only.</p>
+    </div>
+    <div class="line-card">
+      <div class="x">✕ We do not</div>
+      <h4>Let a bot spend money</h4>
+      <p>The engine generates and QAs creatives into a review queue. It never publishes to Meta. Approving creative before spend is a money decision — it stays human, like sanity-checking a deal before signing.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec-cream">
+  <div class="eyebrow">The operating principle</div>
+  <h2>Repeatable is a bot's job. <em>Money and the call</em> are ours.</h2>
+  <div class="northstar">
+    <div class="label">— North Star —</div>
+    <p>"If a step is repeatable, a bot owns it. Humans only own <em>(1) live phone calls</em>, <em>(2) on-the-ground property visits</em>, and <em>(3) sanity-checking top-tier deal numbers before signing</em>."</p>
+  </div>
+  <p style="margin-top:28px">Applied here: generation, QA, estimate computation, lead capture, nurture, and performance analysis are all bot. The one defensible human exception in this initiative is approving creative before ad spend — and every ad launch or pause. The loop proposes; the human disposes.</p>
+</section>
+
+<section class="sec-paper">
+  <div class="eyebrow">Decisions</div>
+  <h2>Two calls gate the launch. <em>Four</em> are already made.</h2>
+  <p class="lead">D-01 and D-02 need Malcolm. Until D-01 resolves, copy stays pricing-agnostic and the calculator omits its cost side. Until D-02 resolves, no SaaS-facing surface — but nothing else waits on it.</p>
+
+  <div class="dec-table">
+    <div class="dec-row head"><div>ID</div><div>Decision</div><div style="text-align:right">Status</div></div>
+    <div class="dec-row"><div class="dec-id">D-01</div><div class="dec-desc"><b>Pricing model.</b> Flat $375 (blueprint) vs 4-tier (master flow). Rec: two-funnel — flat hook for cold paid, tiers for inbound.</div><div class="dec-status"><span class="badge open">Open · Malcolm</span></div></div>
+    <div class="dec-row"><div class="dec-id">D-02</div><div class="dec-desc"><b>SaaS brand separation.</b> Spin the lease-research tool out under its own brand + affiliate channel. Rec: separate face, shared spine.</div><div class="dec-status"><span class="badge open">Open · Malcolm</span></div></div>
+    <div class="dec-row"><div class="dec-id">D-03</div><div class="dec-desc"><b>No AI UGC video.</b> Static + B-roll only; real clients for video social proof.</div><div class="dec-status"><span class="badge done">Decided</span></div></div>
+    <div class="dec-row"><div class="dec-id">D-04</div><div class="dec-desc"><b>No autonomous publishing.</b> Human approval gates every ad spend.</div><div class="dec-status"><span class="badge done">Decided</span></div></div>
+    <div class="dec-row"><div class="dec-id">D-05</div><div class="dec-desc"><b>Contractor — Option 1.</b> Phase 1 done properly, retain David for Phase 2/3.</div><div class="dec-status"><span class="badge done">Decided</span></div></div>
+    <div class="dec-row"><div class="dec-id">D-06</div><div class="dec-desc"><b>Higgsfield — inside the engine.</b> Static + B-roll generation via Claude Code, not a standalone factory.</div><div class="dec-status"><span class="badge done">Decided</span></div></div>
+  </div>
+</section>
+
+<section class="sec-cream">
+  <div class="eyebrow">The sequence</div>
+  <h2>Unblock the decisions, then build in <em>parallel</em>.</h2>
+  <p class="lead">Phase 1 ships a working operator funnel with engine-made creatives. Phase 2 ships the learning loop and leadership visibility. No big-bang launch — every stream ships standalone value.</p>
+
+  <div class="streams">
+    <div class="stream s0">
+      <div class="stream-id">Stream 0</div>
+      <div class="stream-body"><h4>Unblock the decisions</h4><p>Both memos to Malcolm. D-01 unblocks final copy + the calculator cost side; D-02 unblocks any SaaS surface. Don't idle waiting — everything decision-independent runs now.</p></div>
+      <div class="stream-when">Week 0 · gates all</div>
+    </div>
+    <div class="stream">
+      <div class="stream-id">Stream A</div>
+      <div class="stream-body"><h4>Creative Engine</h4><p>The skill: brand kit → copy + image variations → automated QA pass → human review queue. First run produces the income + deal-list creatives.</p></div>
+      <div class="stream-when">Weeks 1–3</div>
+    </div>
+    <div class="stream">
+      <div class="stream-id">Stream B</div>
+      <div class="stream-body"><h4>Income calculator</h4><p>The highest-intent lead magnet, live and feeding GHL. Ranged, honest, no hero number. Also the master landing page's cost widget.</p></div>
+      <div class="stream-when">Weeks 1–2</div>
+    </div>
+    <div class="stream">
+      <div class="stream-id">Stream C</div>
+      <div class="stream-body"><h4>Deal list</h4><p>The RevDeal teaser magnet — closed deals visible, risk featured, teaser-only. Built once the deal-feed shape is confirmed.</p></div>
+      <div class="stream-when">Weeks 2–4</div>
+    </div>
+    <div class="stream">
+      <div class="stream-id">Stream D</div>
+      <div class="stream-body"><h4>Wire into David's funnel</h4><p>Hand approved creatives + live lead-magnet URLs to David. He builds the campaigns, forms, workflows, and nurture. End-to-end test, then go live on Malcolm's sign-off.</p></div>
+      <div class="stream-when">Weeks 3–4</div>
+    </div>
+    <div class="stream phase2">
+      <div class="stream-id">Stream E</div>
+      <div class="stream-body"><h4>Meta performance loop</h4><p>Phase 2. Pull per-creative performance, spawn variations of winners, flag losers for human pause. Needs live spend data first.</p></div>
+      <div class="stream-when">Weeks 4–9 · P2</div>
+    </div>
+    <div class="stream phase2">
+      <div class="stream-id">Stream F</div>
+      <div class="stream-body"><h4>Malcolm dashboard</h4><p>Phase 2. Spend → ROI on one screen, weekly auto-summary. Malcolm's "build" is visibility, so he can make the scale call.</p></div>
+      <div class="stream-when">Weeks 4–9 · P2</div>
+    </div>
+  </div>
+  <p style="margin-top:24px;font-size:14px;color:var(--muted-dark)">Stream G (SaaS sub-brand surface + affiliate) is built only if D-02 resolves to separate — separate brand, domain, ad account, and funnel, on the shared spine.</p>
+</section>
+
+<section class="sec-soft">
+  <div class="eyebrow">Who owns what</div>
+  <h2>The human / bot split.</h2>
+  <div class="hb">
+    <div class="hb-card hb-bot">
+      <div class="tag">◆ Bot owns</div>
+      <p>Creative generation · image-prompt generation · the QA pass · estimate computation · lead capture · nurture sequences · performance pulls · variation spawning · dashboard assembly. Everything repeatable.</p>
+    </div>
+    <div class="hb-card hb-human">
+      <div class="tag">◆ Human owns</div>
+      <p>Approving creative before spend (a money decision) · the D-01 / D-02 calls · the discovery and close calls · confirming real market data before scale · every ad launch and pause. The loop proposes; the human disposes.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec-cream">
+  <div class="eyebrow">Risk register</div>
+  <h2>What could go wrong, and the guard.</h2>
+  <div class="risk">
+    <div class="risk-row head"><div>Risk</div><div>Severity</div><div>Guard</div></div>
+    <div class="risk-row"><div>Ads launch before pricing is resolved</div><div><span class="sev high">High</span></div><div>Pricing guard blocks copy; no paid launch until D-01 is decided.</div></div>
+    <div class="risk-row"><div>AI creative looks cheap and hurts a high-ticket brand</div><div><span class="sev high">High</span></div><div>QA pass + human gate + no AI UGC (D-03); real testimonials for video.</div></div>
+    <div class="risk-row"><div>Autonomous loop spends on a bad creative</div><div><span class="sev high">High</span></div><div>D-04 human gate on every launch/pause; the loop only proposes.</div></div>
+    <div class="risk-row"><div>Placeholder calculator data read as real</div><div><span class="sev med">Med</span></div><div>Constants isolated + labeled; replaced with PriceLabs/AirDNA before scale; range + footnote shown.</div></div>
+    <div class="risk-row"><div>Contractor spreads thin (Option 2 temptation)</div><div><span class="sev med">Med</span></div><div>D-05: Option 1 — Phase 1 properly, retain past the month.</div></div>
+    <div class="risk-row"><div>Brand separation breaks domain architecture</div><div><span class="sev med">Med</span></div><div>D-02 Option C: separate face, shared spine; explicit domain/cert task.</div></div>
+    <div class="risk-row"><div>GHL longevity (open master-flow risk)</div><div><span class="sev med">Med</span></div><div>Keep an export/migration path; avoid deep coupling.</div></div>
+  </div>
+</section>
+
+<section class="closing">
+  <div class="eyebrow">— The shape of it —</div>
+  <p class="closing-text">Build the engine. Hold the two lines. <em>Let the humans close.</em></p>
+</section>
+
+<div class="footer">Revarity · Internal · Marketing Engine Master Plan · May 2026</div>
+
+</body>
+</html>

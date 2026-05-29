@@ -1,0 +1,90 @@
+{
+  "$schema": "https://revarity.com/schemas/brand-kit.v1.json",
+  "brand": "Revarity",
+  "version": "1.0",
+  "updated": "2026-05-28",
+  "note": "Single source of truth for visual identity. The Creative Engine, lead-magnet assets, and all generated creatives MUST read tokens from this file. Do not hardcode hex values anywhere else.",
+
+  "typography": {
+    "display": {
+      "family": "Fraunces",
+      "role": "Headlines, hero copy, emphasis. Serif. Editorial, premium.",
+      "weights": [300, 400, 500, 600, 700],
+      "italic_use": "Gold-colored italic at weight 300 is the signature emphasis treatment."
+    },
+    "ui": {
+      "family": "Manrope",
+      "role": "Body, UI, paragraphs, buttons. Sans-serif. Clean, modern.",
+      "weights": [300, 400, 500, 600, 700],
+      "default_weight": 400,
+      "letter_spacing": "-0.005em"
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "role": "Labels, eyebrows, metadata, code, data tags. Uppercase + wide tracking.",
+      "weights": [400, 500],
+      "treatment": "letter-spacing 0.15em-0.35em, text-transform uppercase, gold or muted color"
+    },
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+  },
+
+  "palette": {
+    "ink": "#0a0a0b",
+    "ink_soft": "#141416",
+    "cream": "#f5f1e8",
+    "cream_soft": "#ece6d6",
+    "paper": "#f9f6ee",
+    "gold": "#c9a961",
+    "gold_bright": "#e0c074",
+    "gold_deep": "#a88842",
+    "muted": "#8a857a",
+    "muted_dark": "#5a554b",
+    "line": "rgba(201,169,97,0.25)",
+    "line_dark": "rgba(201,169,97,0.12)",
+    "line_light": "rgba(0,0,0,0.08)",
+    "green": "#7ba05b",
+    "red": "#b86a55",
+    "slate": "#7a7a7a",
+    "amber": "#d4a24a"
+  },
+
+  "semantic": {
+    "background_dark": "ink",
+    "background_light": "cream",
+    "background_paper": "paper",
+    "text_on_dark": "cream",
+    "text_on_light": "ink",
+    "accent": "gold",
+    "accent_bright": "gold_bright",
+    "status_positive": "green",
+    "status_negative": "red",
+    "status_warn": "amber",
+    "human_owned_marker": "green",
+    "bot_owned_marker": "amber",
+    "system_owned_marker": "gold"
+  },
+
+  "creative_rules": {
+    "do": [
+      "Gold-on-ink and ink-on-cream are the two primary contrast pairings.",
+      "Use generous negative space. Premium, not crowded.",
+      "Radial gold glow on dark backgrounds for atmosphere.",
+      "Italic Fraunces in gold for the single most important word in a headline.",
+      "Real photography of furnished units beats AI-rendered interiors where available."
+    ],
+    "dont": [
+      "No purple gradients, no generic SaaS-blue, no stock-photo gloss.",
+      "No emoji in any creative.",
+      "No fonts outside the three above.",
+      "No AI-generated talking-head / fake-testimonial UGC video (see DECISIONS.md D-03).",
+      "No itemized markup shown to client (locked RevAtelier rule applies to setup-fee framing)."
+    ]
+  },
+
+  "creative_specs": {
+    "meta_feed_square": { "w": 1080, "h": 1080, "use": "Primary FB/IG feed static ad" },
+    "meta_story_vertical": { "w": 1080, "h": 1920, "use": "Story/Reel cover, vertical" },
+    "meta_landscape": { "w": 1200, "h": 628, "use": "Link/landscape ad" },
+    "before_after_split": { "w": 1080, "h": 1080, "use": "Before/after unit transformation, vertical or horizontal split" }
+  }
+}

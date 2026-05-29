@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-05-29T06:17:35.656Z",
+  "model": "gemini-2.5-flash",
+  "sourceCount": 6,
+  "patterns": {
+    "hooks": [
+      "How much could a [city] short-term rental actually generate?",
+      "We find the property. You approve the lease. We manage operations.",
+      "Limited short-term rental opportunities are available in [city] this month.",
+      "Property ownership is not required to operate a short-term rental.",
+      "Here's an estimated revenue range for a [property_type] short-term rental: conservative to optimistic.",
+      "Insights from operating [number]+ short-term rental units, consolidated for you."
+    ],
+    "angles": [
+      "Income Curiosity + Local Specificity: Taps into a prospect's desire for financial potential within their specific market.",
+      "Done-For-You Clarity: Clearly outlines the minimal client involvement, addressing the 'too much work' objection.",
+      "Honest Scarcity: Leverages genuine, verifiable limited availability to create credible urgency.",
+      "Objection Flip / Myth Busting: Directly addresses and refutes common misconceptions about the short-term rental model.",
+      "Numbers Transparency: Builds trust by providing honest, ranged financial estimates without hype.",
+      "Founder/Operator Credibility: Establishes authority and expertise through demonstrated operational experience."
+    ],
+    "formats": [
+      "Feed Image: Best for clear, concise messages, direct questions, or transparent number displays.",
+      "Story Vertical: Effective for dynamic, quick-hit content, real-time updates, or direct founder messages."
+    ],
+    "copy_frameworks": [
+      "Question Hook → Ranged Estimate Teaser → Soft CTA (e.g., to a calculator)",
+      "3-Step Model Stated Plainly → Credibility Point → Direct CTA (e.g., book a call)",
+      "Real Availability Hook → Risk/Benefit Context → Specific CTA (e.g., see available list)",
+      "Common Myth → Reframe/Correction → Model Explanation → CTA",
+      "Ranged Number + 'Estimate' Label Hook → Method/Context → Direct CTA",
+      "Authority Hook (Experience-based) → Key Insight Tease → Free Resource CTA"
+    ],
+    "do": [
+      "Be direct and honest in all communication.",
+      "Clearly state Revarity's done-for-you arbitrage model.",
+      "Always use ranged estimates for financial projections.",
+      "Explicitly label all projected numbers as 'estimate'.",
+      "Maintain a professional, no-hype tone.",
+      "Emphasize the requirement for real capital.",
+      "Use 'short-term rental' or 'Airbnb arbitrage' consistently."
+    ],
+    "dont": [
+      "Use hype adjectives or exaggerated claims.",
+      "Make specific pricing or return claims (always use ranges and 'estimate').",
+      "Create artificial scarcity or time-sensitive pressure.",
+      "Reproduce specific ad wording from references.",
+      "Promise guaranteed outcomes or specific income figures.",
+      "Use overly casual or informal language."
+    ]
+  }
+}

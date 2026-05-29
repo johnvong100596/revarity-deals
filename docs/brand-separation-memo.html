@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS Brand Separation — Decision Memo (D-02)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0b;--ink-soft:#141416;--cream:#f5f1e8;--cream-soft:#ece6d6;--paper:#f9f6ee;
+    --gold:#c9a961;--gold-bright:#e0c074;--gold-deep:#a88842;--muted:#8a857a;--muted-dark:#5a554b;
+    --line:rgba(201,169,97,0.25);--line-dark:rgba(201,169,97,0.12);--line-light:rgba(0,0,0,0.08);
+    --green:#7ba05b;--red:#b86a55;--amber:#d4a24a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{font-family:'Manrope',sans-serif;background:var(--cream);color:var(--ink);line-height:1.65;letter-spacing:-0.005em}
+  .display{font-family:'Fraunces',serif;font-weight:400;letter-spacing:-0.025em;line-height:1.05}
+  .cover{background:var(--ink);color:var(--cream);padding:72px 8vw 88px;position:relative;overflow:hidden}
+  .cover::before{content:'';position:absolute;top:-40%;right:-15%;width:70%;height:180%;background:radial-gradient(ellipse at center,rgba(201,169,97,0.14) 0%,transparent 60%);pointer-events:none}
+  .cover-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:40px;border-bottom:1px solid var(--line-dark);margin-bottom:56px;position:relative;z-index:2;flex-wrap:wrap;gap:16px}
+  .wordmark{font-family:'Fraunces',serif;font-weight:500;font-size:15px;letter-spacing:0.2em;text-transform:uppercase}
+  .wordmark em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-meta-inline{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase}
+  .doc-tag{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:0.35em;text-transform:uppercase;margin-bottom:26px;font-weight:500;position:relative;z-index:2;display:flex;align-items:center;gap:14px}
+  .doc-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 12px rgba(201,169,97,0.6)}
+  .cover h1{font-size:clamp(40px,6.5vw,84px);margin-bottom:28px;max-width:16ch;position:relative;z-index:2;line-height:1.0}
+  .cover h1 em{color:var(--gold);font-style:italic;font-weight:300}
+  .cover-sub{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:clamp(18px,2vw,25px);color:rgba(245,241,232,0.72);max-width:56ch;line-height:1.4;margin-bottom:48px;position:relative;z-index:2}
+  .cover-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;padding-top:36px;border-top:1px solid var(--line-dark);position:relative;z-index:2}
+  @media(max-width:800px){.cover-meta-grid{grid-template-columns:repeat(2,1fr);gap:18px}}
+  .cover-meta-grid .label{color:var(--gold);letter-spacing:0.25em;font-size:10px;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+  .cover-meta-grid .value{color:var(--cream);font-size:14px}
+  section{padding:80px 8vw}
+  @media(max-width:800px){section{padding:56px 6vw}}
+  .sec-cream{background:var(--cream)}
+  .sec-paper{background:var(--paper)}
+  .sec-ink{background:var(--ink);color:var(--cream)}
+  .eyebrow{font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);font-weight:500;margin-bottom:20px}
+  .sec-ink .eyebrow{color:var(--gold-bright)}
+  h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(30px,4vw,52px);line-height:1.08;letter-spacing:-0.02em;margin-bottom:28px;max-width:22ch}
+  h2 em{font-style:italic;font-weight:300;color:var(--gold)}
+  .sec-ink h2 em{color:var(--gold-bright)}
+  h3{font-family:'Fraunces',serif;font-weight:500;font-size:21px;line-height:1.25;margin-bottom:12px;letter-spacing:-0.01em}
+  p{font-size:16px;margin-bottom:18px;max-width:72ch}
+  .sec-ink p{color:rgba(245,241,232,0.82)}
+  p.lead{font-size:19px;line-height:1.55;font-weight:300;max-width:62ch;color:var(--muted-dark)}
+  .sec-ink p.lead{color:rgba(245,241,232,0.72)}
+  strong{font-weight:600}
+  .why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:32px 0}
+  @media(max-width:760px){.why-grid{grid-template-columns:1fr}}
+  .why-card{padding:26px 24px;background:var(--cream);border:1px solid var(--line-dark);border-top:3px solid var(--gold);border-radius:2px}
+  .why-card .n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold-deep);letter-spacing:0.1em;margin-bottom:12px}
+  .why-card h4{font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px}
+  .why-card p{font-size:14px;color:var(--muted-dark);line-height:1.6;margin:0}
+  .cost-note{margin:8px 0 0;padding:26px 30px;background:rgba(184,106,85,0.07);border:1px solid rgba(184,106,85,0.25);border-left:3px solid var(--red);border-radius:2px}
+  .cost-note .label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--red);margin-bottom:10px;font-weight:500}
+  .cost-note p{margin:0;font-size:15px;color:var(--muted-dark)}
+  .options{margin:32px 0;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+  .opt{display:grid;grid-template-columns:46px 1fr;border-bottom:1px solid var(--line-dark)}
+  .opt:last-child{border-bottom:none}
+  .opt.rec{background:rgba(201,169,97,0.09)}
+  .opt-letter{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--gold-deep);font-weight:500;display:flex;align-items:flex-start;justify-content:center;padding:24px 0;background:rgba(201,169,97,0.06)}
+  .opt.rec .opt-letter{color:var(--ink);background:var(--gold)}
+  .opt-body{padding:22px 26px}
+  .opt-body h4{font-family:'Fraunces',serif;font-size:18px;margin-bottom:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .opt-pill{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;padding:3px 9px;border-radius:2px;font-weight:600;background:var(--gold);color:var(--ink)}
+  .opt-body p{font-size:14px;color:var(--muted-dark);line-height:1.6;margin:0 0 8px}
+  .opt-tradeoff{font-size:13px;color:var(--ink)}
+  .opt-tradeoff b{color:var(--gold-deep)}
+  .rec-box{margin:36px 0 0;padding:32px 34px;background:var(--ink);color:var(--cream);border-radius:3px;position:relative;overflow:hidden}
+  .rec-box::before{content:'';position:absolute;top:-50%;left:-10%;width:50%;height:200%;background:radial-gradient(ellipse,rgba(201,169,97,0.16),transparent 60%)}
+  .rec-box .eyebrow{color:var(--gold-bright);position:relative;z-index:2}
+  .rec-box .rec-text{font-family:'Fraunces',serif;font-size:23px;line-height:1.4;font-weight:300;font-style:italic;position:relative;z-index:2;margin:0;color:var(--cream)}
+  .rec-box .rec-text em{font-style:normal;color:var(--gold)}
+  .signoff{margin-top:32px;padding:26px 30px;background:var(--cream);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:2px}
+  .signoff .deadline{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:12px;font-weight:500}
+  .signoff-row{display:flex;gap:40px;margin-top:18px;flex-wrap:wrap}
+  .signoff-row .sig{flex:1;min-width:180px}
+  .signoff-row .sig-line{border-bottom:1px solid var(--muted);height:32px;margin-bottom:6px}
+  .signoff-row .sig-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted-dark)}
+  .footer{background:var(--ink);color:var(--muted);padding:40px 8vw;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="cover">
+  <div class="cover-top">
+    <div class="wordmark">Rev<em>arity</em></div>
+    <div class="cover-meta-inline">Decision Memo · D-02</div>
+  </div>
+  <div class="doc-tag"><span class="dot"></span>Requires sign-off · Malcolm</div>
+  <h1 class="display">Give the SaaS its <em>own name</em> — so even competitors will sell it.</h1>
+  <p class="cover-sub">David's call: spin the lease-research tool out under its own brand. Revarity can vouch for it without looking self-serving, and other Airbnb operators will run it — an affiliate channel from people who'd never touch a "Revarity" product.</p>
+  <div class="cover-meta-grid">
+    <div class="col"><div class="label">Decision</div><div class="value">Separate SaaS brand</div></div>
+    <div class="col"><div class="label">Blocks</div><div class="value">Any SaaS surface</div></div>
+    <div class="col"><div class="label">Owner</div><div class="value">Malcolm</div></div>
+    <div class="col"><div class="label">Date</div><div class="value">May 2026</div></div>
+  </div>
+</header>
+
+<section class="sec-cream">
+  <div class="eyebrow">The proposal</div>
+  <h2>The operator and the <em>tool</em> shouldn't share a face.</h2>
+  <p class="lead">Right now everything sits under one brand. That's fine for the operator business. It's a ceiling for the SaaS — because the moment Revarity recommends a tool that's also stamped "Revarity," it reads as self-promotion, and no competitor will ever distribute a product that feeds a rival.</p>
+  <p>The reference is the Yaman model: a separate CRM SaaS brand run alongside the main company. The separation is what lets the main company vouch for the tool credibly, and lets the tool stand on its own. David's read is the same, and it's right.</p>
+</section>
+
+<section class="sec-paper">
+  <div class="eyebrow">Why it's the right call</div>
+  <h2>Three things separation buys.</h2>
+  <div class="why-grid">
+    <div class="why-card">
+      <div class="n">01</div>
+      <h4>We can vouch without bias</h4>
+      <p>A distinct brand lets Revarity recommend the tool as a real product, not a house ad. Credibility we can't manufacture under one name.</p>
+    </div>
+    <div class="why-card">
+      <div class="n">02</div>
+      <h4>Competitors become distributors</h4>
+      <p>Other Airbnb operators will run and resell a neutral tool. An affiliate channel built from the very people who'd never promote anything labeled Revarity.</p>
+    </div>
+    <div class="why-card">
+      <div class="n">03</div>
+      <h4>The operator brand stays clean</h4>
+      <p>The SaaS lives or dies on its own metrics without dragging — or being dragged by — the operator brand. Two stories, two audiences, no cross-contamination.</p>
+    </div>
+  </div>
+
+  <div class="cost-note">
+    <div class="label">The honest cost — this is a build, not a rename</div>
+    <p>Separation breaks the locked all-<strong>*.revarity.com</strong> architecture. A new brand needs its own domain and wildcard cert, its own Meta ad account, its own funnel and creative set, its own identity, and its own support surface. Budget it as real work, not a label swap.</p>
+  </div>
+</section>
+
+<section class="sec-cream">
+  <div class="eyebrow">The options</div>
+  <h2>Three ways to play it.</h2>
+  <div class="options">
+    <div class="opt">
+      <div class="opt-letter">A</div>
+      <div class="opt-body">
+        <h4>Keep it under Revarity</h4>
+        <p>Status quo. No new domain, no new build. Everything stays one brand.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> self-serving optics, and the affiliate channel is dead on arrival. We cap the SaaS to grow only what the operator brand can reach.</div>
+      </div>
+    </div>
+    <div class="opt">
+      <div class="opt-letter">B</div>
+      <div class="opt-body">
+        <h4>Fully separate — brand, funnel, and backend</h4>
+        <p>A clean-room second company: its own everything, including a separate technical stack.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> maximum independence, maximum cost and duplication. We'd rebuild the spine and governance we already have, for no real gain.</div>
+      </div>
+    </div>
+    <div class="opt rec">
+      <div class="opt-letter">C</div>
+      <div class="opt-body">
+        <h4>Separate face, shared spine <span class="opt-pill">Recommended</span></h4>
+        <p>A distinct brand, domain, ad account, and funnel up front — but the same Postgres spine, governance layer, and connector-edge architecture behind it. Customers and competitors see an independent product; we run one backend.</p>
+        <div class="opt-tradeoff"><b>Trade:</b> requires clean brand/data boundaries so the separation reads as real. This is exactly the connector-edge posture — customers bring their own credentials; we supply the intelligence — so it fits what's already being built.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rec-box">
+    <div class="eyebrow">Recommendation</div>
+    <p class="rec-text">Take <em>C</em>. Build the separate brand, domain, and funnel — but keep the shared spine and governance behind it. It captures the affiliate upside and the credibility, without paying to duplicate infrastructure we already own.</p>
+  </div>
+
+  <div class="signoff">
+    <div class="deadline">Decision needed before any SaaS-facing surface is built</div>
+    <p style="margin:0;font-size:15px;color:var(--muted-dark)">This does <strong>not</strong> block the STR-operator funnel, the Creative Engine, or the lead magnets — build those now regardless. It only gates the SaaS brand, domain, and affiliate work.</p>
+    <div class="signoff-row">
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Malcolm — decision</div></div>
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Cena — noted</div></div>
+      <div class="sig"><div class="sig-line"></div><div class="sig-label">Date</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="footer">Revarity · Internal · Decision Memo D-02 · SaaS Brand Separation</div>
+
+</body>
+</html>

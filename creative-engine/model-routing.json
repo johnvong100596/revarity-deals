@@ -1,0 +1,96 @@
+{
+  "$schema": "https://revarity.com/schemas/model-routing.v1.json",
+  "version": "1.0",
+  "note": "Maps the existing Revarity multi-agent subagent stack to Creative Engine tasks. Cost discipline: the cheap model does the high-volume work; the expensive model only does the rare reasoning.",
+
+  "tasks": {
+    "creative_strategy": {
+      "model": "claude-opus-4-7",
+      "subagent": "architect",
+      "why": "Deciding which angles to run, reading the brand brief, structuring a creative test plan. Rare, high-leverage. Opus.",
+      "frequency": "per-campaign"
+    },
+    "copy_generation": {
+      "model": "claude-sonnet-4-6",
+      "subagent": "implementer",
+      "why": "Generating headline + body + CTA variations from an approved angle. Mid-volume. Sonnet.",
+      "frequency": "per-variant-batch"
+    },
+    "image_prompt_generation": {
+      "model": "claude-sonnet-4-6",
+      "subagent": "implementer",
+      "why": "Turning brand + angle into precise image-gen prompts for the image_render task (Nano Banana via the Gemini API). Sonnet.",
+      "frequency": "per-creative"
+    },
+    "image_render": {
+      "model": "gemini-3.1-flash-image-preview",
+      "final_render_model": "gemini-3-pro-image-preview",
+      "provider": "google_gemini_api",
+      "engine": "Nano Banana",
+      "subagent": "implementer",
+      "why": "Renders the static ad asset from an image_prompt_generation prompt. Nano Banana via the Google Gemini API. Draft every creative on gemini-3.1-flash-image-preview (cheap, fast); only re-render on gemini-3-pro-image-preview when text fidelity in-image genuinely needs it (e.g. an overlaid figure/label must read cleanly). This replaces the earlier generic 'Higgsfield / Nano Banana' placeholder.",
+      "frequency": "per-creative",
+      "escalation_rule": "flash draft by default; pro final-render ONLY when in-image text legibility fails QA (qa_review reason 'garbled text' or 'headline legibility')."
+    },
+    "video_broll": {
+      "model": "higgsfield",
+      "provider": "higgsfield_mcp",
+      "mcp": "https://mcp.higgsfield.ai/mcp",
+      "subagent": "implementer",
+      "why": "B-roll / motion footage ONLY — furnished-unit pans, lifestyle context, ambient establishing shots. Generated via the Higgsfield MCP. (D-06: Higgsfield adopted inside the engine, not standalone.)",
+      "frequency": "per-creative",
+      "hard_guardrail": "NEVER a fabricated person implying a real customer or founder. No AI talking-head, no synthetic testimonial, no synthetic spokesperson. Real client/founder video is the only source of person-on-camera social proof. (DECISIONS.md D-03.)"
+    },
+    "qa_review": {
+      "model": "claude-haiku-4-5-20251001",
+      "subagent": "reviewer",
+      "why": "Screenshot the generated creative, check for garbled text, off-brand color, spec violations. HIGH VOLUME, must be cheap and fast. Haiku.",
+      "frequency": "per-creative",
+      "escalates_to": "qa_review_deep"
+    },
+    "qa_review_deep": {
+      "model": "claude-sonnet-4-6",
+      "subagent": "reviewer",
+      "why": "Only when Haiku flags ambiguity it cannot resolve. Rare. Sonnet.",
+      "frequency": "exception-only"
+    },
+    "performance_analysis": {
+      "model": "claude-sonnet-4-6",
+      "subagent": "implementer",
+      "why": "PHASE 2 ONLY. Read Meta Ads Manager performance via MCP, identify winners, decide which to spawn variations of. Sonnet.",
+      "frequency": "weekly",
+      "phase": 2
+    }
+  },
+
+  "mcp_connectors": {
+    "google_gemini_api": {
+      "status": "ACTIVE",
+      "engine": "Nano Banana",
+      "use": "Image render for the image_render task. Draft model gemini-3.1-flash-image-preview; final-render model gemini-3-pro-image-preview only when in-image text fidelity requires it.",
+      "do_not_use_for": "Person-on-camera / talking-head generation. Static creative only; motion goes through the Higgsfield MCP."
+    },
+    "higgsfield_mcp": {
+      "status": "ACTIVE",
+      "endpoint": "https://mcp.higgsfield.ai/mcp",
+      "use": "B-roll / motion generation for the video_broll task only.",
+      "do_not_use_for": "Any fabricated person implying a real customer or founder; AI talking-head / testimonial / spokesperson video. (DECISIONS.md D-03.)"
+    },
+    "pricelabs": {
+      "status": "ACTIVE",
+      "use": "Market data for the income calculator. Market Dashboards supply the ADR / occupancy bands (by market + bedroom) used client-side for the pre-capture range. The Revenue Estimator API supplies the property-specific detail computed SERVER-SIDE only after lead capture.",
+      "do_not_use_for": "Client-side calls before lead capture (the on-page range is pure client-side from the dashboard bands). NOT AirDNA, NOT the lease-research tool — PriceLabs is the calculator's market-data source.",
+      "note": "Dashboard bands are still presented in-UI as estimates with a range and a visible footnote; refresh them against a live PriceLabs pull before scale."
+    },
+    "meta_ads_manager": {
+      "status": "PHASE_2",
+      "use": "Pull CPL/CPC/CPA/CTR per creative; feed winners into copy_generation + image_prompt_generation to spawn variations.",
+      "do_not_use_for": "Auto-publishing live ads. Publishing is gated by human approval (DECISIONS.md D-04)."
+    },
+    "gohighlevel": {
+      "status": "ACTIVE",
+      "use": "Lead capture from forms, pipeline, nurture. Owned by David's funnel build.",
+      "longevity_flag": "Open risk \u2014 GHL longevity (master-flow Stone 03 open decision). Keep an export/migration path."
+    }
+  }
+}
