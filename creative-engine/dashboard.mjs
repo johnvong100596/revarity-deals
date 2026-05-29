@@ -157,7 +157,7 @@ code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(245,2
       <div class="eyebrow">— Operator Overview —</div>
       <h1>The funnel's <em>engine room</em></h1>
       <p class="lead">Everything the marketing engine produces flows through here: create a run, generate brand-locked creatives, approve before spend, set budget, and (Phase 2) monitor performance. The engine generates and QAs; the spend decision stays human.</p>
-      <div class="gate warn"><span>⚑</span><span><b>Human gate (D-04).</b> This hub proposes — it never publishes to Meta or spends. Approving a set marks it ready; a human still pushes it live. Pricing stays out of all copy while D-01 is open.</span></div>
+      <div class="gate warn"><span><b>Human gate (D-04).</b> This hub proposes — it never publishes to Meta or spends. Approving a set marks it ready; a human still pushes it live. Pricing stays out of all copy while D-01 is open.</span></div>
       <div class="grid cards4">
         <div class="stat"><div class="k">In review queue</div><div class="v">${DATA.queue.length}</div><div class="sub">creatives generated</div></div>
         <div class="stat"><div class="k">Passed auto-QA</div><div class="v good">${passN}<small> / ${DATA.queue.length}</small></div><div class="sub">brand + garble + banned-content screen</div></div>
@@ -180,7 +180,7 @@ code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(245,2
       </div>
       <button class="btn" data-act="buildcmd">Show generate command →</button>
       <code class="cmd" id="cmdOut">node creative-engine/pipeline.mjs --clean</code>
-      <div class="gate"><span>ℹ</span><span>Production wiring: this button calls a backend job that runs <code>pipeline.mjs</code> (generate → render → QA → regen → review). Output lands in the Review queue automatically.</span></div>
+      <div class="gate"><span>Production wiring: this button calls a backend job that runs <code>pipeline.mjs</code> (generate → render → QA → regen → review). Output lands in the Review queue automatically.</span></div>
     </section>
 
     <section class="page" data-p="review">
@@ -198,7 +198,7 @@ code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(245,2
       <div class="eyebrow">— Budget —</div>
       <h1>Plan the <em>spend</em></h1>
       <p class="lead">Set the monthly plan and split it across angles. The hub computes target leads from your CPL ceiling — it does not move money. Committing spend is a human action in Meta.</p>
-      <div class="gate warn"><span>⚑</span><span><b>D-04.</b> These are planning numbers only. Nothing here launches or pauses an ad or moves budget.</span></div>
+      <div class="gate warn"><span><b>D-04.</b> These are planning numbers only. Nothing here launches or pauses an ad or moves budget.</span></div>
       <div class="row">
         <div class="fld" style="max-width:240px"><label class="l">Monthly budget (USD)</label><input id="bTotal" type="number" value="${DATA.budgetMonthly || 7000}"></div>
         <div class="fld" style="max-width:200px"><label class="l">Target CPL ceiling</label><input id="bCpl" type="number" value="${DATA.kpi.cpl_usd_max}"></div>
@@ -213,7 +213,7 @@ code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(245,2
       <div class="eyebrow">— Monitor —</div>
       <h1>Performance <em>loop</em> <span class="ph">Phase 2</span></h1>
       <p class="lead">Live CPL / CPC / CPA / CTR per creative, pulled read-only from Meta Ads Manager, scored against your targets. Winners feed <code>refresh</code> mode; losers are flagged for a human to pause. The loop proposes; the human disposes (D-04).</p>
-      <div class="gate"><span>ℹ</span><span><b>Awaiting live data.</b> This panel activates after spend goes live and the Meta Ads MCP (read-only) is wired (PLAN Stream E). Targets below are from <code>ad-angles.json</code>.</span></div>
+      <div class="gate"><span><b>Awaiting live data.</b> This panel activates after spend goes live and the Meta Ads MCP (read-only) is wired (PLAN Stream E). Targets below are from <code>ad-angles.json</code>.</span></div>
       <div class="grid cards4">
         <div class="stat"><div class="k">CPC target</div><div class="v">$${DATA.kpi.cpc_usd_max}<small> max</small></div><div class="sub muted">— awaiting data —</div></div>
         <div class="stat"><div class="k">CPL target</div><div class="v">$${DATA.kpi.cpl_usd_max}<small> max</small></div><div class="sub muted">— awaiting data —</div></div>

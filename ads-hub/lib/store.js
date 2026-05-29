@@ -69,10 +69,10 @@ function fsWriteApprovals(decisions) {
  * webpackIgnore: @vercel/blob is optional, present only in cloud deploys; never bundled
  * into the default fs build. queue.json holds pre-shaped cards; images are public blobs. */
 async function blobApi() { return import(/* webpackIgnore: true */ "@vercel/blob"); }
-async function blobUrl(prefix) {
-  const { list } = await blobApi();
-  const { blobs } = await list({ prefix });
-  return blobs[0]?.url || null;
+// exact-pathname lookup (pathnames are stable: ingest uses addRandomSuffix:false)
+async function blobUrl(key) {
+  const { head } = await blobApi();
+  try { const b = await head(key); return b?.url || null; } catch { return null; }
 }
 async function fetchJson(url) {
   const r = await fetch(url, { cache: "no-store" });

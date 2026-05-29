@@ -28,9 +28,13 @@ export default function ReviewClient() {
   const tally = (s) => Object.values(state).filter((v) => v === s).length;
 
   async function save() {
-    const res = await fetch("/api/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decisions: state }) });
-    const data = await res.json();
-    setSaved(`Saved ${Object.values(data.decisions || {}).length} decisions at ${new Date(data.updatedAt).toLocaleTimeString()}`);
+    try {
+      const res = await fetch("/api/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decisions: state }) });
+      if (!res.ok) { setSaved("Save failed"); setTimeout(() => setSaved(""), 4000); return; }
+      const data = await res.json();
+      const when = data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString() : "now";
+      setSaved(`Saved ${Object.values(data.decisions || {}).length} decisions at ${when}`);
+    } catch { setSaved("Save failed"); }
     setTimeout(() => setSaved(""), 4000);
   }
   function exportSet() {

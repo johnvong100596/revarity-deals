@@ -39,7 +39,7 @@ them here so they can be versioned and tuned without touching code.
 ## 2. Image-prompt generation (Sonnet — `implementer`)
 
 > You are writing a precise prompt for an image-generation model
-> (Higgsfield / Nano Banana Pro) to produce ONE Revarity ad creative.
+> (Nano Banana via the Google Gemini API) to produce ONE Revarity ad creative.
 >
 > **Brand visual rules (from brand.json):**
 > - Palette: ink #0a0a0b, cream #f5f1e8, gold #c9a961. Ink-on-cream or

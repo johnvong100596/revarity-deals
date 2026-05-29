@@ -77,7 +77,11 @@ async function callModel() {
 const txt = await callModel();
 let patterns;
 try { patterns = JSON.parse(txt); } catch { const m = txt.match(/\{[\s\S]*\}/); patterns = m ? JSON.parse(m[0]) : null; }
-if (!patterns) { console.error("could not parse patterns from model output."); process.exit(1); }
+if (!patterns || typeof patterns !== "object") { console.error("could not parse patterns from model output."); process.exit(1); }
+// normalize: every pattern bucket must be an array
+for (const k of ["hooks", "angles", "formats", "copy_frameworks", "do", "dont"]) {
+  if (!Array.isArray(patterns[k])) patterns[k] = patterns[k] ? [patterns[k]] : [];
+}
 
 const payload = { generatedAt: new Date().toISOString(), model: MODEL, sourceCount: refs.length, patterns };
 fs.writeFileSync(OUT, JSON.stringify(payload, null, 2));

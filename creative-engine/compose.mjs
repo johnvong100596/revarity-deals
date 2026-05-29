@@ -115,8 +115,9 @@ function jobs() {
   const list = jobs();
   console.log(`compose: ${list.length} ad(s) | backdrop=${PHOTO ? "photo" : "ink"} | chrome=${path.basename(exe)}`);
   const browser = await puppeteer.launch({ executablePath: exe, headless: "new", args: ["--no-sandbox"] });
-  let ok = 0;
+  let ok = 0, skipped = 0;
   for (const j of list) {
+    if (PHOTO && !j.rec._imgDataUri) { console.warn(`  – ${j.id}: no rendered background — skipping photo variant`); skipped++; continue; }
     const page = await browser.newPage();
     await page.setViewport({ width: 1080, height: j.vertical ? 1920 : 1080, deviceScaleFactor: 1 });
     await page.setContent(buildHtml(j.rec), { waitUntil: "networkidle0" });

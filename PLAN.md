@@ -47,6 +47,10 @@ What's actually built, and where it sits in this plan (added so the plan matches
 
 ## STREAM 0 · Unblock the decisions  ·  WEEK 0  ·  GATES EVERYTHING DOWNSTREAM
 
+> **STATUS (2026-05-29):** D-01 (pricing) and D-02 (SaaS brand) are **still OPEN**. All
+> decision-independent build (Engine, calculator, hub) has proceeded under the guards; nothing
+> gated by D-01/D-02 has shipped. Paid launch + the calculator cost-side remain blocked on D-01.
+
 | # | Task | Owner | Done when |
 |---|------|-------|-----------|
 | 0.1 | Deliver pricing-conflict memo to Malcolm + Cena | **HUMAN** (Cena) | Memo sent: `docs/pricing-conflict-memo.html` |

@@ -90,7 +90,7 @@ function coerce(txt) {
   }
   if (!v) v = { verdict: "uncertain", reasons: ["QA model returned non-JSON"], regenerate_hint: "" };
   if (!["pass", "fail", "uncertain"].includes(v.verdict)) v.verdict = "uncertain";
-  v.reasons = v.reasons || [];
+  v.reasons = Array.isArray(v.reasons) ? v.reasons : v.reasons ? [String(v.reasons)] : [];
   return v;
 }
 

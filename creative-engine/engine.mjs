@@ -54,8 +54,12 @@ const routing = readJson("creative-engine/model-routing.json");
   const p = path.join(ROOT, ".env.local");
   if (!fs.existsSync(p)) return;
   for (const line of fs.readFileSync(p, "utf8").split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m && !line.trim().startsWith("#") && !process.env[m[1]]) process.env[m[1]] = m[2];
+    if (line.trim().startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq < 0) continue;
+    const k = line.slice(0, eq).trim();
+    if (!/^[A-Z0-9_]+$/.test(k) || process.env[k]) continue;
+    process.env[k] = line.slice(eq + 1).trim().replace(/^["']|["']$/g, ""); // split on first =, strip quotes
   }
 })();
 const COPY_MODEL = (() => {
@@ -73,7 +77,11 @@ function validateConfigs() {
   for (const k of ["ink", "cream", "gold"]) if (!brand.palette?.[k]) problems.push(`brand.palette.${k} missing`);
   for (const k of ["display", "ui", "mono"]) if (!brand.typography?.[k]) problems.push(`brand.typography.${k} missing`);
   for (const id of RUN.angle_ids) if (!angles.angles.find((a) => a.id === id)) problems.push(`angle ${id} not in ad-angles.json`);
-  for (const f of RUN.formats) if (!brand.creative_specs?.[f]) problems.push(`format ${f} not in brand.creative_specs`);
+  for (const f of RUN.formats) {
+    const s = brand.creative_specs?.[f];
+    if (!s) problems.push(`format ${f} not in brand.creative_specs`);
+    else if (!(Number(s.w) > 0 && Number(s.h) > 0)) problems.push(`format ${f} missing numeric w/h`);
+  }
   for (const t of ["copy_generation", "image_prompt_generation", "image_render", "qa_review"]) if (!routing.tasks?.[t]) problems.push(`routing task ${t} missing`);
   return problems;
 }

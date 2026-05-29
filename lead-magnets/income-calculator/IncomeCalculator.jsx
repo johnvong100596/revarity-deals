@@ -68,7 +68,7 @@ export default function IncomeCalculator() {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
-      await fetch(GHL_WEBHOOK_URL, {
+      const res = await fetch(GHL_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,6 +80,7 @@ export default function IncomeCalculator() {
           estimateHigh: Math.round(estimate.grossHigh),
         }),
       });
+      if (!res.ok) throw new Error("submit failed"); // don't redirect on a failed capture
       window.location.href = BOOKING_REDIRECT;
     } catch (e) {
       setError("Something went wrong. Please try again.");
