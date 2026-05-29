@@ -1,23 +1,22 @@
-# Activating Clerk auth (item 3)
+# Activating Clerk auth
 
-The hub ships with HTTP Basic auth (`middleware.js`) as the working default so it runs without
-external accounts. To switch to **Clerk** (real logins for Malcolm + David):
+Clerk is now **wired into the app** (middleware, layout, `/sign-in`, `/sign-up`) behind an env
+gate. With no keys the hub falls back to HTTP Basic (or open). To turn Clerk on — **no code
+changes**, just env:
 
-1. `cd ads-hub && npm i @clerk/nextjs`
-2. Create a Clerk app at https://dashboard.clerk.com → copy the keys into `.env.local`:
+1. Create an app at https://dashboard.clerk.com → copy the keys.
+2. Set in Vercel (Project → Settings → Env) **and** locally in `.env.local`:
    ```
+   AUTH_PROVIDER=clerk
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
    CLERK_SECRET_KEY=sk_...
-   AUTH_PROVIDER=clerk
    ```
-3. Swap in the kit files (kept in `clerk/` so they don't break the default build):
-   - `clerk/middleware.clerk.js`  →  `middleware.js`  (replace)
-   - `clerk/layout.clerk.jsx`     →  merge into `app/layout.jsx`
-   - `clerk/sign-in.clerk.jsx`    →  `app/sign-in/[[...sign-in]]/page.jsx` (and a sign-up mirror)
-4. In Clerk: restrict sign-ups to invited users (Malcolm/David), or allowlist your domain.
-5. `npm run build` to verify, then deploy.
+3. Redeploy (`vercel deploy --prod`). The middleware now requires sign-in for everything except
+   `/sign-in`, `/sign-up`, `/api/health`; a `UserButton` appears in the hub.
+4. In Clerk: restrict sign-ups to invited users (Malcolm/David) or allowlist your domain.
 
-Why kept out of the build graph: `@clerk/nextjs` throws without keys, which would break local
-dev + the demo. This keeps the app green today and makes activation a 5-minute, keys-in-hand step.
+How the gate works (`middleware.js` + `app/layout.jsx`): `clerkMiddleware`/`ClerkProvider` are
+only **constructed** when `AUTH_PROVIDER=clerk` and the keys are present, so a no-key build/run
+never initializes Clerk — that's why the app still builds and runs without an account.
 
-Note: Clerk protects the **hub**. Ad spend stays human-gated regardless (D-04).
+Clerk protects the **hub**. Ad spend stays human-gated regardless (D-04).

@@ -1,12 +1,16 @@
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
+import { ClerkProvider, SignedIn, UserButton } from "@clerk/nextjs";
+
+// Only initialize Clerk when keys are present; otherwise render the plain shell (Basic/open auth).
+const USE_CLERK = process.env.AUTH_PROVIDER === "clerk" && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 export const metadata = {
   title: "ads.revarity.com · Operator Hub",
   description: "Revarity marketing engine operator hub — create, generate, approve, budget, monitor.",
 };
 
-export default function RootLayout({ children }) {
+function Shell({ children }) {
   return (
     <html lang="en">
       <head>
@@ -20,9 +24,20 @@ export default function RootLayout({ children }) {
       <body>
         <div className="shell">
           <Sidebar />
-          <main className="main">{children}</main>
+          <main className="main">
+            {USE_CLERK && (
+              <div style={{ position: "absolute", top: 24, right: 40, zIndex: 10 }}>
+                <SignedIn><UserButton /></SignedIn>
+              </div>
+            )}
+            {children}
+          </main>
         </div>
       </body>
     </html>
   );
+}
+
+export default function RootLayout({ children }) {
+  return USE_CLERK ? <ClerkProvider><Shell>{children}</Shell></ClerkProvider> : <Shell>{children}</Shell>;
 }
