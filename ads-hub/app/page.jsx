@@ -12,7 +12,7 @@ export default async function Overview() {
       <div className="eyebrow">— Operator Overview —</div>
       <h1>The funnel's <em>engine room</em></h1>
       <p className="lead">Everything the marketing engine produces flows through here: create a run, generate brand-locked creatives, approve before spend, plan budget, and (Phase 2) monitor performance. The engine generates and QAs; the spend decision stays human.</p>
-      <div className="gate warn"><span>⚑</span><span><b>Human gate (D-04).</b> This hub proposes — it never publishes to Meta or spends. Approving a set marks it ready; a human still pushes it live. Pricing stays out of all copy while D-01 is open.</span></div>
+      <div className="gate warn"><span><b>Human gate (D-04).</b> This hub proposes — it never publishes to Meta or spends. Approving a set marks it ready; a human still pushes it live. Pricing stays out of all copy while D-01 is open.</span></div>
       <div className="grid cards4">
         <div className="stat"><div className="k">In review queue</div><div className="v">{queue.length}</div><div className="sub">creatives generated</div></div>
         <div className="stat"><div className="k">Passed auto-QA</div><div className="v good">{pass}<small> / {queue.length}</small></div><div className="sub">brand + garble + banned-content</div></div>

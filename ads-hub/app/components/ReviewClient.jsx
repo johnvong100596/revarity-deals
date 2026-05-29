@@ -54,7 +54,7 @@ export default function ReviewClient() {
         </div>
       </div>
       {loading ? <p className="muted">Loading queue…</p> : queue.length === 0 ? (
-        <div className="gate"><span>ℹ</span><span>Queue is empty. Run the pipeline from <b>Create</b> to generate creatives.</span></div>
+        <div className="gate"><span>Queue is empty. Run the pipeline from <b>Create</b> to generate creatives.</span></div>
       ) : (
         <div className="q">
           {queue.map((c) => {

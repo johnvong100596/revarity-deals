@@ -42,7 +42,11 @@ function parkedJobs() {
   return list;
 }
 
-const run = (file, id) => execFileSync(process.execPath, [path.join(__dirname, file), "--only", id], { stdio: "inherit" });
+// returns true if the child exited 0; never throws (so one failure can't abort the loop)
+const run = (file, id) => {
+  try { execFileSync(process.execPath, [path.join(__dirname, file), "--only", id], { stdio: "inherit" }); return true; }
+  catch (e) { console.error(`     ! ${file} failed for ${id} (exit ${e.status ?? "?"}) — see message above`); return false; }
+};
 
 const jobs = parkedJobs();
 console.log(`regen: ${jobs.length} parked creative(s)${only ? ` (filtered: ${only})` : ""}`);
@@ -81,12 +85,16 @@ for (const j of jobs) {
   fs.writeFileSync(stagedJson, JSON.stringify(sr, null, 2));
 
   console.log(`\n  ↻ ${j.id} — attempt ${attempts + 1}/${MAX_ATTEMPTS}`);
-  run("render.mjs", j.id);
-  run("qa.mjs", j.id);
+  const rendered = run("render.mjs", j.id);
+  if (rendered) run("qa.mjs", j.id);
 
-  // qa.mjs re-parks on fail; presence in the angle dir = promoted
-  if (fs.existsSync(path.join(j.angleDir, `${j.base}.png`))) { console.log(`     → PROMOTED to queue`); promoted++; }
-  else { console.log(`     → still failing, re-parked`); stillParked++; }
+  // classify by the actual QA verdict on the staged record, not by PNG existence
+  let verdict = "render-failed";
+  const promotedJson = path.join(j.angleDir, `${j.base}.json`);
+  if (fs.existsSync(promotedJson)) { try { verdict = JSON.parse(fs.readFileSync(promotedJson, "utf8")).qa?.image_layer_verdict || "unknown"; } catch {} }
+  const stillInQueue = fs.existsSync(path.join(j.angleDir, `${j.base}.png`));
+  if (stillInQueue && (verdict === "pass" || verdict === "uncertain")) { console.log(`     → PROMOTED to queue (qa: ${verdict})`); promoted++; }
+  else { console.log(`     → still failing (qa: ${verdict}), re-parked`); stillParked++; }
 
   // self-clean: drop the parked angle dir if it's now empty
   if (fs.existsSync(j.parkedDir) && fs.readdirSync(j.parkedDir).length === 0) fs.rmdirSync(j.parkedDir);

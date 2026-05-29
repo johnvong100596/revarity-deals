@@ -18,7 +18,11 @@ const ROOT = path.resolve(__dirname, "..");
 const OUT = path.join(__dirname, "output");
 const brand = JSON.parse(fs.readFileSync(path.join(ROOT, "brand-kit/brand.json"), "utf8"));
 const routing = JSON.parse(fs.readFileSync(path.join(ROOT, "creative-engine/model-routing.json"), "utf8"));
-const concepts = JSON.parse(fs.readFileSync(path.join(__dirname, "concepts.json"), "utf8")).concepts || [];
+let concepts;
+try { concepts = JSON.parse(fs.readFileSync(path.join(__dirname, "concepts.json"), "utf8")).concepts || []; }
+catch (e) { console.error(`Cannot read concepts.json: ${e.message}. Run the army-of-content workflow first.`); process.exit(2); }
+if (!concepts.length) { console.error("concepts.json has no concepts — nothing to render. Aborting (no changes)."); process.exit(2); }
+const CLEAN = process.argv.includes("--clean");
 const p = brand.palette;
 const SPEC = "meta_story_vertical", W = 1080, H = 1920;
 
@@ -41,8 +45,13 @@ function imagePrompt(vd) {
   ].join("\n");
 }
 
-// clean prior output (keep .gitkeep)
-for (const e of fs.readdirSync(OUT)) { if (e !== ".gitkeep") fs.rmSync(path.join(OUT, e), { recursive: true, force: true }); }
+// clean prior output ONLY with --clean (keep .gitkeep); otherwise just (re)write the CONCEPTS dir
+if (CLEAN) {
+  for (const e of fs.readdirSync(OUT)) { if (e !== ".gitkeep") fs.rmSync(path.join(OUT, e), { recursive: true, force: true }); }
+} else {
+  const c = path.join(OUT, "CONCEPTS");
+  if (fs.existsSync(c)) fs.rmSync(c, { recursive: true, force: true }); // refresh only the concepts dir
+}
 const dir = path.join(OUT, "CONCEPTS");
 fs.mkdirSync(dir, { recursive: true });
 

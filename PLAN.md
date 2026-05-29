@@ -28,6 +28,23 @@ big-bang launch — each stream ships standalone value (master-flow principle).
 
 ---
 
+## Realized so far (2026-05-29) — maps to the streams below
+
+What's actually built, and where it sits in this plan (added so the plan matches reality):
+- **Creative Engine (Stream A.1–A.7):** `creative-engine/` — copy-gen (real model call), image-prompt-gen,
+  render (Nano Banana/Gemini), automated screenshot QA (config-driven reviewer + escalation),
+  regen loop, finished-ad compositor (`compose.mjs`, ink + photo), `pipeline.mjs` one-command run.
+  **Net-new beyond the original A scope (fold in here):** `swipe.mjs` (winning-ad pattern miner),
+  env-driven **volume/"army of content" mode** (`ANGLES=all`), and the `army-of-content` + `full-audit`
+  multi-agent workflows. Tied to the funnel per David's filter; flagged for awareness.
+- **`ads.revarity.com` operator hub (`ads-hub/`):** realizes **Stream A.8** (human approval gate /
+  review queue) **and an early Stream F** (Malcolm dashboard) in one Next.js app — Overview / Create /
+  Review+Approve / Budget / Monitor. Deployed live on Vercel (Blob storage). Monitor is a Phase-2 stub
+  (Stream E) until live spend. **This was not in the original plan; treat this block as its ratification.**
+- **Income calculator (Stream B.1–B.3):** built, PriceLabs bands, env webhook. B.4 embed + B.5 cost-side pending (B.5 waits on D-01).
+- **Not yet built (correctly gated):** Stream C (deal list — after RevDeal teaser shape), D (David-led),
+  E (needs live spend), G (needs D-02). New paid-growth decisions surfaced: D-07–D-12 in `DECISIONS.md`.
+
 ## STREAM 0 · Unblock the decisions  ·  WEEK 0  ·  GATES EVERYTHING DOWNSTREAM
 
 | # | Task | Owner | Done when |

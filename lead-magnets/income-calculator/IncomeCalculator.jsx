@@ -172,17 +172,9 @@ export default function IncomeCalculator() {
       </div>
 
       {!revealed ? (
-        <>
-          <button className="rc-cta" onClick={() => setRevealed(true)}>
-            Email me the full estimate + deals in my market →
-          </button>
-          <p className="rc-foot">
-            This is a market-level estimate built on {MARKET_DATA_SOURCE} data — typical nightly
-            rates and occupancy for this market and bedroom count. It is not a guarantee and not
-            specific to one property. We run a proper, property-specific analysis on your call
-            before any deal. Figures are rounded.
-          </p>
-        </>
+        <button className="rc-cta" onClick={() => setRevealed(true)}>
+          Email me the full estimate + deals in my market →
+        </button>
       ) : (
         <div className="rc-form">
           <div className="rc-row">
@@ -212,6 +204,14 @@ export default function IncomeCalculator() {
           <button className="rc-back" onClick={() => setRevealed(false)}>← Back</button>
         </div>
       )}
+
+      {/* methodology footnote — always visible (SPEC hard rule #3), both pre- and post-capture */}
+      <p className="rc-foot">
+        This is a market-level estimate built on {MARKET_DATA_SOURCE} data — typical nightly
+        rates and occupancy for this market and bedroom count. It is not a guarantee and not
+        specific to one property. We run a proper, property-specific analysis on your call
+        before any deal. Figures are rounded.
+      </p>
     </div>
   );
 }

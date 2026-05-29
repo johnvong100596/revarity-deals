@@ -85,7 +85,16 @@ creative-engine/
   ad-angles.json           ← approved angles + copy + KPI targets
   model-routing.json       ← subagent/model per task + MCP connectors
   prompts.md               ← prompt templates (copy, image, QA)
-  output/                  ← generated creatives land here = human review queue
+  pipeline.mjs             ← one-command run: engine→render→qa→compose(ink+photo)
+  engine.mjs render.mjs qa.mjs regen.mjs compose.mjs   ← the pipeline steps
+  swipe.mjs swipe-inbox.json swipe-patterns.json       ← winning-ad pattern miner
+  concepts.json concepts-render.mjs                    ← workflow concepts → finished ads
+  dashboard.mjs contactsheet.mjs                       ← standalone review artifacts
+  output/                  ← generated creatives + finished ads = human review queue
+
+ads-hub/                   ← ads.revarity.com operator hub (Next.js, live on Vercel)
+  realizes Stream A.8 (review/approve gate) + early Stream F (Malcolm dashboard).
+  fs/Blob storage driver, Clerk kit, DEPLOY.md. Proposes only — never publishes/spends (D-04).
 
 lead-magnets/
   income-calculator/       ← SPEC.md + working IncomeCalculator.jsx (build first)

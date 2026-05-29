@@ -99,6 +99,10 @@ numbers, and platform mix in `docs/ad-scaling-strategy.md`.
 - ✅ **Volume/campaign mode** — engine is env-driven (`ANGLES=all VARIANTS=n …`). Ran the **full
   5-angle catalog × 2 × 2 = 20 creatives**: generated (swipe-informed) → rendered → auto-QA →
   regen. **20/20 pass.** Review sheet + `ads-dashboard.html` rebuilt over all 20.
+  - *Accuracy note (added post-audit):* the **20/20** figure is the **5-angle catalog** run (passed after
+    1 regen). The **later 17-concept** run (`concepts.json`) was **9/17 pass, 8 parked** on first QA — the
+    8 parked were promoted as **ink-only** ads (the photographic background QA doesn't apply to the ink
+    layout; copy was already workflow-vetted). Don't read "20/20" as the concept run.
 - ◑ **Winner→scale loop** — thresholds spec'd (strategy §3); live wiring is Phase 2 (needs Meta data).
 
 **Verified working:** copy-gen is a real model call (Gemini fallback; Sonnet/Haiku when

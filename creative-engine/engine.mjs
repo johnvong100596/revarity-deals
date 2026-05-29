@@ -182,21 +182,19 @@ function qaCreative(angle, variant, spec, imagePrompt) {
   // 2. emoji (arrows allowed)
   if (EMOJI.test(copyText.replace(ARROW_OK, ""))) reasons.push("emoji present in copy");
 
-  // 3. pricing guard (D-01)
-  const feeContext = /\$\s?\d[\d,]*\s*(?:\/\s*mo|per month|month)?\s*(?:fee|setup|deposit)|(?:fee|setup|deposit|price|cost)\D{0,12}\$\s?\d/i;
-  if (variant.pricing_flag === "PENDING-D01") {
-    if (/\b(fee|setup|price|cost|pricing)\b/i.test(copyText) && !copyText.includes("[PENDING-D01]"))
-      reasons.push("flagged variant references fee/price without [PENDING-D01] token");
-    if (feeContext.test(copyText)) reasons.push("flagged variant appears to hardcode a fee/price (D-01 violation)");
-  }
-  if (/\$\s?375|\$\s?12[,.]?000|\$\s?35[,.]?000/.test(copyText)) reasons.push("hardcoded the locked $375/$12K/$35K pricing figures (D-01 violation)");
+  // 3. pricing guard (D-01) — applies to EVERY variant, flagged or not
+  const feeWordNearMoney = /(?:fee|setup|deposit|price|cost|pricing|retainer)\b[^.]{0,16}\$\s?\d|\$\s?\d[\d,]*\s?[kK]?[^.]{0,12}(?:fee|setup|deposit|retainer)/i;
+  if (feeWordNearMoney.test(copyText) && !copyText.includes("[PENDING-D01]"))
+    reasons.push("states a fee/price near a $ figure without the [PENDING-D01] token (D-01 violation)");
+  if (/\$\s?375\b|\$\s?(?:12|35)\s?[kK]\b|\$\s?(?:12|35)[,.]?\d{3}\b/i.test(copyText))
+    reasons.push("hardcoded the locked $375 / $12K / $35K pricing figures (D-01 violation)");
 
-  // 4. projected income must be ranged + labeled estimate
-  const hasMoneyPerMonth = /\$\s?\d[\d,]*(?:\s*[–-]\s*\$?\d[\d,]*)?\s*\/?\s*(?:mo|month)/i.test(copyText);
-  if (hasMoneyPerMonth) {
-    const hasRange = /[–-]/.test(copyText.match(/\$[^.]*?(?:mo|month)/i)?.[0] || "");
+  // 4. projected income must be a range AND labeled estimate/typical (brand voice)
+  const moneyMonth = copyText.match(/\$\s?\d[\d,]*(?:\s*[–-]\s*\$?\d[\d,]*)?\s*\/?\s*(?:mo\b|month)/i);
+  if (moneyMonth) {
+    const hasRange = /[–-]/.test(moneyMonth[0]);
     const hasEstimateWord = /\b(estimate|typical|range)\b/i.test(copyText);
-    if (!hasRange && !hasEstimateWord) reasons.push("projected income shown as a bare number (needs a range + 'estimate'/'typical')");
+    if (!(hasRange && hasEstimateWord)) reasons.push("projected income must be a RANGE and labeled 'estimate'/'typical' (brand voice / D-01)");
   }
 
   // 5. image-prompt brand checks
@@ -306,13 +304,14 @@ async function run() {
   const stamp = ts();
   const rows = [];
   let pass = 0, fail = 0;
+  const skipped = [];
 
   for (const angleId of RUN.angle_ids) {
     const angle = angles.angles.find((a) => a.id === angleId);
     const generated = await generateCopy(angle, RUN.variants_per_angle);
     const variants = generated || (FALLBACK_COPY[angleId] || []).slice(0, RUN.variants_per_angle);
     console.log(generated ? `  ${angleId}: generated ${variants.length} variants via ${COPY_MODEL.model}` : `  ${angleId}: using fallback copy`);
-    if (!variants.length) { console.warn(`  ${angleId}: no copy (model failed, no fallback) — skipping`); continue; }
+    if (!variants.length) { console.error(`  ${angleId}: NO COPY (model failed, no fallback) — angle dropped`); skipped.push(angleId); continue; }
     const angleDir = path.join(OUT, angleId);
     fs.mkdirSync(angleDir, { recursive: true });
 
@@ -386,6 +385,11 @@ async function run() {
   console.log(`generated ${pass + fail} creatives → ${pass} queued, ${fail} parked`);
   console.log(`run summary: creative-engine/output/run-${stamp}.md`);
   console.log("STOP: human gate. Engine does not publish. (D-04)");
+  if (skipped.length) {
+    console.error(`\nERROR: ${skipped.length} angle(s) produced no copy and were dropped: ${skipped.join(", ")}. ` +
+      `Set ANTHROPIC_API_KEY/GEMINI_API_KEY or add FALLBACK_COPY for them. Failing so an unattended run can't silently lose angles.`);
+    process.exitCode = 1;
+  }
 }
 
 run().catch((e) => { console.error("run failed:", e); process.exit(1); });

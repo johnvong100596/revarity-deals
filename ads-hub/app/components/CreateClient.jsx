@@ -39,7 +39,7 @@ export default function CreateClient({ angles, formats }) {
         </div>
       </div>
 
-      <div className="gate"><span>ℹ</span><span>Run parameters currently come from <code>RUN</code> in <code>engine.mjs</code>. This button triggers the live pipeline as configured there. (Wiring the selectors above to write the run config is the next refinement.)</span></div>
+      <div className="gate"><span>Run parameters currently come from <code>RUN</code> in <code>engine.mjs</code>. This button triggers the live pipeline as configured there. (Wiring the selectors above to write the run config is the next refinement.)</span></div>
 
       <button className="btn" onClick={run} disabled={running}>{running ? "Running pipeline…" : "Run pipeline →"}</button>
       {err && <div className="log" style={{ color: "var(--red)" }}>{err}</div>}

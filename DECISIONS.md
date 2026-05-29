@@ -31,6 +31,16 @@ downstream work and need Malcolm. Four are already decided (D-03 → D-06).
   magnets. Build those now regardless.
 - **Memo:** `docs/brand-separation-memo.html`. **Owner:** Malcolm.
 
+## OPEN — drafted, awaiting ratification (see `docs/proposed-decisions.md`)
+These came out of the 2026-05-29 paid-growth working session. **Proposed only — not binding**
+until Malcolm/David sign off; the build already leans on the recommended defaults but reversibly.
+- **D-07** Meta account structure (rec: one Business Manager + multiple ad accounts, gradual ramp).
+- **D-08** Autonomy level (rec: keep the D-04 human spend-gate; bounded auto-launch only as a conscious, logged exception — your call).
+- **D-09** Channel mix (rec: organic-first volume across owned channels; paid only behind validated winners).
+- **D-10** Spend split (rec: ~30% test / 70% scale; weekly scale ≥ 50× CPA).
+- **D-11** Swipe-file sourcing (Ad Library API is political/EU-UK only → manual refs or a paid tool).
+- **D-12** Whether `ads.revarity.com` ever exposes a SaaS surface (ties to open D-02).
+
 ## DECIDED
 
 ### D-03 · No AI UGC video — static + B-roll only  ✅
