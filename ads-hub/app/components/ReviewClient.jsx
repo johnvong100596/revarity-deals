@@ -56,7 +56,7 @@ export default function ReviewClient() {
             return (
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
-                  {c.hasImg && <img src={`/api/image?id=${encodeURIComponent(c.id)}`} alt={c.headline} />}
+                  {c.hasImg && <img src={c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`} alt={c.headline} />}
                   <div className={`qov ${c.vertical ? "bot" : "top"}`}><div className="h">{c.headline}</div></div>
                   <span className={`qbadge ${badge}`}>QA {c.qa}</span>
                 </div>

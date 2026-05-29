@@ -3,21 +3,31 @@ import path from "node:path";
 import { OUTPUT_DIR, APPROVALS_FILE } from "./paths.js";
 
 /**
- * Storage abstraction. All pages/API call these functions; the driver decides where
- * data lives. This is the seam that makes the hub Vercel-deployable.
+ * Storage abstraction. All pages/API call these functions; the driver decides where data lives.
  *
  *   STORE_DRIVER=fs    (default) — reads the engine's local output + writes approvals.json.
- *                                  Works on a laptop / VM. The dev + demo path.
- *   STORE_DRIVER=cloud           — Vercel Blob (PNGs) + Postgres (queue + approvals).
- *                                  Survives serverless' ephemeral FS. Publish a run with
- *                                  `scripts/ingest.mjs` (uploads local output → blob + pg).
+ *                                  Laptop/VM dev + demo path.
+ *   STORE_DRIVER=cloud           — Vercel Blob ONLY. queue + approvals are JSON blobs, images
+ *                                  are blobs. Survives serverless' ephemeral FS, no database.
+ *                                  Publish a run with `scripts/ingest.mjs`.
  *
  * All functions are async so the cloud driver can do I/O without changing callers.
  */
 const DRIVER = process.env.STORE_DRIVER || "fs";
+const APPROVAL_NOTE = "Approved set is marked ready. Pushing live to Meta is a human action outside this hub (D-04).";
+export const QUEUE_KEY = "state/queue.json";
+export const APPROVALS_KEY = "state/approvals.json";
 
-const APPROVAL_NOTE =
-  "Approved set is marked ready. Pushing live to Meta is a human action outside this hub (D-04).";
+function shape(rec, id, hasImg, image_url) {
+  return {
+    id, angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
+    headline: rec.headline, body: rec.body, cta: rec.cta, pricing_flag: rec.pricing_flag || null,
+    qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
+    qa_model: rec.qa?.qa_model || "",
+    vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
+    hasImg, image_url: image_url || null,
+  };
+}
 
 /* ───────────────────────── filesystem driver ───────────────────────── */
 function fsReadQueue() {
@@ -51,53 +61,36 @@ function fsWriteApprovals(decisions) {
   return payload;
 }
 
-/* ───────────────────────── cloud driver (Vercel Blob + Postgres) ─────────────────────────
- * Dynamic imports so local `fs` runs need neither package installed. Provision with
- * lib/schema.sql; publish a run with scripts/ingest.mjs. */
-// webpackIgnore: @vercel/postgres is an optional dep, only present in cloud deploys.
-// Skip bundling so the default `fs` build never needs it installed.
-async function pg() { const m = await import(/* webpackIgnore: true */ "@vercel/postgres"); return m.sql; }
-
+/* ───────────────────────── cloud driver — Vercel Blob only ─────────────────────────
+ * webpackIgnore: @vercel/blob is optional, present only in cloud deploys; never bundled
+ * into the default fs build. queue.json holds pre-shaped cards; images are public blobs. */
+async function blobApi() { return import(/* webpackIgnore: true */ "@vercel/blob"); }
+async function blobUrl(prefix) {
+  const { list } = await blobApi();
+  const { blobs } = await list({ prefix });
+  return blobs[0]?.url || null;
+}
+async function fetchJson(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  return r.ok ? r.json() : null;
+}
 async function cloudReadQueue() {
-  const sql = await pg();
-  const { rows } = await sql`SELECT * FROM creatives ORDER BY id`;
-  return rows.map((r) => shape(
-    { angle_id: r.angle_id, variant: r.variant, spec: r.spec, dimensions: r.dimensions,
-      headline: r.headline, body: r.body, cta: r.cta, pricing_flag: r.pricing_flag,
-      qa: { image_layer_verdict: r.qa, image_layer_reasons: r.qa_reasons || [], qa_model: r.qa_model } },
-    r.id, !!r.image_url, r.image_url));
+  const url = await blobUrl(QUEUE_KEY);
+  return (url && (await fetchJson(url))) || [];
 }
 async function cloudGetImage(id) {
-  const sql = await pg();
-  const { rows } = await sql`SELECT image_url FROM creatives WHERE id = ${id} LIMIT 1`;
-  return rows[0]?.image_url ? { kind: "url", url: rows[0].image_url } : null;
+  const url = await blobUrl(`creatives/${id}.png`);
+  return url ? { kind: "url", url } : null;
 }
 async function cloudReadApprovals() {
-  const sql = await pg();
-  const { rows } = await sql`SELECT id, decision, updated_at FROM approvals`;
-  const decisions = {}; let updatedAt = null;
-  for (const r of rows) { decisions[r.id] = r.decision; if (!updatedAt || r.updated_at > updatedAt) updatedAt = r.updated_at; }
-  return { updatedAt, note: APPROVAL_NOTE, decisions };
+  const url = await blobUrl(APPROVALS_KEY);
+  return (url && (await fetchJson(url))) || { updatedAt: null, note: APPROVAL_NOTE, decisions: {} };
 }
 async function cloudWriteApprovals(decisions) {
-  const sql = await pg();
-  await sql`DELETE FROM approvals`;
-  for (const [id, decision] of Object.entries(decisions)) {
-    await sql`INSERT INTO approvals (id, decision, updated_at) VALUES (${id}, ${decision}, NOW())`;
-  }
-  return { updatedAt: new Date().toISOString(), note: APPROVAL_NOTE, decisions };
-}
-
-/* ───────────────────────── shared ───────────────────────── */
-function shape(rec, id, hasImg, image_url) {
-  return {
-    id, angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
-    headline: rec.headline, body: rec.body, cta: rec.cta, pricing_flag: rec.pricing_flag || null,
-    qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
-    qa_model: rec.qa?.qa_model || "",
-    vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
-    hasImg, image_url: image_url || null,
-  };
+  const { put } = await blobApi();
+  const payload = { updatedAt: new Date().toISOString(), note: APPROVAL_NOTE, decisions };
+  await put(APPROVALS_KEY, JSON.stringify(payload), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  return payload;
 }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
