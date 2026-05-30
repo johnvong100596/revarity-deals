@@ -28,7 +28,11 @@ const BOOKING_REDIRECT = process.env.REACT_APP_BOOKING_URL || "/book-a-call";
 // PROVENANCE: indicative bands aligned to PriceLabs Market Dashboard levels.
 // REFRESH against a live PriceLabs pull before scale, then update MARKET_DATA_AS_OF.
 const MARKET_DATA_SOURCE = "PriceLabs Market Dashboard";
-const MARKET_DATA_AS_OF = "indicative — pending live PriceLabs pull";
+// PriceLabs API checked 2026-05-29: /v1/listings gives FORWARD per-unit data (occupancy_next_15
+// ~0.30–0.51, adr_next_1, some $0/unpriced) — NOT representative trailing/typical market bands.
+// The market endpoint (neighborhood_data) is not enabled on this key. Real bands need PriceLabs
+// Market Dashboards (trailing ADR + occupancy by market). Bands below stay indicative until then.
+const MARKET_DATA_AS_OF = "indicative — awaiting PriceLabs Market Dashboards (trailing) bands";
 const MARKET = {
   Austin:       { occ: [0.57, 0.71], adr: { Studio:[98,142], "1":[124,184], "2":[176,268], "3":[246,372], "4+":[328,492] } },
   Minneapolis:  { occ: [0.54, 0.67], adr: { Studio:[82,122], "1":[102,154], "2":[144,216], "3":[204,306], "4+":[276,408] } },
