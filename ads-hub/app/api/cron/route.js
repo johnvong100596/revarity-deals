@@ -12,10 +12,9 @@ export const maxDuration = 300;
  */
 export async function GET(req) {
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") || "";
-    if (auth !== `Bearer ${secret}`) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+  if (!secret) return NextResponse.json({ ok: false, error: "cron not configured (CRON_SECRET unset)" }, { status: 503 });
+  const auth = req.headers.get("authorization") || "";
+  if (auth !== `Bearer ${secret}`) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   const dryRun = new URL(req.url).searchParams.get("dryRun") === "1";
   try {
     const report = await tick({ dryRun });

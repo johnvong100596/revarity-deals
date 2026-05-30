@@ -15,7 +15,7 @@ import { newId } from "./jobs.js";
  * in the Review queue (not auto-posted).
  */
 const MIN_VIEWS = Number(process.env.DOUBLEDOWN_MIN_VIEWS || 1000);
-const MAX_DD_PER_TICK = Number(process.env.DOUBLEDOWN_MAX_PER_TICK || 2);
+const MAX_DD_PER_TICK = Number(process.env.DOUBLEDOWN_MAX_PER_TICK || 1);
 
 export async function tick({ dryRun = false } = {}) {
   const now = Date.now();
@@ -30,8 +30,10 @@ export async function tick({ dryRun = false } = {}) {
   const dec = (await readApprovals()).decisions || {};
   const queue = await readQueue();
   const byId = Object.fromEntries(queue.map((c) => [c.id, c]));
-  let socialChanged = false;
+  const MAX_POSTS_PER_TICK = Number(process.env.MAX_POSTS_PER_TICK || 25);
+  let postCount = 0;
   for (const item of social.schedule || []) {
+    if (postCount >= MAX_POSTS_PER_TICK) break; // cap per tick (avoid function timeout)
     if (item.status !== "queued" || !item.postAt || new Date(item.postAt).getTime() > now) continue;
     if (!connected(item.channel)) { report.skipped.push({ id: item.id, reason: "channel not connected" }); continue; }
     if (dec[item.creativeId] !== "approve" || !byId[item.creativeId]) { report.skipped.push({ id: item.id, reason: "creative not approved" }); continue; }
@@ -42,11 +44,12 @@ export async function tick({ dryRun = false } = {}) {
       const caption = [c.headline, c.body, c.cta].filter(Boolean).join("\n\n");
       const imageUrl = await publicImageUrl(item.creativeId);
       const postRef = await publish({ channel: item.channel, caption, imageUrl });
+      if (!postRef || typeof postRef !== "string") throw new Error("publish returned no postRef");
       item.status = "posted"; item.postRef = postRef; item.postedAt = new Date(now).toISOString();
-      socialChanged = true; report.posted.push({ id: item.id, channel: item.channel, postRef });
+      await writeSocial(social); // persist immediately after each post so a mid-loop crash can't re-post
+      postCount++; report.posted.push({ id: item.id, channel: item.channel, postRef });
     } catch (e) { report.skipped.push({ id: item.id, reason: e.message }); }
   }
-  if (socialChanged && !dryRun) await writeSocial(social);
 
   // 2) TRACK — refresh insights for posted items
   const perf = await readPerformance();
@@ -78,6 +81,7 @@ export async function tick({ dryRun = false } = {}) {
     try {
       const brief = `Fresh variation in the spirit of a proven winner (angle ${base.angle_id}, headline "${base.headline}") — same winning angle, new hook + visual.`;
       const [copy] = await genCopy({ angleId: base.angle_id, brief, n: 1 });
+      if (!copy?.headline) throw new Error("genCopy produced nothing");
       const spec = base.spec || "meta_feed_square";
       const adPng = await renderImage(buildImagePrompt({ headline: copy.headline, angleId: base.angle_id, spec, extra: brief }), {});
       const d = specDims(spec);
