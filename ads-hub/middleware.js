@@ -14,7 +14,11 @@ const USE_CLERK = process.env.AUTH_PROVIDER === "clerk" && !!process.env.CLERK_S
 const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/api/health"]);
 
 const clerkHandler = USE_CLERK
-  ? clerkMiddleware(async (auth, req) => { if (!isPublic(req)) await auth.protect(); })
+  ? clerkMiddleware(async (auth, req) => {
+      if (isPublic(req)) return;
+      const { userId } = await auth();
+      if (!userId) return NextResponse.redirect(new URL("/sign-in", req.url)); // → our /sign-in page
+    })
   : null;
 
 export default function middleware(req, ev) {

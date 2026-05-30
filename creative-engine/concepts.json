@@ -1,143 +1,231 @@
 {
-  "generatedBy": "army-of-content workflow",
-  "generated": 18,
-  "brand_safe": 17,
+  "generatedBy": "army-of-content-v2",
+  "generated": 30,
+  "brand_safe": 28,
   "concepts": [
     {
-      "headline": "What could your address earn nightly?",
-      "body": "A local short-term rental can pull a real nightly rate. We model the typical range for your market before you commit a dollar.",
-      "cta": "See the estimate",
-      "visual_direction": "Overhead flat-lay of brass keys, a city map, and a coffee cup on warm oak",
-      "emphasis": "earn nightly",
+      "headline": "What could your block earn nightly?",
+      "body": "We model a typical local short-term rental and hand you a realistic monthly range before you sign anything. You fund it, you sign the lease, we run it.",
+      "cta": "See your estimate",
+      "visual_direction": "Editorial overhead shot of a quiet residential street at golden hour, rooftops in soft focus, warm natural light, no people.",
+      "emphasis": "earn",
       "archetype": "income-curiosity"
     },
     {
-      "headline": "The number your spare lease leaves behind.",
-      "body": "An empty unit earns nothing while the lease runs. We estimate the typical monthly range a furnished STR could return instead.",
-      "cta": "Run my range",
-      "visual_direction": "Sunlit empty living room, bare floor, soft shadows from tall windows",
-      "emphasis": "spare lease",
+      "headline": "Your zip code has a number.",
+      "body": "Comparable units in your area land in a monthly revenue range we can estimate for you. Management is a flat $375 a month, no revenue share.",
+      "cta": "Pull my local range",
+      "visual_direction": "Editorial flat-lay of a folded city map beside a brass key on a linen surface, soft window light, no people, no text.",
+      "emphasis": "number",
       "archetype": "income-curiosity"
     },
     {
-      "headline": "Curious what this market actually rents for?",
-      "body": "Occupancy and nightly rates vary by block. We pull comparable listings and give you an honest estimated range, not a single hero number.",
-      "cta": "Pull the comps",
-      "visual_direction": "Close crop of a furnished bedside table at dusk, lamp glow, linen bedding",
-      "emphasis": "actually rents for",
+      "headline": "Curious what a unit nearby pays?",
+      "body": "We pull comparable listings near you and give you a typical income range, not a single hero number. Honest model, fully managed.",
+      "cta": "Get the range",
+      "visual_direction": "Editorial interior of a styled living room at dusk, lamps glowing, large window framing city lights, no people, no text.",
+      "emphasis": "nearby",
       "archetype": "income-curiosity"
     },
     {
-      "headline": "You own it. We run it.",
-      "body": "You fund the unit and sign the lease. We handle setup, guests, cleaning, and the day-to-day so it stays hands-off.",
+      "headline": "You fund it. We run it.",
+      "body": "You sign the lease and put up the capital. We handle the listing, guests, cleaning, and pricing.",
       "cta": "See how it works",
-      "visual_direction": "Styled short-term rental living room at golden hour, keys resting on a clean console table, no people",
-      "emphasis": "We run it",
+      "visual_direction": "Editorial overhead shot of a set of brass apartment keys on a clean marble countertop, soft daylight, no people, no text.",
+      "emphasis": "We run it.",
       "archetype": "done-for-you"
     },
     {
-      "headline": "An asset, not a second job.",
-      "body": "This is a real short-term rental you fund and control. We operate it end to end, so it does not become work for you.",
+      "headline": "Done-for-you, not do-it-yourself",
+      "body": "This is a real short-term-rental business you own. We operate the day-to-day so it runs without your hours.",
+      "cta": "Get the full breakdown",
+      "visual_direction": "Editorial wide shot of a styled, sunlit living room in a furnished rental, calm tones, no people, no text.",
+      "emphasis": "Done-for-you",
+      "archetype": "done-for-you"
+    },
+    {
+      "headline": "Flat $375 a month. We operate it.",
+      "body": "No revenue share. One flat fee covers full management while you hold the lease and the capital.",
+      "cta": "Read the model",
+      "visual_direction": "Editorial close-up of a minimalist desk with a single coffee cup and an open laptop showing a blurred calendar, warm morning light, no people, no text.",
+      "emphasis": "Flat $375 a month.",
+      "archetype": "done-for-you"
+    },
+    {
+      "headline": "You don't need to own the property.",
+      "body": "Short-term rental income without a mortgage or a title in your name. You fund the setup and sign the lease, we run the whole operation for a flat $375 a month, no revenue share.",
+      "cta": "See how the model works",
+      "visual_direction": "Editorial overhead shot of a clean apartment key resting on a blank leasing document, soft natural window light, no people.",
+      "emphasis": "own the property",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "Ownership is the myth. Operations are the asset.",
+      "body": "Buyers think you need to buy real estate to earn from it. You don't. You lease the unit, we manage guests, pricing, and turnover, and you pay a flat $375/mo with no cut of your revenue.",
+      "cta": "Get the operator breakdown",
+      "visual_direction": "Editorial close-up of a furnished living room corner with a folded throw and a coffee cup, warm afternoon light, no people.",
+      "emphasis": "Operations are the asset",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "Skip the deed. Keep the cash flow.",
+      "body": "You can run a short-term rental without ever holding a property title. Typical managed units project an estimated monthly range that varies by market, and we handle all of it for a flat $375/mo, no revenue share.",
+      "cta": "Request the numbers for your market",
+      "visual_direction": "Editorial flat-lay of a minimalist desk with a city map, a pen, and a laptop edge, cool morning light, no people.",
+      "emphasis": "Skip the deed",
+      "archetype": "objection-flip"
+    },
+    {
+      "headline": "You sign the lease. We run it.",
+      "body": "No fund-our-pool pitch, no revenue share. You own the asset and the lease; we operate the short-term rental day to day for a flat $375 a month.",
+      "cta": "See how it works",
+      "visual_direction": "Overhead editorial shot of a signed paper lease and a single brass key on a clean linen surface, soft window light, no people.",
+      "emphasis": "We run it.",
+      "archetype": "transparency"
+    },
+    {
+      "headline": "Here is the part nobody quotes you.",
+      "body": "Typical units we run estimate $1,800 to $3,500 a month in net cash flow, and it varies by market and season. The fee is flat $375 a month, no revenue share, so the spread is yours.",
+      "cta": "Read the real numbers",
+      "visual_direction": "Close editorial still of an open ledger notebook beside a black coffee on a walnut desk, warm morning light, no people.",
+      "emphasis": "nobody quotes you.",
+      "archetype": "transparency"
+    },
+    {
+      "headline": "No hype. Just the model.",
+      "body": "You fund it, you sign the lease, we run it for a flat $375 a month. Estimated returns are a range, never a promise, and we will show you ours before you commit.",
       "cta": "Get the breakdown",
-      "visual_direction": "Overhead flat-lay of a tidy property binder, coffee, and a single brass key on a marble surface, no people",
-      "emphasis": "not a second job",
-      "archetype": "done-for-you"
-    },
-    {
-      "headline": "Done-for-you, from lease to payout.",
-      "body": "We manage the listing, the turnovers, and the guests on a flat monthly fee, no revenue share [PENDING-D01]. Typical setup runs a few weeks, an estimate that varies by market.",
-      "cta": "Request the details",
-      "visual_direction": "Editorial close-up of a made-up guest bed with crisp linens and soft window light, no people",
-      "emphasis": "from lease to payout",
-      "archetype": "done-for-you"
-    },
-    {
-      "headline": "You don't need to own it to run it",
-      "body": "You fund the deal, you sign the lease, we run the property. Ownership was never the requirement.",
-      "cta": "See how it works",
-      "visual_direction": "Overhead editorial shot of a styled rental living room, warm window light, no people",
-      "emphasis": "own it",
-      "archetype": "objection-flip"
-    },
-    {
-      "headline": "The deed is not the deal",
-      "body": "Lease the right unit and operate it as a short-term rental. Estimated returns vary by market and unit, typical of a managed arbitrage setup with a flat monthly fee, no revenue share.",
-      "cta": "Get the model",
-      "visual_direction": "Close-up of brass keys resting on a clean stone counter beside a folded linen towel, soft daylight",
-      "emphasis": "deed",
-      "archetype": "objection-flip"
-    },
-    {
-      "headline": "Skip the mortgage. Keep the operation.",
-      "body": "No purchase, no property tax, no thirty-year loan. You hold the lease, we handle guests, turnovers, and pricing.",
-      "cta": "Walk me through it",
-      "visual_direction": "Editorial flat lay of a signed lease document, fountain pen, and coffee cup on a walnut desk, morning light",
-      "emphasis": "Skip the mortgage",
-      "archetype": "objection-flip"
-    },
-    {
-      "headline": "You fund it. You sign the lease. We run it.",
-      "body": "That is the whole model. No revenue share, no hidden cut, just a flat monthly fee of [PENDING-D01].",
-      "cta": "See how it works",
-      "visual_direction": "Overhead editorial shot of a signed lease, a set of keys, and a bank statement on a clean walnut desk in soft daylight",
-      "emphasis": "We run it",
+      "visual_direction": "Editorial flat-lay of a minimalist apartment floor plan and a fountain pen on cool gray stone, even diffused light, no people.",
+      "emphasis": "Just the model.",
       "archetype": "transparency"
     },
     {
-      "headline": "Most months land in a range, not a promise",
-      "body": "Typical net returns fall within an estimated range, and we show you the math before you commit a dollar. Some months run low.",
-      "cta": "Get the real numbers",
-      "visual_direction": "Close-up of a printed spreadsheet with a range of figures highlighted, beside a black coffee on a marble surface",
-      "emphasis": "a range, not a promise",
-      "archetype": "transparency"
-    },
-    {
-      "headline": "Here is what we will not tell you",
-      "body": "No invented countdowns, no single hero number, no hype. Just the model, the estimated ranges, and the risks in writing.",
-      "cta": "Read the honest version",
-      "visual_direction": "A single document on a linen surface under window light, one corner gently lifted, muted editorial tones",
-      "emphasis": "will not tell you",
-      "archetype": "transparency"
-    },
-    {
-      "headline": "When the slot is gone, it's gone.",
-      "body": "We cap how many properties we take on so each one is run right. Real availability this month, no waitlist theater. Flat monthly fee, no revenue share [PENDING-D01].",
-      "cta": "Check availability",
-      "visual_direction": "Editorial close-up of a single furnished living room photographed through an open doorway, warm late-afternoon light",
-      "emphasis": "the slot is gone",
+      "headline": "We only run a few leases at a time",
+      "body": "Each market gets capped on purpose so operations stay tight. When a slot opens, we fill it, then we close it.",
+      "cta": "Check current openings",
+      "visual_direction": "Editorial overhead shot of a single set of brass apartment keys resting on a clean marble countertop, soft natural window light.",
+      "emphasis": "few leases",
       "archetype": "deal-scarcity"
     },
     {
-      "headline": "We run a few. Not everyone.",
-      "body": "Capacity is the constraint, not demand. If a spot is open in your area this month, you fund and lease the unit and we operate it end to end. Typical returns quoted as a range, never a single promise.",
-      "cta": "See if we have room",
-      "visual_direction": "Minimal editorial flat-lay of a city map, lease folder, and a coffee cup on a dark walnut desk",
-      "emphasis": "a few",
+      "headline": "Open slots are real, not manufactured",
+      "body": "We take new units only when we have the team to run them well. You fund it, you sign the lease, we run it for a flat $375 a month, no revenue share.",
+      "cta": "See if your market is open",
+      "visual_direction": "Editorial wide interior of a furnished, sunlit short-term rental living room, styled and empty, shot from a low angle.",
+      "emphasis": "real, not manufactured",
       "archetype": "deal-scarcity"
     },
     {
-      "headline": "We learned on 100+ units. Not yours.",
-      "body": "Most operators practice on your money. We already ran the playbook across 100-plus units before you signed a lease. You get the version that survived.",
-      "cta": "See how we run it",
-      "visual_direction": "Overhead flat-lay of a worn leather-bound operations binder, tabbed dividers, and a brass key on a dark walnut desk, warm window light",
+      "headline": "When a market fills, we stop taking it",
+      "body": "Capacity is the limit, not a timer. Typical units in our portfolio bring an estimated $2,000 to $4,500 a month in gross booking revenue before costs.",
+      "cta": "Ask about availability",
+      "visual_direction": "Editorial flat-lay of a city map, a lease folder, and a coffee cup on a wooden desk, warm directional morning light.",
+      "emphasis": "we stop taking it",
+      "archetype": "deal-scarcity"
+    },
+    {
+      "headline": "We run 100+ units. Now we run yours.",
+      "body": "We have operated more than 100 short-term rental units. You fund it, you sign the lease, we run it for a flat $375 a month, no revenue share.",
+      "cta": "See how it works",
+      "visual_direction": "Editorial overhead shot of a clean, neutral-toned apartment living room staged for guests, soft daylight, no people.",
       "emphasis": "100+ units",
       "archetype": "founder-credibility"
     },
     {
-      "headline": "A hundred units of mistakes. Already made.",
-      "body": "Every pricing miss, bad cleaner, and slow turnover happened on our units, not yours. You fund it, you sign the lease, we run it with what those units taught us.",
-      "cta": "Talk to the operators",
-      "visual_direction": "Close-up of a city wall map with clustered pins marking many managed properties, soft directional desk lamp glow",
-      "emphasis": "Already made",
+      "headline": "Operators, not influencers.",
+      "body": "The team running your unit has already managed over 100 of them. Flat $375 a month, fully managed, no revenue share.",
+      "cta": "Talk to the team",
+      "visual_direction": "Close, editorial detail of a key set and a leather-bound check-in folder on a stone countertop, warm directional light, no people.",
+      "emphasis": "Operators",
       "archetype": "founder-credibility"
     },
     {
-      "headline": "Operators, not a course. 100+ doors run.",
-      "body": "We don't sell you a how-to. We run the units ourselves, 100-plus of them, and report estimated typical returns as a range so you know what you actually fund.",
-      "cta": "Review the model",
-      "visual_direction": "Editorial still life of a tablet showing a clean occupancy dashboard beside a stacked set of unit keys, muted morning light",
-      "emphasis": "100+ doors",
+      "headline": "100+ units of operating reps.",
+      "body": "We built this by running the units ourselves, not by selling a course. You own the lease and the capital; we handle the daily operation for a flat $375/mo.",
+      "cta": "Get the details",
+      "visual_direction": "Editorial wide shot of a tidy made bed in a sunlit rental bedroom with linen textures and a single plant, no people.",
+      "emphasis": "100+ units",
       "archetype": "founder-credibility"
+    },
+    {
+      "headline": "Most managers take 20%. We take $375.",
+      "body": "Percentage management scales its cut as you grow. Revarity is a flat $375 a month, no revenue share. You fund it, you sign the lease, we run it.",
+      "cta": "See the math",
+      "visual_direction": "Top-down editorial shot of a clean wood desk with an open ledger, brass calculator, and a single coffee cup in soft window light.",
+      "emphasis": "$375",
+      "archetype": "price-anchor"
+    },
+    {
+      "headline": "DIY is cheaper. Until it isn't.",
+      "body": "Self-managing means listings, guests, cleaners, and 2 a.m. messages on you. Hand it off for a flat $375 a month, no revenue share, fully managed.",
+      "cta": "Hand it off",
+      "visual_direction": "Editorial overhead of a tidy nightstand with a phone face-down, a key, and a small lamp glowing in a dim, calm bedroom.",
+      "emphasis": "DIY is cheaper",
+      "archetype": "price-anchor"
+    },
+    {
+      "headline": "Own the income. Skip the job.",
+      "body": "You fund it, you sign the lease, we run it: guests, cleaning, and pricing handled. Flat $375 a month, no revenue share.",
+      "cta": "See how it works",
+      "visual_direction": "Overhead editorial shot of a styled, empty short-term-rental living room in warm morning light, no people.",
+      "emphasis": "Skip the job",
+      "archetype": "time-freedom"
+    },
+    {
+      "headline": "A rental that doesn't run your day.",
+      "body": "We handle guests, turnovers, and nightly pricing so it stays an asset, not a second shift. You keep the income; we keep the calendar.",
+      "cta": "Get the breakdown",
+      "visual_direction": "Editorial close-up of fresh linens folded on a made bed beside a sunlit window, no people.",
+      "emphasis": "doesn't run your day",
+      "archetype": "time-freedom"
+    },
+    {
+      "headline": "Hands off. Fully run. $375 flat.",
+      "body": "Guest messaging, cleaning coordination, and dynamic pricing are ours. Flat $375 a month, no revenue share, no hourly cost to you.",
+      "cta": "Start the conversation",
+      "visual_direction": "Editorial still life of a key resting on a clean stone entryway counter under soft daylight, no people.",
+      "emphasis": "Hands off",
+      "archetype": "time-freedom"
+    },
+    {
+      "headline": "We underwrite it before you sign anything",
+      "body": "We run the numbers on the unit first. You fund it and sign the lease only after the math holds, and we operate it from there.",
+      "cta": "See how we underwrite",
+      "visual_direction": "Editorial overhead shot of a clean desk: spreadsheet printout, neutral coffee cup, soft daylight, muted tones, no people.",
+      "emphasis": "underwrite",
+      "archetype": "risk-reversal"
+    },
+    {
+      "headline": "You are not figuring this out alone",
+      "body": "You bring the capital and sign the lease. We handle underwriting, setup, and day-to-day operations for a flat $375 a month, no revenue share.",
+      "cta": "Talk to an operator",
+      "visual_direction": "Editorial wide shot of a furnished living room at golden hour, warm neutral palette, empty and styled, no people.",
+      "emphasis": "alone",
+      "archetype": "risk-reversal"
+    },
+    {
+      "headline": "No mortgage. No down payment. Still cash flow.",
+      "body": "Buying a rental ties up six figures and decades. Arbitrage means you fund the lease, sign it, and we run it for a flat $375 a month.",
+      "cta": "See how it works",
+      "visual_direction": "Overhead editorial shot of a modern furnished living room bathed in warm afternoon light, no people in frame.",
+      "emphasis": "No down payment",
+      "archetype": "comparison"
+    },
+    {
+      "headline": "Buying takes years. A lease takes weeks.",
+      "body": "Owning means closing costs, inspections, and a 30-year loan. We set up a managed short-term rental on a lease you sign, then operate it for a flat $375/mo, no revenue share.",
+      "cta": "Start the conversation",
+      "visual_direction": "Editorial close-up of brass keys resting on a marble entryway console beside a small potted plant, soft natural light, no people.",
+      "emphasis": "weeks",
+      "archetype": "comparison"
+    },
+    {
+      "headline": "Skip the deed. Keep the income.",
+      "body": "You don't need to own the building to operate it. Fund the unit, hold the lease, and we manage the whole thing for $375 a month. Typical operator returns vary by market and unit.",
+      "cta": "Get the breakdown",
+      "visual_direction": "Editorial wide shot of a tidy modern bedroom with crisp linens and a sunlit window, calm neutral tones, no people.",
+      "emphasis": "Keep the income",
+      "archetype": "comparison"
     }
   ]
 }
