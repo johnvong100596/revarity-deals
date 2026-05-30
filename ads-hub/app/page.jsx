@@ -5,6 +5,10 @@ import WeeklySummary from "@/app/components/WeeklySummary";
 
 export const dynamic = "force-dynamic";
 
+// Cinematic hero scenes (stills in /public/hero; video drops in later). Crossfade is pure CSS.
+const SCENES = ["01-bedroom-city", "02-over-city", "03-sky", "04-tulum-aerial", "05-villa-door", "06-ski-resort", "07-cottage-fire", "08-highrise-night"];
+const HERO_DUR = SCENES.length * 5;
+
 export default async function Studio() {
   const cfg = await loadConfig();
   const [queue, approvals] = await Promise.all([readQueue(), readApprovals()]);
@@ -17,9 +21,17 @@ export default async function Studio() {
 
   return (
     <>
-      <div className="eyebrow">— Studio · creative-ops command center —</div>
-      <h1>The funnel's <em>engine room</em></h1>
-      <p className="lead">Generate brand-locked creatives, screen them, approve before spend. The engine proposes; you dispose.</p>
+      <header className="hero" style={{ "--herodur": `${HERO_DUR}s` }}>
+        {SCENES.map((n, i) => (
+          <div key={n} className="scene" style={{ backgroundImage: `url(/hero/${n}.png)`, animationDelay: `${(-HERO_DUR + i * 5).toFixed(0)}s` }} />
+        ))}
+        <div className="hero-grad" />
+        <div className="hero-in">
+          <div className="k"><span className="d" /> Your creative studio</div>
+          <h1>Turn rooms into <em>income</em>.</h1>
+          <p>Generate brand-locked ads, screen them, approve before a dollar is spent — you&apos;re always in control.</p>
+        </div>
+      </header>
 
       <div className="grid cards4">
         <div className="stat"><div className="k">In review queue</div><div className="v">{queue.length}</div><div className="sub">finished ads</div></div>
