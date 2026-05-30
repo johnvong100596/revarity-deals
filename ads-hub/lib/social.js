@@ -14,7 +14,9 @@ const FILE = path.join(OUTPUT_DIR, "_social.json");
 export const CHANNELS = ["instagram", "facebook", "meta_ads"];
 const EMPTY = {
   connections: { instagram: { connected: false }, facebook: { connected: false }, meta_ads: { connected: false } },
-  schedule: [], // [{ id, creativeId, channel, account, postAt, status:"queued"|"posted", by }]
+  schedule: [], // [{ id, creativeId, channel, account, postAt, status:"queued"|"posted", postRef, postedAt, by }]
+  autopilot: { enabled: false }, // the on-switch for the post→track→double-down runpath
+  doubledDown: [], // postRefs already used to spawn a variation (so we don't repeat)
   updatedAt: null,
 };
 

@@ -33,6 +33,10 @@ export async function POST(req) {
       s.schedule = [...items, ...s.schedule].slice(0, 5000);
     } else if (b.action === "unschedule") {
       s.schedule = s.schedule.filter((x) => x.id !== b.id);
+    } else if (b.action === "autopilot") {
+      const anyConnected = Object.values(s.connections || {}).some((v) => v?.connected);
+      if (b.enabled && !anyConnected) throw new Error("Connect a channel before enabling autopilot.");
+      s.autopilot = { enabled: !!b.enabled, updatedAt: new Date().toISOString() };
     } else throw new Error("unknown action");
     await writeSocial(s);
     return NextResponse.json({ ok: true, ...s });

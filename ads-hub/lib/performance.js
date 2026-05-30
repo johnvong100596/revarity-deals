@@ -23,6 +23,13 @@ export async function readPerformance() {
   try { return JSON.parse(fs.readFileSync(FILE, "utf8")); } catch { return { ...EMPTY }; }
 }
 
+export async function writePerformance(state) {
+  state.updatedAt = new Date().toISOString();
+  if (DRIVER === "cloud") { const { put } = await blobApi(); await put(KEY, JSON.stringify(state), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" }); }
+  else { fs.mkdirSync(OUTPUT_DIR, { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(state, null, 2)); }
+  return state;
+}
+
 /** Top performers to double down on. metric defaults to views. */
 export function rankWinners(posts, metric = "views", n = 10) {
   return [...(posts || [])].sort((a, b) => (b?.[metric] || 0) - (a?.[metric] || 0)).slice(0, n);

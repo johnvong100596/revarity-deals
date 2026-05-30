@@ -137,6 +137,8 @@ export async function putPublicImage(buf, name = "src") {
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
 export async function readQueue() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }
 export async function getImage(id, variant) { return DRIVER === "cloud" ? cloudGetImage(id, variant) : fsGetImage(id, variant); }
+/** Public CDN URL of a creative's ad image (for Meta publishing, which needs a fetchable URL). Cloud only. */
+export async function publicImageUrl(id, variant = "ad") { return DRIVER === "cloud" ? blobUrl(`creatives/${id}${suffixFor(variant)}`) : null; }
 export async function readApprovals() { return DRIVER === "cloud" ? cloudReadApprovals() : fsReadApprovals(); }
 export async function writeApprovals(decisions) {
   const allowed = new Set(["approve", "hold", "reject"]);

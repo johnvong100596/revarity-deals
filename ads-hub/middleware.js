@@ -11,7 +11,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
  * CONSTRUCTED when keys exist, so a no-key build/runtime never initializes Clerk.
  */
 const USE_CLERK = process.env.AUTH_PROVIDER === "clerk" && !!process.env.CLERK_SECRET_KEY;
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/api/health"]);
+const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/api/health", "/api/cron(.*)"]);
 
 const clerkHandler = USE_CLERK
   ? clerkMiddleware(async (auth, req) => {
@@ -33,4 +33,4 @@ export default function middleware(req, ev) {
   return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Revarity Ads Hub"' } });
 }
 
-export const config = { matcher: ["/((?!_next/|favicon|api/health).*)"] };
+export const config = { matcher: ["/((?!_next/|favicon|api/health|api/cron).*)"] };

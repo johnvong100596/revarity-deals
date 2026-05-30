@@ -10,6 +10,7 @@ const CH = [
 export default function ScheduleClient() {
   const [conns, setConns] = useState({});
   const [schedule, setSchedule] = useState([]);
+  const [autopilot, setAutopilot] = useState({ enabled: false });
   const [approved, setApproved] = useState([]);
   const [rec, setRec] = useState(null);
   const [busy, setBusy] = useState("");
@@ -21,7 +22,7 @@ export default function ScheduleClient() {
       fetch("/api/social", { cache: "no-store" }).then((r) => r.json()),
       fetch("/api/queue", { cache: "no-store" }).then((r) => r.json()),
     ]);
-    setConns(s.connections || {}); setSchedule(s.schedule || []);
+    setConns(s.connections || {}); setSchedule(s.schedule || []); setAutopilot(s.autopilot || { enabled: false });
     const dec = q.decisions || {};
     setApproved((q.queue || []).filter((c) => dec[c.id] === "approve"));
   }, []);
@@ -32,7 +33,7 @@ export default function ScheduleClient() {
     try {
       const r = await fetch("/api/social", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json(); if (!d.ok) throw new Error(d.error || "failed");
-      setConns(d.connections || {}); setSchedule(d.schedule || []);
+      setConns(d.connections || {}); setSchedule(d.schedule || []); setAutopilot(d.autopilot || { enabled: false });
     } catch (e) { setErr(String(e.message || e)); } finally { setBusy(""); }
   }
   function connect(ch) {
@@ -77,6 +78,15 @@ export default function ScheduleClient() {
         })}
       </div>
       <div className="gate"><span>Connect uses your own account; you choose which approved ads flow to it. Live publishing + view tracking activate on connect — until then everything here is a safe queue.</span></div>
+
+      <div className="sec"><h2>Autopilot <span className="muted" style={{ fontSize: 12 }}>· post → track → make more of winners</span></h2></div>
+      <div className="stat" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+        <div>
+          <div className="keyrow"><span className={`kdot ${autopilot.enabled ? "on" : "off"}`} /><b>{autopilot.enabled ? "Autopilot is ON" : "Autopilot is off"}</b></div>
+          <div className="sub" style={{ marginTop: 6, maxWidth: 580 }}>{Object.values(conns).some((c) => c?.connected) ? "Posts your approved, scheduled ads, tracks their views, and automatically drafts more like the winners (they land in Review for your OK)." : "Connect a channel above to switch this on."}</div>
+        </div>
+        <button className="btn" disabled={busy === "ap" || !Object.values(conns).some((c) => c?.connected)} onClick={() => social({ action: "autopilot", enabled: !autopilot.enabled }, "ap")}>{busy === "ap" ? "…" : autopilot.enabled ? "Turn off" : "Enable autopilot"}</button>
+      </div>
 
       <div className="sec"><h2>AI plan <span className="muted" style={{ fontSize: 12 }}>· when + which to post</span></h2><button className="btn ghost" onClick={getPlan} disabled={busy === "rec"}>{busy === "rec" ? "Thinking…" : "Get AI plan"}</button></div>
       {rec ? (
