@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { getConfig } from "@/lib/config";
+import { loadConfig } from "@/lib/config";
 import { readQueue, readApprovals } from "@/lib/store";
+import WeeklySummary from "@/app/components/WeeklySummary";
 
 export const dynamic = "force-dynamic";
 
 export default async function Studio() {
-  const cfg = getConfig();
+  const cfg = await loadConfig();
   const [queue, approvals] = await Promise.all([readQueue(), readApprovals()]);
   const dec = approvals.decisions || {};
   const pass = queue.filter((c) => c.qa === "pass").length;
@@ -63,8 +64,11 @@ export default async function Studio() {
         </div>
       )}
 
+      <div className="sec"><h2>This week</h2><a className="link" href="/api/summary">Raw data →</a></div>
+      <WeeklySummary />
+
       <div className="sec"><h2>Top performers <span className="ph">Phase 2</span></h2></div>
-      <div className="gate"><span>Live CPL / CPC / CPA per creative activates once spend is live + the Meta Ads MCP (read-only) is wired. The loop proposes winners; a human scales them.</span></div>
+      <div className="gate"><span>Live CPL / CPC / CPA per creative activates once spend is live + the Meta Ads connection is wired. The loop proposes winners; a human scales them.</span></div>
     </>
   );
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getConfig } from "@/lib/config";
+import { loadConfig } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * a human disposes (D-04).
  */
 export async function GET() {
-  const { kpi } = getConfig();
+  const { kpi } = await loadConfig();
   return NextResponse.json({
     status: "pending_live_data",
     note: "Activates after spend goes live + Meta Ads MCP (read-only) is wired.",

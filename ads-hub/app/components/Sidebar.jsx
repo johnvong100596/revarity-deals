@@ -2,31 +2,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const ITEMS = [
-  { href: "/", label: "Overview" },
-  { href: "/create", label: "Create" },
-  { href: "/review", label: "Review & Approve" },
-  { href: "/budget", label: "Budget" },
-  { href: "/monitor", label: "Monitor" },
+// Grouped so it reads by job-to-be-done, not a flat list. Malcolm/David/Vu all see everything (no role gating).
+const GROUPS = [
+  { title: "", items: [{ href: "/", label: "Overview" }] },
+  { title: "Make", items: [{ href: "/create", label: "Create" }, { href: "/swipe", label: "Mine winners" }] },
+  { title: "Decide", items: [{ href: "/review", label: "Review & approve" }] },
+  { title: "Plan", items: [{ href: "/budget", label: "Budget" }, { href: "/monitor", label: "Monitor" }] },
+  { title: "", items: [{ href: "/settings", label: "Settings" }] },
 ];
 
 export default function Sidebar() {
   const path = usePathname();
+  const on = (href) => (href === "/" ? path === "/" : path.startsWith(href));
   return (
     <aside className="side">
       <div className="brand">Revarity <em>Ads</em></div>
       <div className="brand-sub">ads.revarity.com · operator hub</div>
+      <Link href="/create" className="side-cta">+ New creative</Link>
       <nav className="nav">
-        {ITEMS.map((it) => {
-          const on = it.href === "/" ? path === "/" : path.startsWith(it.href);
-          return (
-            <Link key={it.href} href={it.href} className={on ? "on" : ""}>
-              <span className="dot" />{it.label}
-            </Link>
-          );
-        })}
+        {GROUPS.map((g, i) => (
+          <div className="navgroup" key={i}>
+            {g.title && <div className="navgroup-t">{g.title}</div>}
+            {g.items.map((it) => (
+              <Link key={it.href} href={it.href} className={on(it.href) ? "on" : ""}><span className="dot" />{it.label}</Link>
+            ))}
+          </div>
+        ))}
       </nav>
-      <div className="side-foot">Wired to the live engine · no publish, no spend (D-04) · Malcolm &amp; David</div>
+      <div className="side-foot">Wired to the live engine · no publish, no spend (D-04) · Malcolm · David · Vu</div>
     </aside>
   );
 }

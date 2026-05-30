@@ -25,6 +25,7 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
     qa_model: rec.qa?.qa_model || "",
     vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
+    source: rec.source || null, created_at: rec.created_at || null,
     hasImg, image_url: image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
   };
 }
@@ -36,7 +37,7 @@ function fsReadQueue() {
   const cards = [];
   for (const angle of fs.readdirSync(OUTPUT_DIR).sort()) {
     const dir = path.join(OUTPUT_DIR, angle);
-    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory() || angle === "_parked") continue;
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory() || angle.startsWith("_")) continue;
     for (const f of fs.readdirSync(dir).sort()) {
       if (!f.endsWith(".json")) continue;
       const rec = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
@@ -75,8 +76,7 @@ async function blobUrl(key) {
   try { const b = await head(key); return b?.url || null; } catch { return null; }
 }
 async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  return r.ok ? r.json() : null;
+  try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; }
 }
 async function cloudReadQueue() {
   const url = await blobUrl(QUEUE_KEY);
@@ -96,6 +96,35 @@ async function cloudWriteApprovals(decisions) {
   await put(APPROVALS_KEY, JSON.stringify(payload), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
   return payload;
 }
+
+/* ───────────────────────── append hub-generated creatives ─────────────────────────
+ * items: [{ rec, adPng: Buffer }]. rec.id is `hub-generated/<uid>`. In fs mode they land in
+ * output/hub-generated/ (picked up by fsReadQueue). In cloud mode the image is a Blob and the
+ * pre-shaped card is prepended to queue.json. Generated creatives still stop at the queue (D-04). */
+const HUB_DIR_NAME = "hub-generated";
+function fsAppend(items) {
+  const dir = path.join(OUTPUT_DIR, HUB_DIR_NAME);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const { rec, adPng } of items) {
+    const base = String(rec.id).split("/").pop();
+    fs.writeFileSync(path.join(dir, `${base}.json`), JSON.stringify(rec, null, 2));
+    if (adPng) fs.writeFileSync(path.join(dir, `${base}.ad.png`), adPng);
+  }
+  return items.length;
+}
+async function cloudAppend(items) {
+  const { put } = await blobApi();
+  const queue = await cloudReadQueue();
+  for (const { rec, adPng } of items) {
+    const id = rec.id;
+    if (adPng) await put(`creatives/${id}.ad.png`, adPng, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png" });
+    const q = encodeURIComponent(id);
+    queue.unshift(shape(rec, id, true, null, adPng ? `/api/image?id=${q}&v=ad` : null, null));
+  }
+  await put(QUEUE_KEY, JSON.stringify(queue), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  return queue.length;
+}
+export async function appendCreatives(items) { return DRIVER === "cloud" ? cloudAppend(items) : fsAppend(items); }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
 export async function readQueue() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }

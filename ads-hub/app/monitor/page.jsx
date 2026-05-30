@@ -1,9 +1,9 @@
-import { getConfig } from "@/lib/config";
+import { loadConfig } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
-export default function MonitorPage() {
-  const { kpi } = getConfig();
+export default async function MonitorPage() {
+  const { kpi } = await loadConfig();
   return (
     <>
       <div className="eyebrow">— Monitor —</div>

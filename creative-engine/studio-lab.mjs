@@ -15,11 +15,14 @@ const CIN = path.join(OUT, "cinematic");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 const uri = (p) => `data:image/png;base64,${fs.readFileSync(p).toString("base64")}`;
 
-// journey scenes (order = the camera loop)
-const sceneFiles = ["01-bedroom-city", "02-over-city", "03-sky", "04-tulum-aerial", "05-villa-door", "06-ski-resort", "07-cottage-fire", "08-highrise-night"]
-  .map((n) => path.join(CIN, `${n}.png`)).filter(fs.existsSync);
-const scenes = sceneFiles.map(uri);
-const N = scenes.length, DUR = N * 5; // ~5s per scene
+// journey scenes (order = the camera loop). Each scene has a still; if a matching .mp4 exists
+// (made by video.mjs via Higgsfield image→video) the hero plays real motion instead of a still.
+const sceneNames = ["01-bedroom-city", "02-over-city", "03-sky", "04-tulum-aerial", "05-villa-door", "06-ski-resort", "07-cottage-fire", "08-highrise-night"];
+const scenes = sceneNames
+  .map((n) => ({ name: n, png: path.join(CIN, `${n}.png`), mp4: path.join(CIN, `${n}.mp4`) }))
+  .filter((s) => fs.existsSync(s.png));
+const videoMode = scenes.length > 0 && scenes.every((s) => fs.existsSync(s.mp4));
+const N = scenes.length, DUR = N * 5; // ~5s per scene (still-mode CSS timer)
 
 // a few finished ads for the gallery
 function ads() {
@@ -32,8 +35,11 @@ function ads() {
 }
 const gallery = ads();
 
-const sceneLayers = scenes.map((s, i) =>
-  `<div class="scene" style="background-image:url('${s}');animation-delay:${(-DUR + i * 5).toFixed(2)}s"></div>`).join("");
+const sceneLayers = videoMode
+  ? scenes.map((s, i) =>
+      `<video class="scene${i === 0 ? " on" : ""}" muted playsinline preload="auto" poster="${uri(s.png)}"><source src="cinematic/${s.name}.mp4" type="video/mp4"></video>`).join("")
+  : scenes.map((s, i) =>
+      `<div class="scene" style="background-image:url('${uri(s.png)}');animation-delay:${(-DUR + i * 5).toFixed(2)}s"></div>`).join("");
 const galleryCards = gallery.map((g) => `<div class="g"><img src="${g}" alt=""/></div>`).join("");
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -72,6 +78,9 @@ background:rgba(7,11,20,.55);backdrop-filter:blur(14px);border-bottom:1px solid 
 .hero{position:relative;height:62vh;min-height:460px;overflow:hidden;display:flex;align-items:flex-end}
 .scene{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;
 animation:cycle ${DUR}s linear infinite;will-change:opacity,transform}
+/* video mode: JS sequences the clips; crossfade on opacity, no CSS Ken-Burns (the clip carries the motion) */
+.hero.video .scene{animation:none;object-fit:cover;width:100%;height:100%;opacity:0;transform:scale(1.04);transition:opacity 1.15s ease}
+.hero.video .scene.on{opacity:1}
 .hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,11,20,.25) 0%,rgba(7,11,20,.1) 40%,rgba(7,11,20,.92) 100%)}
 .hero-in{position:relative;z-index:2;padding:0 40px 46px;max-width:900px;animation:rise .9s ease both}
 .kicker{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--txt);background:var(--glass);
@@ -128,7 +137,7 @@ border-radius:14px;padding:14px 18px;font-size:13.5px;color:#cdd6ee;margin:8px 0
     <div class="avatar">M</div>
   </nav>
 
-  <header class="hero">
+  <header class="hero${videoMode ? " video" : ""}">
     ${sceneLayers}
     <div class="hero-grad"></div>
     <div class="hero-in">
@@ -169,7 +178,27 @@ border-radius:14px;padding:14px 18px;font-size:13.5px;color:#cdd6ee;margin:8px 0
     <div class="note">Once your ads are live, this shows which ones get the cheapest leads — so you can put more behind the winners. (Turns on after launch.)</div>
   </main>
   <div class="foot">Revarity Studio · concept · the studio proposes, you approve before any spend</div>
-</div></body></html>`;
+</div>
+<script>
+/* Hero video sequencer: play one clip at a time, crossfade to the next on 'ended', loop forever.
+   Keeps at most ~2 decoders active (vs 8 autoplaying) and syncs to the real clip length. */
+(function(){
+  var vids=[].slice.call(document.querySelectorAll('.hero.video .scene'));
+  if(!vids.length) return;
+  var i=0, timer=null;
+  function show(n){
+    for(var k=0;k<vids.length;k++) vids[k].classList.toggle('on', k===n);
+    var v=vids[n];
+    try{ v.currentTime=0; }catch(e){}
+    var p=v.play(); if(p&&p.catch) p.catch(function(){});
+    clearTimeout(timer); timer=setTimeout(advance, 9000); /* fallback if 'ended' never fires */
+  }
+  function advance(){ i=(i+1)%vids.length; show(i); }
+  for(var k=0;k<vids.length;k++) vids[k].addEventListener('ended', advance);
+  show(0);
+})();
+</script>
+</body></html>`;
 
 fs.writeFileSync(path.join(OUT, "studio-lab.html"), html);
 console.log(`studio-lab → output/studio-lab.html (${scenes.length} cinematic scenes, ${gallery.length} ads)`);

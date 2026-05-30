@@ -98,3 +98,53 @@ code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(245,2
 .chip.ok{background:var(--green);color:#0a0a0b}.chip.bad{background:var(--red);color:#fff}.chip.warn{background:var(--amber);color:#0a0a0b}
 .sg-cap{padding:11px 13px}.sg-h{font-size:12.5px;line-height:1.3;margin-bottom:5px}
 .sg-m{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* ── Create: prompt + drop-bar + results (Phase 1) ── */
+textarea{width:100%;background:rgba(245,241,232,.04);border:1px solid var(--line);color:var(--cream);font-family:'Manrope';font-size:14px;padding:11px 12px;border-radius:2px;line-height:1.5;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:8px}
+@media(max-width:880px){.two{grid-template-columns:1fr}}
+.drop{background:var(--ink-soft);border:1px solid var(--line-dark);border-left:3px solid var(--gold);border-radius:4px;padding:16px}
+.cbx{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:12px;cursor:pointer}
+.cbx input{width:auto}
+.pattern{margin-top:12px;font-size:12px;line-height:1.6;color:rgba(245,241,232,.8)}
+.pattern b{color:var(--gold);font-weight:600;margin-right:4px;font-size:11px}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;margin-top:22px}
+.rcard{background:var(--ink-soft);border:1px solid var(--line-dark);border-radius:5px;overflow:hidden}
+.thumb{background:#000}.thumb img,.thumb video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover}
+.thumb .rendering{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;text-align:center;padding:0 16px}
+.thumb .rendering.bad{color:var(--red)}
+.rbody{padding:12px 13px}.rh{font-family:'Fraunces',serif;font-size:15px;line-height:1.25;margin-bottom:6px}
+.rt{font-size:12px;color:rgba(245,241,232,.62);line-height:1.45;margin-bottom:8px}
+.rcta{font-size:12px;color:var(--gold);margin-bottom:9px}
+.rmeta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* ── Mine winners / Swipe (Phase 2) ── */
+.reflist{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.refitem{position:relative;background:rgba(245,241,232,.03);border:1px solid var(--line-dark);border-radius:3px;padding:9px 28px 9px 10px}
+.reftext{font-size:12px;line-height:1.4;color:rgba(245,241,232,.82)}
+.refsrc{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.refx{position:absolute;top:7px;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px}
+.refx:hover{color:var(--red)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.pbucket{background:var(--ink-soft);border:1px solid var(--line-dark);border-radius:4px;padding:14px 16px}
+.pbk{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+.pbucket ul{margin:0;padding-left:16px}
+.pbucket li{font-size:12.5px;line-height:1.5;color:rgba(245,241,232,.8);margin-bottom:6px}
+
+/* ── Settings (Phase 3) ── */
+.keyrow{display:flex;align-items:center;gap:7px;font-size:11.5px;margin-top:9px}
+.keyrow b{font-weight:600;color:var(--cream)}
+.kdot{width:8px;height:8px;border-radius:50%;flex:none}
+.kdot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.kdot.off{background:var(--muted-dark)}
+
+/* ── Weekly summary (Phase 4) ── */
+.summary{background:var(--ink-soft);border:1px solid var(--line-dark);border-radius:4px;padding:16px 18px;margin-top:16px}
+.summary-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.summary pre{margin:0;white-space:pre-wrap;font-family:'Manrope';font-size:13px;line-height:1.6;color:rgba(245,241,232,.82)}
+
+/* ── Sidebar: grouped nav + generate CTA (Phase 5) ── */
+.side-cta{display:block;text-align:center;background:var(--gold);color:var(--ink);font-family:'Manrope';font-weight:600;font-size:13px;padding:10px 12px;border-radius:3px;margin-bottom:22px;transition:.15s}
+.side-cta:hover{background:var(--gold-bright)}
+.navgroup{display:flex;flex-direction:column;gap:3px;margin-bottom:14px}
+.navgroup-t{font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-dark);padding:0 12px;margin-bottom:4px}
