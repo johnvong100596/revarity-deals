@@ -190,12 +190,11 @@ function qaCreative(angle, variant, spec, imagePrompt) {
   // 2. emoji (arrows allowed)
   if (EMOJI.test(copyText.replace(ARROW_OK, ""))) reasons.push("emoji present in copy");
 
-  // 3. pricing guard (D-01) — applies to EVERY variant, flagged or not
-  const feeWordNearMoney = /(?:fee|setup|deposit|price|cost|pricing|retainer)\b[^.]{0,16}\$\s?\d|\$\s?\d[\d,]*\s?[kK]?[^.]{0,12}(?:fee|setup|deposit|retainer)/i;
-  if (feeWordNearMoney.test(copyText) && !copyText.includes("[PENDING-D01]"))
-    reasons.push("states a fee/price near a $ figure without the [PENDING-D01] token (D-01 violation)");
-  if (/\$\s?375\b|\$\s?(?:12|35)\s?[kK]\b|\$\s?(?:12|35)[,.]?\d{3}\b/i.test(copyText))
-    reasons.push("hardcoded the locked $375 / $12K / $35K pricing figures (D-01 violation)");
+  // 3. pricing guard — D-01 RESOLVED 2026-05-29: $375/mo flat, no revenue share. $375 is now ALLOWED.
+  if (copyText.includes("[PENDING-D01]")) reasons.push('stale [PENDING-D01] token — D-01 resolved; state "$375/mo" (flat, no revenue share)');
+  if (/\$\s?(?:12|35)\s?[kK]\b|\$\s?(?:12|35)[,.]?\d{3}\b/i.test(copyText)) reasons.push("setup-fee figure ($12K/$35K) not yet cleared for ad copy — confirm before stating");
+  const feeMonthly = copyText.match(/(?:fee|flat|managed|management|price|cost)\b[^.]{0,18}\$\s?(\d[\d,]*)\s*\/?\s*(?:mo\b|month)/i);
+  if (feeMonthly && feeMonthly[1].replace(/,/g, "") !== "375") reasons.push(`monthly fee ${feeMonthly[0]} contradicts the $375/mo flat fee (D-01)`);
 
   // 4. projected income must be a range AND labeled estimate/typical (brand voice)
   const moneyMonth = copyText.match(/\$\s?\d[\d,]*(?:\s*[–-]\s*\$?\d[\d,]*)?\s*\/?\s*(?:mo\b|month)/i);
@@ -238,7 +237,7 @@ function copyGenPrompt(angle, n) {
     '- Any projected number MUST carry a range AND the word "estimate" or "typical" — never a bare promise, never a single hero number.',
     "- No fake scarcity beyond what is true (no invented countdowns). No emoji.",
     "",
-    'Pricing guard (decision D-01 unresolved): do NOT state any specific price, fee, or setup cost. Write pricing-agnostic (e.g. "flat monthly fee, no revenue share") and put the literal token [PENDING-D01] where a number would otherwise go.',
+    'Pricing (D-01 resolved 2026-05-29): the offer is a FLAT $375/month, fully-managed done-for-you, with NO revenue share. You MAY state "$375/mo" or "flat $375 a month, no revenue share". Do NOT invent any other monthly price and do NOT state a setup fee (not yet cleared).',
     "",
     `Angle: ${angle.id} — audience: ${angle.audience || ""}`,
     `Lead magnet: ${angle.lead_magnet || ""}`,

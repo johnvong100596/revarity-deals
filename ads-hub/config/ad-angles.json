@@ -11,7 +11,7 @@
     "behaviours": ["small business owners", "online purchasers", "frequent travellers"]
   },
 
-  "pricing_lock_warning": "The flat-fee figure ($375/mo) and setup range ($12K-$35K) appear in this copy. These are UNRESOLVED against the master-flow 4-tier model. The Creative Engine MUST NOT generate copy that hardcodes a pricing claim until DECISIONS.md D-01 is resolved by Malcolm. Until then, generate pricing-agnostic variants OR flag pricing as a [PENDING-D01] token.",
+  "pricing_lock_warning": "D-01 RESOLVED (2026-05-29): pricing is a FLAT $375/month, fully-managed, NO revenue share. Copy MAY state $375/mo. The setup fee ($12K-$35K in the blueprint) is NOT yet cleared for ad copy — do not state it until confirmed.",
 
   "angles": [
     {
