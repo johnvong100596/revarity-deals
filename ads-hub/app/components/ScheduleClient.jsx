@@ -48,6 +48,7 @@ export default function ScheduleClient() {
   function addToSchedule(c) {
     const d = draft[c.id] || {};
     social({ action: "schedule", items: [{ creativeId: c.id, channel: d.channel || "instagram", postAt: d.postAt || "" }] }, `s-${c.id}`);
+    setDraft((p) => { const n = { ...p }; delete n[c.id]; return n; });
   }
   const chLabel = (id) => CH.find((c) => c.id === id)?.label || id;
 
@@ -130,7 +131,7 @@ export default function ScheduleClient() {
                 <td>{chLabel(x.channel)}{conns[x.channel]?.connected ? "" : " (not connected)"}</td>
                 <td>{x.postAt || "—"}</td>
                 <td>{x.status}</td>
-                <td><button className="refx" title="remove" onClick={() => social({ action: "unschedule", id: x.id }, `u-${x.id}`)}>✕</button></td>
+                <td><button className="btn ghost" style={{ padding: "4px 10px", fontSize: 11 }} title="remove" onClick={() => social({ action: "unschedule", id: x.id }, `u-${x.id}`)}>Remove</button></td>
               </tr>
             ))}
           </tbody>
