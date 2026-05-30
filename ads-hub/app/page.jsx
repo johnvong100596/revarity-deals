@@ -2,6 +2,7 @@ import Link from "next/link";
 import { loadConfig } from "@/lib/config";
 import { readQueue, readApprovals } from "@/lib/store";
 import WeeklySummary from "@/app/components/WeeklySummary";
+import FirstVisit from "@/app/components/FirstVisit";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function Studio() {
 
   return (
     <>
+      <FirstVisit />
       <header className="hero" style={{ "--herodur": `${HERO_DUR}s` }}>
         {SCENES.map((n, i) => (
           <div key={n} className="scene" style={{ backgroundImage: `url(/hero/${n}.png)`, animationDelay: `${(-HERO_DUR + i * 5).toFixed(0)}s` }} />

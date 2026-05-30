@@ -9,7 +9,7 @@ const GROUPS = [
   { title: "Decide", items: [{ href: "/review", label: "Review & approve" }] },
   { title: "Publish", items: [{ href: "/schedule", label: "Schedule" }] },
   { title: "Plan", items: [{ href: "/budget", label: "Budget" }, { href: "/monitor", label: "Monitor" }] },
-  { title: "", items: [{ href: "/settings", label: "Settings" }] },
+  { title: "", items: [{ href: "/welcome", label: "Guide" }, { href: "/settings", label: "Settings" }] },
 ];
 
 export default function Sidebar() {
