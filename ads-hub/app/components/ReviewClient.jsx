@@ -47,7 +47,7 @@ export default function ReviewClient() {
     <>
       <div className="eyebrow">— Review &amp; approve —</div>
       <h1>The approval <em>gate</em></h1>
-      <p className="lead">Every creative with its headline over the reserved zone, copy, and auto-QA verdict. Approve / hold / reject. Approving marks a set ready to push — it does not spend (D-04).</p>
+      <p className="lead">Every creative with its copy and auto-QA verdict. Approve, hold, or reject.</p>
       <div className="bar">
         <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}</div>
         <div style={{ display: "flex", gap: 9 }}>

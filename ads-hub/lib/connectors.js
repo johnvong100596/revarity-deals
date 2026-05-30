@@ -20,7 +20,7 @@ export function keyStatus() {
   return {
     copy: !!ANTHROPIC_KEY(),
     image: !!GEMINI_KEY(),
-    video: !!(process.env.HIGGSFIELD_ACCESS_TOKEN || process.env.HIGGSFIELD_API_KEY_ID),
+    video: !!((process.env.HF_API_KEY || process.env.HIGGSFIELD_API_KEY_ID) && (process.env.HF_API_SECRET || process.env.HIGGSFIELD_API_KEY_SECRET)),
   };
 }
 
@@ -102,5 +102,3 @@ export async function renderImage(prompt, { final = false } = {}) {
   if (!img) throw new Error("Gemini returned no image.");
   return Buffer.from(img.inlineData.data, "base64");
 }
-
-export { startVideo, pollVideo, uploadImage } from "./higgsfield.js";

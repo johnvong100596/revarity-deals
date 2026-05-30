@@ -17,7 +17,6 @@ export default function Sidebar() {
   return (
     <aside className="side">
       <div className="brand">Revarity <em>Ads</em></div>
-      <div className="brand-sub">ads.revarity.com · operator hub</div>
       <Link href="/create" className="side-cta">+ New creative</Link>
       <nav className="nav">
         {GROUPS.map((g, i) => (
@@ -29,7 +28,6 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="side-foot">Wired to the live engine · no publish, no spend (D-04) · Malcolm · David · Vu</div>
     </aside>
   );
 }

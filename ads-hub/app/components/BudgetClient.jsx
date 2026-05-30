@@ -13,8 +13,7 @@ export default function BudgetClient({ budgetMonthly, kpi, angles }) {
     <>
       <div className="eyebrow">— Budget —</div>
       <h1>Plan the <em>spend</em></h1>
-      <p className="lead">Set the monthly plan and split it across angles. The hub computes target leads from your CPL ceiling — it does not move money. Committing spend is a human action in Meta.</p>
-      <div className="gate warn"><span><b>D-04.</b> Planning numbers only. Nothing here launches, pauses, or moves budget.</span></div>
+      <p className="lead">Set the monthly plan and split it across angles. The hub computes target leads from your CPL ceiling — planning numbers only.</p>
       <div className="row">
         <div className="fld" style={{ maxWidth: 240 }}><label className="l">Monthly budget (USD)</label><input type="number" value={total} onChange={(e) => setTotal(+e.target.value || 0)} /></div>
         <div className="fld" style={{ maxWidth: 200 }}><label className="l">Target CPL ceiling</label><input type="number" value={cpl} onChange={(e) => setCpl(+e.target.value || 0)} /></div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getJob, saveJob } from "@/lib/jobs";
-import { pollVideo } from "@/lib/connectors";
+import { pollVideo } from "@/lib/higgsfield-cloud";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export async function GET(_req, { params }) {
 
   if (job.type === "video" && job.status === "rendering") {
     try {
-      const { status, result_url } = await pollVideo(job.hfJobId);
+      const { status, result_url } = await pollVideo(job.cloudSetId);
       if (status === "completed" && result_url) { job.status = "done"; job.result_url = result_url; await saveJob(job); }
       else if (status === "failed" || status === "canceled") { job.status = "failed"; job.error = `higgsfield ${status}`; await saveJob(job); }
       else { job.hfStatus = status; } // still rendering — don't persist churn

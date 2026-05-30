@@ -126,6 +126,14 @@ async function cloudAppend(items) {
 }
 export async function appendCreatives(items) { return DRIVER === "cloud" ? cloudAppend(items) : fsAppend(items); }
 
+/** Upload a source image to PUBLIC Blob and return its URL (Cloud video needs a fetchable image_url). Cloud only. */
+export async function putPublicImage(buf, name = "src") {
+  if (DRIVER !== "cloud") throw new Error("video needs Blob image hosting — set STORE_DRIVER=cloud (+ BLOB_READ_WRITE_TOKEN)");
+  const { put } = await blobApi();
+  const b = await put(`gen-src/${name}.png`, buf, { access: "public", addRandomSuffix: true, contentType: "image/png" });
+  return b.url;
+}
+
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
 export async function readQueue() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }
 export async function getImage(id, variant) { return DRIVER === "cloud" ? cloudGetImage(id, variant) : fsGetImage(id, variant); }

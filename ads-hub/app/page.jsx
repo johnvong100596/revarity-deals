@@ -40,8 +40,6 @@ export default async function Studio() {
         <div className="stat"><div className="k">Monthly plan</div><div className="v">${(cfg.budgetMonthly || 0).toLocaleString()}<small> · CPL ≤ ${cfg.kpi.cpl_usd_max}</small></div><div className="sub">$375/mo offer · no rev share</div></div>
       </div>
 
-      <div className="gate warn"><span><b>Human gate (D-04).</b> The studio proposes — it never publishes to Meta or spends. Approving marks a set ready; a human pushes it live.</span></div>
-
       <div className="qa-row">
         <Link className="qa" href="/create"><div className="t">Generate creatives</div><div className="s">Run the engine across angles → finished ads</div></Link>
         <Link className="qa" href="/review"><div className="t">Review &amp; approve</div><div className="s">{awaiting} creatives waiting on you</div></Link>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { genCopy, buildImagePrompt, renderImage, specDims, startVideo, uploadImage } from "@/lib/connectors";
-import { appendCreatives } from "@/lib/store";
+import { genCopy, buildImagePrompt, renderImage, specDims } from "@/lib/connectors";
+import { startVideo } from "@/lib/higgsfield-cloud";
+import { appendCreatives, putPublicImage } from "@/lib/store";
 import { saveJob, newId } from "@/lib/jobs";
 
 export const runtime = "nodejs";
@@ -49,11 +50,11 @@ export async function POST(req) {
 
     if (type === "video") {
       const [copy] = await genCopy({ angleId, brief, reference, n: 1 });
-      const prompt = buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
-      const adPng = await renderImage(prompt, { final: false });
-      const mediaId = await uploadImage(adPng);
-      const hfJobId = await startVideo({ mediaId, prompt: brief || copy?.headline || "subtle cinematic motion", aspect: specDims(spec).aspect });
-      const job = await saveJob({ id: newId("vid"), type: "video", status: "rendering", hfJobId, angleId, spec, headline: copy?.headline || "", brief, createdAt: Date.now() });
+      const imgPrompt = buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
+      const adPng = await renderImage(imgPrompt, { final: false });
+      const imageUrl = await putPublicImage(adPng, newId("src").slice(4));
+      const setId = await startVideo({ imageUrl, prompt: brief || copy?.headline || "slow cinematic push-in, subtle motion" });
+      const job = await saveJob({ id: newId("vid"), type: "video", status: "rendering", cloudSetId: setId, angleId, spec, headline: copy?.headline || "", brief, createdAt: Date.now() });
       return NextResponse.json({ ok: true, type, jobId: job.id, status: "rendering" });
     }
 

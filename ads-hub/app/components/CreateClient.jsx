@@ -81,8 +81,7 @@ export default function CreateClient({ angles, formats }) {
     <>
       <div className="eyebrow">— Create a run —</div>
       <h1>Spin up <em>creatives</em></h1>
-      <p className="lead">Describe what you want, optionally paste an ad you like, and generate as many as you need until one clicks. Everything lands in the Review queue — the engine never publishes or spends (D-04).</p>
-      <div className="gate warn"><span><b>Generate freely.</b> Each creative is a proposal. Nothing goes live until a human approves it in Review and launches it in Meta.</span></div>
+      <p className="lead">Describe what you want, optionally paste an ad you like, and generate as many as you need until one clicks. Everything lands in the Review queue.</p>
 
       <div className="two">
         <div>
