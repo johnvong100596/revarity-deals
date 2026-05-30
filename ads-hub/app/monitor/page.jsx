@@ -1,4 +1,5 @@
 import { loadConfig } from "@/lib/config";
+import PerformancePanel from "@/app/components/PerformancePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ export default async function MonitorPage() {
       </div>
       <div className="sec-h">Per-creative performance</div>
       <div className="gate"><span>Table populates from <code>/api/metrics</code> once Meta data flows. Kill rule: CPL &gt; ${kpi.kill_creative_cpl_usd_over} after {kpi.kill_creative_after_impressions} impressions. Scale rule: CPL &lt; ${kpi.scale_creative_cpl_usd_under}.</span></div>
+
+      <div className="sec"><h2>Winners &amp; auto-double-down</h2></div>
+      <PerformancePanel />
     </>
   );
 }
