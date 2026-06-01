@@ -3,6 +3,8 @@ import { loadConfig } from "@/lib/config";
 import { readQueue, readApprovals } from "@/lib/store";
 import WeeklySummary from "@/app/components/WeeklySummary";
 import FirstVisit from "@/app/components/FirstVisit";
+import HeroVideo from "@/app/components/HeroVideo";
+import CreativeGallery from "@/app/components/CreativeGallery";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +20,12 @@ export default async function Studio() {
   const approved = Object.values(dec).filter((v) => v === "approve").length;
   const awaiting = queue.filter((c) => !dec[c.id]).length;
   const gallery = queue.slice(0, 12);
-  const src = (c) => c.ad_url || c.image_url || `/api/image?id=${encodeURIComponent(c.id)}&v=ad`;
+  const src = (c) => c.video_url || c.ad_url || c.image_url || `/api/image?id=${encodeURIComponent(c.id)}&v=ad`;
 
   return (
     <>
       <FirstVisit />
-      <header className="hero" style={{ "--herodur": `${HERO_DUR}s` }}>
-        {SCENES.map((n, i) => (
-          <div key={n} className="scene" style={{ backgroundImage: `url(/hero/${n}.png)`, animationDelay: `${(-HERO_DUR + i * 5).toFixed(0)}s` }} />
-        ))}
-        <div className="hero-grad" />
-        <div className="hero-in">
-          <div className="k"><span className="d" /> Your creative studio</div>
-          <h1>Turn rooms into <em>income</em>.</h1>
-          <p>Generate brand-locked ads, screen them, approve before a dollar is spent — you&apos;re always in control.</p>
-        </div>
-      </header>
+      <HeroVideo scenes={SCENES} heroDur={HERO_DUR} />
 
       <div className="grid cards4">
         <div className="stat"><div className="k">In review queue</div><div className="v">{queue.length}</div><div className="sub">finished ads</div></div>
@@ -60,20 +52,18 @@ export default async function Studio() {
       {gallery.length === 0 ? (
         <div className="gate"><span>Queue is empty — generate a run to populate the studio.</span></div>
       ) : (
-        <div className="sgrid">
-          {gallery.map((c) => {
-            const badge = c.qa === "pass" ? "ok" : c.qa === "fail" ? "bad" : "warn";
-            return (
-              <Link key={c.id} className="sg-card" href="/review">
-                <div className={`sg-frame ${c.vertical ? "v" : "sq"}`}>
-                  <img src={src(c)} alt={c.headline} />
-                  <div className="sg-badges"><span className={`chip ${badge}`}>QA {c.qa}</span>{c.pricing_flag && <span className="chip warn">{c.pricing_flag}</span>}</div>
-                </div>
-                <div className="sg-cap"><div className="sg-h">{(c.headline || "").slice(0, 48)}</div><div className="sg-m">{c.angle_id} · {c.spec}</div></div>
-              </Link>
-            );
-          })}
-        </div>
+        <CreativeGallery creatives={gallery.map((c) => ({
+          id: c.id,
+          headline: c.headline || "",
+          body: c.body || "",
+          cta: c.cta || "",
+          angle_id: c.angle_id || "",
+          spec: c.spec || "",
+          qa: c.qa || "review",
+          pricing_flag: c.pricing_flag || "",
+          vertical: !!c.vertical,
+          src: src(c),
+        }))} />
       )}
 
       <div className="sec"><h2>This week</h2><a className="link" href="/api/summary">Raw data →</a></div>

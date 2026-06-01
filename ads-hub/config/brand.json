@@ -70,14 +70,17 @@
       "Use generous negative space. Premium, not crowded.",
       "Radial gold glow on dark backgrounds for atmosphere.",
       "Italic Fraunces in gold for the single most important word in a headline.",
-      "Real photography of furnished units beats AI-rendered interiors where available."
+      "Real photography of furnished units beats AI-rendered interiors where available.",
+      "State the offer honestly: free to explore sourced deals + the community; pay nothing until you accept a deal; the client funds their own unit at cost; management is billed after setup."
     ],
     "dont": [
       "No purple gradients, no generic SaaS-blue, no stock-photo gloss.",
       "No emoji in any creative.",
       "No fonts outside the three above.",
-      "No AI-generated talking-head / fake-testimonial UGC video (see DECISIONS.md D-03).",
-      "No itemized markup shown to client (locked RevAtelier rule applies to setup-fee framing)."
+      "No AI-generated talking-head / fake-testimonial UGC video (D-03). On-camera people may appear ONLY as aspirational lifestyle b-roll (not speaking to camera, not posing as a client); the selling message is carried by voiceover.",
+      "No guaranteed-returns / guaranteed-income / risk-free / 'can't lose' language. No performance, occupancy, or profit guarantees — results vary; the client assumes financial responsibility (Agreement §16).",
+      "Don't say 'no upfront cost' unqualified — it must read as no program / entry / franchise / 'door' fee; the client still funds their own unit at cost.",
+      "Costs are passed AT COST with no inflated markups — never imply hidden markups or show itemized markup."
     ]
   },
 

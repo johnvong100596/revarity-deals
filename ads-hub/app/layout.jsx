@@ -1,5 +1,6 @@
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
+import TabTutorial from "./components/TabTutorial";
 import { ClerkProvider, SignedIn, UserButton } from "@clerk/nextjs";
 
 // Only initialize Clerk when keys are present; otherwise render the plain shell (Basic/open auth).
@@ -17,7 +18,7 @@ function Shell({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -31,6 +32,7 @@ function Shell({ children }) {
                 <SignedIn><UserButton /></SignedIn>
               </div>
             )}
+            <TabTutorial />
             {children}
           </main>
         </div>

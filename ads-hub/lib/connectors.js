@@ -31,16 +31,18 @@ export function specDims(spec) {
 }
 
 const VOICE = [
-  "Brand: Revarity — done-for-you short-term-rental / Airbnb arbitrage for people with real capital.",
-  "Voice: direct, premium, no hype adjectives, state the model honestly. No emoji. No fake scarcity.",
-  "Numbers: any projected income is a RANGE and labelled 'estimate' — never a single inflated number.",
-  "Pricing guard (D-01): you MAY state pricing is $375/month flat, fully-managed, no revenue share. Do NOT state any setup fee or % revenue share.",
+  "Brand: Revarity, Inc. — a done-for-you short-term-rental (Airbnb) BUSINESS builder for serious investors with real capital. We source the unit, coordinate the lease, design & furnish it, launch the listing, and manage it end-to-end.",
+  "Voice: direct, premium, honest. No hype adjectives, no emoji, no fake scarcity or countdowns.",
+  "Offer model (state honestly): clients come in FREE — browse sourced deals and join the community at no cost, and pay nothing until they ACCEPT a specific deal. There is NO tuition, franchise, membership, or entry ('door') fee. It is NOT a course or guru program. The client funds their own unit's launch cost (their business expense and asset), provided AT COST with no inflated markups. Management is a separate ONGOING service billed AFTER the unit is set up — never an upfront charge.",
+  "Claims guard: NEVER promise or imply guaranteed returns, occupancy, or profit — results vary and the client assumes full financial responsibility. Any projected income must be a RANGE labelled 'estimate' with a 'no guarantee' note. If you say 'no upfront cost,' you MUST qualify that it means no program/entry/franchise fee (the client still funds their own unit at cost). Never imply hidden markups; never show itemized markup.",
 ].join(" ");
 
+// Flag the highest-risk claims for human review under the at-cost / no-guarantee model.
 function pricingFlag(text) {
   const t = (text || "").toLowerCase();
-  if (/\bsetup fee\b|\b\$?\d[\d,]*k?\s*(setup|to set up)\b/.test(t)) return "REVIEW-setup-fee";
-  if (/%\s*(rev|revenue|share)|revenue share/.test(t)) return "REVIEW-rev-share";
+  if (/guarantee|guaranteed|risk[\s-]?free|can't lose|cannot lose/.test(t)) return "REVIEW-guarantee-claim";
+  if (/revenue share|%\s*(rev|revenue|share)/.test(t)) return "REVIEW-rev-share";
+  if (/\bno (up[\s-]?front|upfront) (cost|fee|investment)s?\b/.test(t) && !/(program|entry|franchise|tuition|door|membership) fee/.test(t)) return "REVIEW-upfront-claim";
   return null;
 }
 
@@ -84,6 +86,20 @@ export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_fee
     extra ? `Operator note: ${extra}` : "",
     `Leave clean upper space for an overlaid headline. Do NOT render garbled text in the image. Concept: "${headline}".`,
     `No fabricated people implying a real customer or founder.`,
+  ].filter(Boolean).join(" ");
+}
+
+/** Build a cinematic B-ROLL prompt for Veo. D-03-safe: aspirational lifestyle footage, NEVER a
+ *  talking-head/testimonial. The selling message is carried by a separate voiceover, not on-screen text. */
+export function buildBrollPrompt({ headline = "", angleId = "", brief = "" }) {
+  const angle = getAngle(angleId);
+  return [
+    "Cinematic, photorealistic short-form ad B-ROLL. Premium short-term-rental / luxury real-estate aesthetic.",
+    "Warm editorial color grade, soft natural light, shallow depth of field, smooth gimbal or drone motion. Never stock-photo gloss.",
+    angle?.visual_direction ? `Scene direction: ${angle.visual_direction}.` : "Scene: a beautifully furnished luxury short-term rental / penthouse with aspirational lifestyle moments.",
+    brief ? `Operator note: ${brief}.` : "",
+    `Mood/theme to evoke (do NOT render as on-screen text): "${headline}".`,
+    "If a person appears, they are an aspirational lifestyle figure moving through the space — NOT speaking to camera, NOT a testimonial. No captions, no logos, no on-screen text.",
   ].filter(Boolean).join(" ");
 }
 

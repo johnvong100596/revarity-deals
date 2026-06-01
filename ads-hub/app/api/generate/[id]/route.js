@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { getJob, saveJob } from "@/lib/jobs";
 import { pollVideo } from "@/lib/higgsfield-cloud";
+import { pollVeo, fetchVeoVideo } from "@/lib/veo";
+import { pollFal } from "@/lib/fal";
+import { putPublicVideo, appendCreatives } from "@/lib/store";
+import { specDims } from "@/lib/connectors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
- * Poll a generation job. Each call is short (serverless-safe): for a rendering video we ask
- * Higgsfield once and advance the job's status. No function is ever held open across the render.
+ * Poll a generation job. Each call is short (serverless-safe): we ask the engine once and advance the
+ * job's status. For Veo, the finished file URI needs the API key, so on completion we download it and
+ * re-host it as a public video the browser can play. No function is held open across the render.
  */
 export async function GET(_req, { params }) {
   const job = await getJob(params.id);
@@ -15,13 +21,46 @@ export async function GET(_req, { params }) {
 
   if (job.type === "video" && job.status === "rendering") {
     try {
-      const { status, result_url } = await pollVideo(job.cloudSetId);
-      if (status === "completed" && result_url) { job.status = "done"; job.result_url = result_url; await saveJob(job); }
-      else if (status === "failed" || status === "canceled") { job.status = "failed"; job.error = `higgsfield ${status}`; await saveJob(job); }
-      else { job.hfStatus = status; } // still rendering — don't persist churn
+      if (job.engine === "veo") {
+        const r = await pollVeo(job.veoOp);
+        if (r.status === "completed" && r.video_uri) {
+          const buf = await fetchVeoVideo(r.video_uri);
+          job.result_url = await putPublicVideo(buf, job.id);
+          job.status = "done";
+          await saveJob(job);
+        } else if (r.status === "failed") {
+          job.status = "failed"; job.error = r.error || "veo failed"; await saveJob(job);
+        } // else still rendering
+      } else if (job.falStatusUrl) {
+        const r = await pollFal({ statusUrl: job.falStatusUrl, responseUrl: job.falResponseUrl });
+        if (r.status === "completed") { job.status = "done"; job.result_url = r.result_url; await saveJob(job); }
+        else if (r.status === "failed") { job.status = "failed"; job.error = r.error || "fal failed"; await saveJob(job); }
+      } else {
+        const { status, result_url } = await pollVideo(job.cloudSetId);
+        if (status === "completed" && result_url) { job.status = "done"; job.result_url = result_url; await saveJob(job); }
+        else if (status === "failed" || status === "canceled") { job.status = "failed"; job.error = `higgsfield ${status}`; await saveJob(job); }
+        else { job.hfStatus = status; } // still rendering — don't persist churn
+      }
     } catch (e) {
       job.error = String(e.message || e); // transient poll error; keep rendering
     }
+  }
+
+  // When a video finishes, append it to the Review queue once (so it shows as an approve/post card — D-04 still holds).
+  if (job.type === "video" && job.status === "done" && job.result_url && !job.queued) {
+    try {
+      const d = specDims(job.spec || "");
+      const rec = {
+        id: `hub-generated/${job.id}`, angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,
+        dimensions: `${d.w}x${d.h}`, headline: job.headline || "", body: "", cta: "",
+        source: "hub", brief: job.brief || "", created_at: job.createdAt || Date.now(), video_url: job.result_url,
+        scores: job.scores || null,
+        qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated video — review before approve"], qa_model: "" },
+      };
+      await appendCreatives([{ rec }]);
+      job.queued = true;
+      await saveJob(job);
+    } catch { /* leave unqueued; a later poll will retry the append */ }
   }
   return NextResponse.json({ ok: true, job });
 }

@@ -1,0 +1,7 @@
+# Heavy hero source/alternate renders — production only needs hero-loop.mp4 + the 8 stills (fallback).
+public/hero/clips
+public/hero/veo-seg
+public/hero/hero-veo-long.mp4
+public/hero/hero-veo.mp4
+public/hero/hero-loop-higgsfield.mp4
+public/hero/hero-loop-prev.mp4

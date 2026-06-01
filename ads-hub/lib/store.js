@@ -27,6 +27,8 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
     source: rec.source || null, created_at: rec.created_at || null,
     hasImg, image_url: image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
+    video_url: rec.video_url || null,
+    scores: rec.scores || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
@@ -119,7 +121,7 @@ async function cloudAppend(items) {
     const id = rec.id;
     if (adPng) await put(`creatives/${id}.ad.png`, adPng, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png" });
     const q = encodeURIComponent(id);
-    queue.unshift(shape(rec, id, true, null, adPng ? `/api/image?id=${q}&v=ad` : null, null));
+    queue.unshift(shape(rec, id, !!adPng, null, adPng ? `/api/image?id=${q}&v=ad` : null, null));
   }
   await put(QUEUE_KEY, JSON.stringify(queue), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
   return queue.length;
@@ -132,6 +134,32 @@ export async function putPublicImage(buf, name = "src") {
   const { put } = await blobApi();
   const b = await put(`gen-src/${name}.png`, buf, { access: "public", addRandomSuffix: true, contentType: "image/png" });
   return b.url;
+}
+
+/** Host a generated voiceover (mp3). cloud → public Blob; fs → public/gen-audio (served statically by Next). */
+export async function putPublicAudio(buf, name = "vo") {
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    const b = await put(`gen-audio/${name}.mp3`, buf, { access: "public", addRandomSuffix: true, contentType: "audio/mpeg" });
+    return b.url;
+  }
+  const dir = path.join(process.cwd(), "public", "gen-audio");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${name}.mp3`), buf);
+  return `/gen-audio/${name}.mp3`;
+}
+
+/** Host a generated video (mp4). cloud → public Blob; fs → public/gen-video (served statically by Next). */
+export async function putPublicVideo(buf, name = "vid") {
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    const b = await put(`gen-video/${name}.mp4`, buf, { access: "public", addRandomSuffix: true, contentType: "video/mp4" });
+    return b.url;
+  }
+  const dir = path.join(process.cwd(), "public", "gen-video");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${name}.mp4`), buf);
+  return `/gen-video/${name}.mp4`;
 }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */

@@ -1,5 +1,5 @@
 import angles from "../config/ad-angles.json";
-import { ANTHROPIC_KEY } from "./connectors.js";
+import { ANTHROPIC_KEY, GEMINI_KEY } from "./connectors.js";
 
 /**
  * Research / "find similar ads" — paste path.
@@ -42,4 +42,45 @@ export async function extractPattern({ text = "", url = "" }) {
   for (const k of ["do", "dont"]) if (!Array.isArray(p[k])) p[k] = p[k] ? [p[k]] : [];
   if (!p.icp_match || typeof p.icp_match !== "object") p.icp_match = { score: null, why: "" };
   return p;
+}
+
+/** Normalize share links so the raw file is fetchable (Dropbox dl=1, Drive direct download). */
+function normalizeVideoUrl(u) {
+  if (/dropbox\.com/i.test(u)) return u.includes("dl=") ? u.replace(/dl=0/i, "dl=1") : u + (u.includes("?") ? "&dl=1" : "?dl=1");
+  const gd = u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (gd) return `https://drive.google.com/uc?export=download&id=${gd[1]}`;
+  return u;
+}
+
+/**
+ * Analyze a REFERENCE VIDEO (Dropbox/Drive/direct mp4 or YouTube) with Gemini → a structured text
+ * description (transcript + shot breakdown + hook + framework) we feed into extractPattern. We learn
+ * the framework to make an ORIGINAL in a different context — never copy the footage.
+ */
+export async function describeVideo({ videoUrl = "" }) {
+  if (!GEMINI_KEY()) throw new Error("GEMINI_API_KEY not set — required to analyze a reference video.");
+  if (!videoUrl.trim()) throw new Error("Provide a reference video URL.");
+  const model = process.env.RESEARCH_VIDEO_MODEL || "gemini-2.5-flash";
+  const ask = "Analyze this advertising video so we can learn its FRAMEWORK (never to copy it). Output plain text: (1) full spoken transcript; (2) shot-by-shot visual breakdown with rough timing; (3) the hook in the first 3 seconds; (4) the persuasion structure/framework; (5) tone, pacing, and CTA.";
+  let parts;
+  if (/youtube\.com|youtu\.be/i.test(videoUrl)) {
+    parts = [{ text: ask }, { fileData: { fileUri: videoUrl } }];
+  } else {
+    const r = await fetch(normalizeVideoUrl(videoUrl), { redirect: "follow" });
+    if (!r.ok) throw new Error(`could not fetch the video (${r.status}) — make sure it's a public link`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 18 * 1024 * 1024) throw new Error("video is too large to analyze inline (>18MB) — use a shorter clip or a YouTube link");
+    const mime = (r.headers.get("content-type") || "video/mp4").split(";")[0];
+    parts = [{ text: ask }, { inlineData: { mimeType: mime, data: buf.toString("base64") } }];
+  }
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_KEY() },
+    body: JSON.stringify({ contents: [{ parts }] }),
+  });
+  if (!res.ok) throw new Error(`Gemini video ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const d = await res.json();
+  const txt = (d?.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+  if (!txt.trim()) throw new Error("Gemini returned no analysis for that video.");
+  return txt;
 }

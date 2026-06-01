@@ -1,6 +1,37 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 
+// Predictive Creative Score (AI estimate). Hook/Viral/Response are higher-is-better; Retention risk is
+// higher-is-WORSE (shown coral). The "why" is exposed on hover. Estimates, not guarantees — calibrate
+// against real Meta insights once posts go live.
+function ScoreStrip({ s }) {
+  if (!s) return null;
+  const Bar = ({ label, axis, risk }) => {
+    const v = typeof axis?.score === "number" ? axis.score : null;
+    if (v === null) return null;
+    return (
+      <div className={`score ${risk ? "risk" : ""}`} title={axis.why || ""}>
+        <span className="sl">{label}</span>
+        <span className="sbar"><i style={{ width: `${v}%` }} /></span>
+        <span className="sv">{v}</span>
+      </div>
+    );
+  };
+  const tier = s.overall >= 70 ? "good" : s.overall >= 45 ? "mid" : "low";
+  return (
+    <div className="scores" aria-label="AI creative score">
+      <div className="score-head">
+        <span className="score-cap">AI score <span className="muted">· estimate</span></span>
+        {typeof s.overall === "number" && <span className={`score-pill ${tier}`}>{s.overall}</span>}
+      </div>
+      <Bar label="Hook" axis={s.hook} />
+      <Bar label="Viral" axis={s.virality} />
+      <Bar label="Response" axis={s.response} />
+      <Bar label="Retention risk" axis={s.retentionRisk} risk />
+    </div>
+  );
+}
+
 export default function ReviewClient() {
   const [queue, setQueue] = useState([]);
   const [state, setState] = useState({});
@@ -67,7 +98,9 @@ export default function ReviewClient() {
             return (
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
-                  <img src={adSrc(c)} alt={c.headline} />
+                  {c.video_url
+                    ? <video src={c.video_url} muted loop autoPlay playsInline />
+                    : <img src={adSrc(c)} alt={c.headline} />}
                   <span className={`qbadge ${badge}`}>QA {c.qa}</span>
                 </div>
                 <div className="qbody">
@@ -76,6 +109,7 @@ export default function ReviewClient() {
                     {c.pricing_flag && <span className="tag flag">{c.pricing_flag}</span>}
                   </div>
                   <p className="qtext">{c.body} <b>· {c.cta} →</b></p>
+                  <ScoreStrip s={c.scores} />
                   <div className="acts">
                     <button className={`ap ${st === "approve" ? "on" : ""}`} onClick={() => set(c.id, "approve")}>Approve</button>
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>
