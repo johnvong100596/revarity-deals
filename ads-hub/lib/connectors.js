@@ -145,10 +145,41 @@ export const VIDEO_NEGATIVE = [
   "watermark, text, captions, subtitles, logo, timestamp, oversaturated, washed out, harsh flat lighting, stock footage look",
 ].join(" ");
 
+// "World Tour" b-roll preset — a ~20s luxury-STR location journey (Dubai → Miami → Singapore → Mount Fuji
+// → Da Nang Dragon Bridge → Toronto → Banff), built as 7 stitchable, brand-locked segments (Veo caps one
+// clip at ~8s). D-03 safe: aspirational lifestyle only, no testimonials, no on-screen text. Render each
+// segment, concat in order, drop the result at /public/hero/world-tour.mp4 and the hero auto-upgrades.
+const WORLD_TOUR_MASTER = "Ultra-photorealistic cinematic real-estate commercial b-roll, shot on a high-end cinema camera (ARRI Alexa / RED, prime lens), broadcast/film grade, indistinguishable from real footage — no CGI, 3D render, cartoon, or AI-looking artifacts. Luxury short-term-rental aesthetic. Each location is revealed through the floor-to-ceiling window or balcony of a beautifully furnished short-term rental — interior in foreground, iconic view beyond. Warm golden-hour editorial color grade, soft natural light, shallow depth of field. Buttery-smooth, fluid, high-frame-rate motion (60fps feel) — slow, deliberate, perfectly stabilized gimbal / steadicam / slow dolly moves, natural motion blur, no stutter, judder, strobing, or warping. No on-screen text, captions, logos, or watermark. Any person is a tasteful aspirational lifestyle figure — never speaking to camera, never a testimonial.";
+export const WORLD_TOUR = {
+  id: "world-tour",
+  title: "World Tour — luxury STR location journey (~20s, 7 stitchable segments)",
+  master: WORLD_TOUR_MASTER,
+  segments: [
+    { location: "Dubai", shot: "Interior of a sleek marble-and-warm-wood Dubai penthouse at golden hour; an infinity-edge balcony pool in the foreground, floor-to-ceiling glass beyond framing the Burj Khalifa and amber desert skyline. Slow dolly forward toward the window.", out: "Transition out: speed-ramp whip-pan right with heavy motion blur." },
+    { location: "Miami", shot: "A bright Art-Deco South Beach condo, sheer white curtains billowing in the ocean breeze; balcony over the turquoise Atlantic, palms and pastel buildings in late-afternoon sun. Glide toward the open balcony.", out: "Transition out: match-cut on the shimmering ocean surface." },
+    { location: "Singapore", shot: "A modern Singapore sky-apartment with an infinity pool; Marina Bay Sands and the glowing Supertrees of Gardens by the Bay beyond at blue-gold dusk. Crane up over the pool toward the skyline.", out: "Transition out: warm lens-flare light wipe." },
+    { location: "Mount Fuji", shot: "A minimalist Japanese ryokan, tatami and warm wood, an open shoji to a private onsen; snow-capped Mount Fuji beyond with cherry blossoms drifting in soft dawn light. Slow push toward the view.", out: "Transition out: cut on a warm paper-lantern glow." },
+    { location: "Da Nang — Dragon Bridge", shot: "A chic riverside apartment balcony over the Han River at night; the golden Dragon Bridge breathing fire, city lights rippling on the water. Track the fire-breath along the bridge.", out: "Transition out: whip-tilt upward." },
+    { location: "Toronto", shot: "A refined downtown Toronto condo with a skyline view at dusk; the CN Tower and city lights flickering on, Lake Ontario beyond, cool dusk blues warmed by interior lamplight. Slow lateral dolly across the glass.", out: "Transition out: dissolve through the window's reflection." },
+    { location: "Banff", shot: "A luxury timber-and-glass mountain chalet, fireplace crackling inside; the mirror-still turquoise of Moraine Lake, snow-dusted peaks and pines reflected, crisp golden morning. Slow push out toward the lake and settle.", out: "Loop point: gentle fade designed to cut cleanly back to the opening Dubai shot." },
+  ],
+};
+/** All 7 World Tour segments as ready-to-render prompts (each = master style + scene + transition). */
+export function worldTourSegments() {
+  return WORLD_TOUR.segments.map((s, i) => ({ n: i + 1, location: s.location, prompt: `${WORLD_TOUR_MASTER} SCENE — ${s.location}: ${s.shot} ${s.out}` }));
+}
+function buildWorldTourSegment(segment = 1, brief = "") {
+  const segs = worldTourSegments();
+  const s = segs[Math.max(0, (Number(segment) || 1) - 1)] || segs[0];
+  return `${s.prompt}${brief ? ` Operator note: ${brief}.` : ""}`;
+}
+
 /** Build a cinematic B-ROLL prompt for Veo / Kling. D-03-safe: aspirational lifestyle footage, NEVER a
  *  talking-head/testimonial. The selling message is carried by a separate voiceover, not on-screen text.
- *  Heavy realism + smooth-motion direction so the clip looks like real high-frame-rate film, not AI video. */
-export function buildBrollPrompt({ headline = "", angleId = "", brief = "" }) {
+ *  Heavy realism + smooth-motion direction so the clip looks like real high-frame-rate film, not AI video.
+ *  Pass {preset:"world-tour", segment:1-7} for the reusable luxury-STR location-journey preset. */
+export function buildBrollPrompt({ headline = "", angleId = "", brief = "", preset = "", segment = 0 } = {}) {
+  if (preset === "world-tour") return buildWorldTourSegment(segment, brief);
   const angle = getAngle(angleId);
   return [
     "Ultra-photorealistic cinematic B-ROLL for a premium short-form ad — indistinguishable from real footage shot on a high-end cinema camera (ARRI Alexa / RED) with a prime lens. Broadcast / film grade. Absolutely NO CGI, 3D render, cartoon, illustration, plastic texture, waxy skin, or AI-looking artifacts.",
