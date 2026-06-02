@@ -145,6 +145,8 @@ select option,select optgroup{background:#0b1120;color:var(--txt)}
 .chip-panel .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;display:block}
 .composer-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
 .composer-foot .hint{font-size:12px;color:var(--mut-dark)}
+.batch-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
+.batch-foot .hint{font-size:12px;color:var(--mut-dark);margin-right:auto}
 /* ── Director storyboard (the plan) ── */
 .plan{border:1px solid var(--line);border-radius:16px;padding:16px;margin:8px 0 18px;background:var(--glass2)}
 .plan-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}

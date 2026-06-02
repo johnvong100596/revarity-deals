@@ -140,3 +140,96 @@ export async function planFromScript({ idea = "", inspiration = "", wantVoice = 
     return null;
   }
 }
+
+// Shared Anthropic call + plan normalization for the batch generators below (planFromScript keeps its own
+// inline copy so it stays untouched). Returns the same plan shape, or null on any failure.
+async function callPlan({ sys, user, maxTokens = 4000 }) {
+  if (!ANTHROPIC_KEY()) return null;
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ANTHROPIC_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system: sys, messages: [{ role: "user", content: user }] }),
+    });
+    if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const d = await res.json();
+    const txt = d?.content?.map((b) => b.text || "").join("") || "";
+    let p; try { p = JSON.parse(txt); } catch { const m = txt.match(/\{[\s\S]*\}/); p = m ? JSON.parse(m[0]) : null; }
+    if (!p) return null;
+    return {
+      title: String(p.title || "Batch").slice(0, 120),
+      summary: String(p.summary || "").slice(0, 600),
+      shots: clampShots(p.shots),
+      voice: null, music: null,
+      guardrailFlags: Array.isArray(p.guardrailFlags) ? p.guardrailFlags.map((x) => String(x).slice(0, 200)).slice(0, 8) : [],
+      model: MODEL,
+    };
+  } catch { return null; }
+}
+
+const specCatalog = () => Object.entries(brand.creative_specs).map(([name, v]) => ({ name, use: v.use, aspect: v.w === v.h ? "1:1" : v.h > v.w ? "9:16" : "16:9" }));
+const QUALITY = "QUALITY MANDATE: ULTRA-photorealistic, broadcast-grade. Default video = Veo 3.1, default image = the pro Nano model. No cartoon / illustration / 3D-render / uncanny AI look.";
+const HARD_GUARDRAILS = "GUARDRAILS (hard): a presenter is a BRAND SPOKESPERSON, never a real-client testimonial; NEVER state or imply guaranteed/specific income, return, or occupancy; no fake reviews; keep the at-cost / no-program-fee offer honest. Flag any crossing in guardrailFlags and soften it. Presenter/UGC shots get disclosure='ai-presenter'.";
+
+/**
+ * Up to N (≤10) VARIATIONS of one base concept for A/B testing — same script + background, varied hook.
+ * Returns the plan shape (each variation is one shot), or null.
+ */
+export async function planVariations({ idea = "", inspiration = "", n = 5, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null } = {}) {
+  if (!ANTHROPIC_KEY() || !idea.trim()) return null;
+  const count = Math.min(10, Math.max(1, Number(n) || 5));
+  const angle = angleId ? getAngle(angleId) : null;
+  const sys = [
+    `You are the CREATIVE DIRECTOR + media router for an ad studio. ${BRAND}`,
+    angle ? `Target angle: ${angle.id} — audience ${angle.audience}; visual direction ${angle.visual_direction || "—"}.` : "",
+    `Produce EXACTLY ${count} VARIATIONS of ONE core concept for A/B testing. Hold the SCRIPT / voiceover line and the BACKGROUND / scene SIMILAR across all of them — same setting, same engine, same format. Vary ONLY the hook / opening line, the headline wording, small framing-lighting-detail tweaks, and the CTA emphasis. Each variation is an independent sibling test, NOT a multi-shot sequence.`,
+    "Return each variation as ONE shot object (n = 1..N), reusing the same engine + spec across the set unless one variation clearly needs a tweak.",
+    "ENGINES CURRENTLY CONNECTED (route only to these):", ENGINE_CATALOG(availableEngines()),
+    QUALITY,
+    "PLACEMENT specs (use the key in shot.spec, or 'auto'):", specCatalog().map((s) => `- ${s.name} (${s.aspect}): ${s.use}`).join("\n"),
+    outputPref && outputPref !== "auto" ? `Bias every variation toward output type: ${outputPref}.` : "Output type: AUTO — keep it consistent across the set.",
+    formatPref && formatPref !== "auto" ? `Force format/placement: ${formatPref} for all.` : "Format: keep the SAME placement across variations.",
+    targetSeconds ? `Each video variation ~${targetSeconds}s (4-8s per shot).` : "",
+    HARD_GUARDRAILS,
+    `Return ONLY JSON: {"title":"<N variations: concept>","summary":"<what's held constant vs what varies>","shots":[ ${SHOT_SCHEMA_HINT} ],"guardrailFlags":["..."]}`,
+    "Return ONLY the JSON object — no prose, no markdown fences.",
+  ].filter(Boolean).join("\n");
+  const user = [
+    `BASE CONCEPT TO VARY:\n${idea.slice(0, 8000)}`,
+    inspiration ? `\nINSPIRATION / REFERENCE (mimic the framework, never copy wording):\n${inspiration.slice(0, 4000)}` : "",
+    `\nProduce exactly ${count} sibling variations.`,
+  ].join("\n");
+  return callPlan({ sys, user });
+}
+
+/**
+ * Up to N (≤10) NEW, distinct content concepts for an angle, cohesive with the brand's recent designs.
+ * `recent` = array of recent creatives [{headline, body, angle_id, spec}]. Returns the plan shape, or null.
+ */
+export async function planFromAngle({ angleId = "", recent = [], n = 5, outputPref = "auto", formatPref = "auto" } = {}) {
+  if (!ANTHROPIC_KEY()) return null;
+  const count = Math.min(10, Math.max(1, Number(n) || 5));
+  const angle = angleId ? getAngle(angleId) : null;
+  const recentLines = (recent || []).slice(0, 10)
+    .map((c, i) => `${i + 1}. [${c.angle_id || "—"} · ${c.spec || "—"}] "${String(c.headline || "").slice(0, 90)}"${c.body ? ` — ${String(c.body).slice(0, 90)}` : ""}`)
+    .join("\n");
+  const sys = [
+    `You are the CREATIVE DIRECTOR for an ad studio. ${BRAND}`,
+    angle ? `TARGET ANGLE: ${angle.id} — audience ${angle.audience}; lead magnet ${angle.lead_magnet || "—"}; visual direction ${angle.visual_direction || "—"}.` : "No angle was chosen — pick the best-fit angle(s) for this brand and keep the set coherent.",
+    `Generate EXACTLY ${count} NEW, DISTINCT content concepts for this angle. They must feel cohesive with the brand's RECENT designs (provided below) — same visual language, voice, and quality bar — but each concept is a FRESH idea, NOT a variation of another.`,
+    "Return each concept as ONE shot object (n = 1..N), ready to render.",
+    "ENGINES CURRENTLY CONNECTED (route only to these):", ENGINE_CATALOG(availableEngines()),
+    QUALITY,
+    "PLACEMENT specs (use the key in shot.spec, or 'auto'):", specCatalog().map((s) => `- ${s.name} (${s.aspect}): ${s.use}`).join("\n"),
+    outputPref && outputPref !== "auto" ? `Bias output type: ${outputPref}.` : "Output type: AUTO — choose the best per concept.",
+    formatPref && formatPref !== "auto" ? `Force format/placement: ${formatPref}.` : "Format: choose the best per concept.",
+    HARD_GUARDRAILS,
+    `Return ONLY JSON: {"title":"<angle: N fresh concepts>","summary":"<the angle + how these stay on-brand with recent work>","shots":[ ${SHOT_SCHEMA_HINT} ],"guardrailFlags":["..."]}`,
+    "Return ONLY the JSON object — no prose, no markdown fences.",
+  ].filter(Boolean).join("\n");
+  const user = [
+    angle ? `Generate ${count} new concepts for angle ${angle.id}.` : `Generate ${count} new on-brand concepts.`,
+    recentLines ? `\nRECENT DESIGNS (match their look / voice / quality bar; do NOT duplicate them):\n${recentLines}` : "\n(No recent designs on file yet — set the standard with premium, on-brand concepts.)",
+  ].join("\n");
+  return callPlan({ sys, user });
+}

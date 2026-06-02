@@ -29,9 +29,10 @@ export default function CreateClient({ angles, formats }) {
   const [format, setFormat] = useState(() => sp.get("spec") || "auto");
   const [angleId, setAngleId] = useState(() => sp.get("angle") || "");
   const [duration, setDuration] = useState("auto");
+  const [nIdeas, setNIdeas] = useState(5); // batch size for variations / auto-concepts (1–10)
 
-  const [showInsp, setShowInsp] = useState(false);
-  const [reference, setReference] = useState("");
+  const [showInsp, setShowInsp] = useState(() => !!sp.get("insp"));
+  const [reference, setReference] = useState(() => sp.get("insp") || ""); // mine-winners → Create handoff
   const [refUrl, setRefUrl] = useState("");
   const [refVideo, setRefVideo] = useState("");
   const [wantVoice, setWantVoice] = useState(false);
@@ -148,6 +149,36 @@ export default function CreateClient({ angles, formats }) {
     } finally { setBusy(false); }
   }
 
+  // Batch: up to 10 VARIATIONS of the current idea (similar script + background, varied hook).
+  async function makeVariations() {
+    setBusy(true); setPlanErr(""); setPlan(null); setErr("");
+    try {
+      const res = await fetch("/api/variations", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea, inspiration: inspirationText(), n: nIdeas, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration) }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "variations failed");
+      setPlan(data.plan);
+    } catch (e) { setPlanErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  // Batch: auto-generate up to 10 NEW concepts from the selected angle + recent designs.
+  async function autoFromAngle() {
+    setBusy(true); setPlanErr(""); setPlan(null); setErr("");
+    try {
+      const res = await fetch("/api/concepts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ angleId, n: nIdeas, output, format }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "concept generation failed");
+      setPlan(data.plan);
+    } catch (e) { setPlanErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
   const spinUp = () => (output === "auto" ? planIt() : directGenerate());
 
   return (
@@ -202,6 +233,15 @@ export default function CreateClient({ angles, formats }) {
         <div className="composer-foot">
           <span className="hint">{output === "auto" ? "Auto: the studio plans the shots and routes engines — you approve before anything posts (D-04)." : "Forced output — generates directly into Review."}</span>
           <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Spin up →"}</button>
+        </div>
+
+        <div className="batch-foot">
+          <span className="hint">Batch — up to 10 ideas at once, into Review (you still approve each):</span>
+          <span className="chip-sel">Count <select value={nIdeas} onChange={(e) => setNIdeas(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>
+            {Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}
+          </select></span>
+          <button className="btn ghost" onClick={makeVariations} disabled={busy || !idea.trim()} title="Up to 10 variations of this concept — similar script & background, varied hook. Nothing posts; you review each.">✨ {nIdeas} variations</button>
+          <button className="btn ghost" onClick={autoFromAngle} disabled={busy} title="Up to 10 fresh concepts from the selected angle + your recent designs. Nothing posts; you review each.">⚡ Auto: {nIdeas} from angle</button>
         </div>
       </div>
 

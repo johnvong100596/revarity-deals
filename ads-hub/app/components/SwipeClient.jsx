@@ -35,6 +35,15 @@ export default function SwipeClient() {
     </div>
   ) : null;
 
+  // Carry the mined framework into Create as inspiration → the operator can then spin variations from it.
+  const inspLink = patterns
+    ? `/create?insp=${encodeURIComponent([
+        patterns.hooks?.length ? "Hooks: " + patterns.hooks.slice(0, 5).join(" | ") : "",
+        patterns.copy_frameworks?.length ? "Frameworks: " + patterns.copy_frameworks.slice(0, 4).join(" | ") : "",
+        patterns.angles?.length ? "Angles: " + patterns.angles.slice(0, 4).join(" | ") : "",
+      ].filter(Boolean).join("\n").slice(0, 1400))}`
+    : "/create";
+
   return (
     <>
       <div className="eyebrow">— Mine winners —</div>
@@ -70,7 +79,7 @@ export default function SwipeClient() {
         </div>
       </div>
 
-      <div className="sec"><h2>Extracted patterns {patterns?.minedAt && <span className="muted" style={{ fontSize: 12 }}>· {patterns.sourceCount} refs · {new Date(patterns.minedAt).toLocaleString()}</span>}</h2><a className="link" href="/create">Use in Create →</a></div>
+      <div className="sec"><h2>Extracted patterns {patterns?.minedAt && <span className="muted" style={{ fontSize: 12 }}>· {patterns.sourceCount} refs · {new Date(patterns.minedAt).toLocaleString()}</span>}</h2><a className="link" href={inspLink}>{patterns ? "Make variations in Create →" : "Use in Create →"}</a></div>
       {!patterns ? (
         <div className="gate"><span>No patterns yet — add references and hit <b>Mine patterns</b>. The copy generator will draw on these.</span></div>
       ) : (
