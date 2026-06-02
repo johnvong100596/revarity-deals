@@ -1,36 +1,34 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import StudioPicker from "./StudioPicker";
 
-// The studio centerpiece (mirrors the Higgsfield Marketing Studio prompt bar): describe the ad, then pick
-// Type · Hook · Setting · Placement. It composes those into a brief and hands off to the existing Create
-// flow (Create reads ?brief/?output/?spec) — no duplicate generation logic, every feature intact.
+// The studio centerpiece (mirrors the Higgsfield Marketing Studio prompt bar): describe the ad, pick a
+// Type + Placement (quick selects) and a Hook + Setting (full modal pickers), then Generate. It composes
+// the picks into a brief and hands off to the existing Create flow (?brief/?output/?spec).
 const OUTPUTS = [["auto", "Type: auto"], ["presenter", "Presenter"], ["video", "Video b-roll"], ["image", "Image"], ["copy", "Copy only"]];
 const PLACEMENTS = [["auto", "Placement: auto"], ["meta_story_vertical", "Reels 9:16"], ["meta_feed_square", "Feed 1:1"], ["meta_feed_portrait", "Feed 4:5"], ["meta_landscape", "Landscape 16:9"]];
 
 // HOOKS — Stunt or Subtle only (per brand guardrail): proven scroll-stoppers, never gimmicky-dishonest.
 const HOOKS = [
-  ["", "Hook: auto"],
-  ["open on a calm, confident host speaking directly to camera", "Subtle · Direct to camera"],
-  ["open on a street interview asking a host about their short-term-rental income", "Subtle · Interview"],
-  ["open on a slow cinematic push into a beautifully furnished unit", "Subtle · Slow reveal"],
-  ["open on an extreme close-up that slowly tilts up to reveal the space", "Subtle · Close-up tilt"],
-  ["open on a fast match-cut from a bare, empty unit to a fully furnished one", "Stunt · Empty→furnished"],
-  ["open on a punchy speed-ramped move sweeping through the space", "Stunt · Speed-ramp reveal"],
-  ["open on the estimated monthly income range animating on screen as a clearly-labelled estimate", "Stunt · Numbers drop"],
+  { value: "open on a calm, confident host speaking directly to camera", label: "Direct to camera", cat: "Subtle", desc: "Host speaks calmly, straight to lens." },
+  { value: "open on a candid street interview asking a host about their short-term-rental income", label: "Interview", cat: "Subtle", desc: "Street Q&A — a real, candid opener." },
+  { value: "open on a slow cinematic push into a beautifully furnished unit", label: "Slow reveal", cat: "Subtle", desc: "A slow, cinematic push into the space." },
+  { value: "open on an extreme close-up that slowly tilts up to reveal the space", label: "Close-up tilt", cat: "Subtle", desc: "Extreme close-up, slow tilt-up reveal." },
+  { value: "open on a fast match-cut from a bare, empty unit to the same unit fully furnished", label: "Empty → furnished", cat: "Stunt", desc: "Snap from bare room to fully styled." },
+  { value: "open on a punchy speed-ramped move sweeping through the space", label: "Speed-ramp reveal", cat: "Stunt", desc: "Punchy speed-ramp through the unit." },
+  { value: "open on the estimated monthly income range animating on screen as a clearly-labelled estimate", label: "Numbers drop", cat: "Stunt", desc: "Income range animates on — labelled estimate." },
 ];
-
 // SETTINGS — REALISTIC backgrounds only (per brand guardrail): premium STR locations, no absurd scenes.
 const SETTINGS = [
-  ["", "Setting: auto"],
-  ["set in a beautifully furnished modern living room", "Living room"],
-  ["set in a bright modern kitchen", "Kitchen"],
-  ["set in a serene bedroom with a city or coastal view", "Bedroom"],
-  ["set on a private balcony or terrace at golden hour", "Balcony / terrace"],
-  ["set at a rooftop pool or lounge overlooking the skyline", "Rooftop"],
-  ["set by floor-to-ceiling windows in warm natural light", "By the windows"],
-  ["set in an upscale building lobby or entrance", "Lobby"],
-  ["set on a real urban street, handheld walking shot", "Urban street"],
+  { value: "set in a beautifully furnished modern living room", label: "Living room", desc: "Furnished modern living room.", thumb: "/settings/living-room.png" },
+  { value: "set in a bright modern kitchen", label: "Kitchen", desc: "Bright, sleek modern kitchen.", thumb: "/settings/kitchen.png" },
+  { value: "set in a serene bedroom with a city or coastal view", label: "Bedroom", desc: "Serene bedroom, great view.", thumb: "/settings/bedroom.png" },
+  { value: "set on a private balcony or terrace at golden hour", label: "Balcony / terrace", desc: "Private balcony at golden hour.", thumb: "/settings/balcony.png" },
+  { value: "set at a rooftop pool or lounge overlooking the skyline", label: "Rooftop", desc: "Rooftop pool over the skyline.", thumb: "/settings/rooftop.png" },
+  { value: "set by floor-to-ceiling windows in warm natural light", label: "By the windows", desc: "Floor-to-ceiling window light.", thumb: "/settings/windows.png" },
+  { value: "set in an upscale building lobby or entrance", label: "Lobby", desc: "Upscale building lobby.", thumb: "/settings/lobby.png" },
+  { value: "set on a real urban street, handheld walking shot", label: "Urban street", desc: "Real urban street, handheld.", thumb: "/settings/street.png" },
 ];
 
 export default function StudioComposer() {
@@ -38,11 +36,12 @@ export default function StudioComposer() {
   const [idea, setIdea] = useState("");
   const [output, setOutput] = useState("auto");
   const [spec, setSpec] = useState("auto");
-  const [hook, setHook] = useState("");
-  const [setting, setSetting] = useState("");
+  const [hook, setHook] = useState(null);
+  const [setting, setSetting] = useState(null);
+  const [picker, setPicker] = useState(null); // "hook" | "setting" | null
 
   const go = () => {
-    const brief = [idea.trim(), hook && `Hook: ${hook}`, setting && `Setting: ${setting}`].filter(Boolean).join(". ");
+    const brief = [idea.trim(), hook && `Hook: ${hook.value}`, setting && `Setting: ${setting.value}`].filter(Boolean).join(". ");
     const p = new URLSearchParams({ output, spec });
     if (brief) p.set("brief", brief);
     router.push(`/create?${p.toString()}`);
@@ -59,12 +58,23 @@ export default function StudioComposer() {
           placeholder="Describe what happens in the ad…" aria-label="Describe the ad" />
         <div className="hcomposer-row">
           <select value={output} onChange={(e) => setOutput(e.target.value)} aria-label="Type">{OUTPUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <select value={hook} onChange={(e) => setHook(e.target.value)} aria-label="Hook">{HOOKS.map(([v, l]) => <option key={l} value={v}>{l}</option>)}</select>
-          <select value={setting} onChange={(e) => setSetting(e.target.value)} aria-label="Setting">{SETTINGS.map(([v, l]) => <option key={l} value={v}>{l}</option>)}</select>
+          <button type="button" className={"hcomposer-chip" + (hook ? " on" : "")} onClick={() => setPicker("hook")}>{hook ? hook.label : "Hook"} <span className="cv">▾</span></button>
+          <button type="button" className={"hcomposer-chip" + (setting ? " on" : "")} onClick={() => setPicker("setting")}>{setting ? setting.label : "Setting"} <span className="cv">▾</span></button>
           <select value={spec} onChange={(e) => setSpec(e.target.value)} aria-label="Placement">{PLACEMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           <button className="btn hcomposer-go" onClick={go}>Generate →</button>
         </div>
       </div>
+
+      <StudioPicker
+        open={picker === "hook"} onClose={() => setPicker(null)}
+        title="Hooks that stop the scroll" subtitle="The first 3 seconds decide if your ad gets watched or skipped. Pick a proven opener."
+        tabs={["All", "Stunt", "Subtle"]} items={HOOKS} selected={hook?.value} onPick={setHook}
+      />
+      <StudioPicker
+        open={picker === "setting"} onClose={() => setPicker(null)}
+        title="Settings that set the scene" subtitle="Choose where the story unfolds — realistic, premium locations only."
+        items={SETTINGS} selected={setting?.value} onPick={setSetting}
+      />
     </div>
   );
 }
