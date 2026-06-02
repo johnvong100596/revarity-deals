@@ -480,6 +480,10 @@ html.home .hcomposer{margin-left:auto;margin-right:auto}
 html.home .hcomposer-row{justify-content:center}
 html.home .hcomposer-go{margin-left:0}
 
+/* Sidebar: solid, crisp panel (no translucent blur) so options read clearly + sit ABOVE the drawer scrim
+   (z-49). The earlier persistent-rail override had dropped it to z-40, which let the scrim block clicks. */
+.side{z-index:55;background:#0e0d12;backdrop-filter:none}
+
 /* Consistent spacing between the home-body boxes */
 .home-body .fmt-grid{gap:16px;margin-bottom:30px}
 .home-body .grid{gap:16px}
