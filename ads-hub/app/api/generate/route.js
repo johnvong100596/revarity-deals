@@ -105,10 +105,10 @@ export async function POST(req) {
       // Veo — presenter commercial (native synced audio + people) OR premium silent b-roll.
       if (engine === "veo") {
         const aspectRatio = d.aspect === "9:16" ? "9:16" : "16:9"; // Veo has no 1:1
-        const opName = await startVeo({
-          prompt: videoPrompt, aspectRatio, resolution: "720p",
-          ...(mode === "presenter" ? { generateAudio: true, personGeneration: "allow_adult" } : {}),
-        });
+        // Presenter vs b-roll differ only by PROMPT (buildPresenterPrompt vs buildBrollPrompt). Veo 3.1
+        // gives the talking host + native synced audio from the prompt — no generateAudio/personGeneration
+        // params (the Gemini API rejects them).
+        const opName = await startVeo({ prompt: videoPrompt, aspectRatio, resolution: "720p" });
         const job = await saveJob({ id: newId("vid"), engine: "veo", status: "rendering", veoOp: opName, aspectRatio, ...baseJob, createdAt: Date.now() });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
