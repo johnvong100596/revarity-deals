@@ -1,4 +1,4 @@
-import { ANTHROPIC_KEY, getAngle } from "./connectors.js";
+import { ANTHROPIC_KEY, getAngle, COPY_MODEL } from "./connectors.js";
 import { hasArcads } from "./arcads.js";
 import { hasVeo } from "./veo.js";
 import brand from "../config/brand.json";
@@ -14,9 +14,9 @@ import brand from "../config/brand.json";
  * and surfaced as guardrailFlags: presenter/host OK, fake-client testimonials and guaranteed-return
  * claims NOT; AI-generated disclosure required on shipped ads. (D-04: planning never publishes/spends.)
  *
- *   DIRECTOR_MODEL  Anthropic model (default COPY_MODEL, then claude-sonnet-4-6)
+ *   DIRECTOR_MODEL  Anthropic model (default: COPY_MODEL = claude-opus-4-8)
  */
-const MODEL = process.env.DIRECTOR_MODEL || process.env.COPY_MODEL || "claude-sonnet-4-6";
+const MODEL = process.env.DIRECTOR_MODEL || COPY_MODEL; // best Claude for ad/shot prompt-writing (centralized default)
 
 const BRAND = [
   "Brand: Revarity — done-for-you short-term-rental (Airbnb) BUSINESS builder for serious investors with real capital. Premium, high-trust, high-ticket. Voice: direct, honest, no hype, no fake scarcity, NO guaranteed-return/occupancy/income claims.",
@@ -27,12 +27,12 @@ const ENGINE_CATALOG = (engines) => engines.map((e) => `- ${e.key}: ${e.desc}`).
 
 function availableEngines() {
   const list = [
-    { key: "veo-presenter", kind: "presenter", desc: "Veo 3.1 — cinematic on-camera HOST/presenter who WALKS and PRESENTS with native synced dialogue. Premium commercial look. USE for any spoken-to-camera segment that should look like a polished real-estate/luxury commercial." },
-    { key: "veo-broll", kind: "broll", desc: "Veo 3.1 — premium silent cinematic b-roll (no person speaking). Best quality motion/establishing shots." },
-    { key: "kling", kind: "broll", desc: "Kling (fal.ai) — scalable cinematic b-roll motion, cheaper than Veo, good for volume." },
-    { key: "kling-turbo", kind: "broll", desc: "Kling Turbo (fal.ai) — fastest/cheapest b-roll for high-volume variant tests." },
-    { key: "higgsfield", kind: "broll", desc: "Higgsfield — subtle motion on a single brand still (ambient parallax/push-in). Cheapest; use for a calm hero still that moves slightly." },
-    { key: "nano", kind: "image", desc: "Nano Banana (Gemini) — premium STATIC image ad. Use for static placements or a clean hero frame." },
+    { key: "veo-presenter", kind: "presenter", desc: "Veo 3.1 — HIGHEST realism. Cinematic on-camera HOST who WALKS/PRESENTS with native synced dialogue, broadcast-grade. DEFAULT for any spoken-to-camera shot." },
+    { key: "veo-broll", kind: "broll", desc: "Veo 3.1 — HIGHEST realism silent cinematic b-roll. DEFAULT for any establishing / lifestyle / product motion shot." },
+    { key: "kling", kind: "broll", desc: "Kling 2.x (fal.ai) — high realism, just below Veo. Use ONLY as a Veo fallback, or when the operator explicitly wants high VOLUME." },
+    { key: "kling-turbo", kind: "broll", desc: "Kling Turbo — LOWER realism, speed-optimized. Use ONLY if the operator explicitly asks for fastest/cheapest volume tests. Avoid by default." },
+    { key: "higgsfield", kind: "broll", desc: "Higgsfield — LOWER realism; only subtle motion on one still. Use ONLY if the operator explicitly wants a near-static hero that moves slightly. Avoid by default." },
+    { key: "nano", kind: "image", desc: "Nano Banana (Gemini PRO image model) — ultra-photorealistic STATIC image at top quality. DEFAULT for any static / hero frame." },
   ];
   if (hasArcads()) list.push({ key: "arcads", kind: "ugc", desc: "Arcads — casual SELFIE/UGC talking-head (phone-shot look). Use ONLY for top-of-funnel UGC volume tests, never premium commercials. Labeled, non-testimonial." });
   // If Veo key is absent, drop Veo options so we never route to a dead engine.
@@ -89,10 +89,11 @@ export async function planFromScript({ idea = "", inspiration = "", wantVoice = 
     "ENGINES CURRENTLY CONNECTED (route only to these):",
     ENGINE_CATALOG(engines),
     "",
+    "QUALITY MANDATE (non-negotiable): this brand requires ULTRA-photorealistic, broadcast-grade output. For EVERY shot pick the MOST realistic engine capable of it — default video = Veo 3.1, default image = the pro Nano model. NEVER trade realism for speed or cost. Do NOT use 'kling-turbo' or 'higgsfield' unless the operator EXPLICITLY asks for fast/volume or a deliberate near-static still; use 'kling' only as a Veo fallback or for explicit high volume. Reject any cartoon / illustration / 3D-render / uncanny AI-looking result.",
     "ROUTING RULES:",
-    "- A host/presenter talking + walking + presenting on camera (premium commercial) -> 'veo-presenter' (it has native synced dialogue). Put the exact spoken line in spokenLine.",
-    "- Silent cinematic establishing/lifestyle/product motion -> 'veo-broll' (best) or 'kling'/'kling-turbo' (cheaper, for volume) or 'higgsfield' (subtle motion on one still).",
-    "- A static frame/hero image -> 'nano'.",
+    "- A host/presenter talking + walking + presenting on camera (premium commercial) -> 'veo-presenter' (native synced dialogue). Put the exact spoken line in spokenLine.",
+    "- Silent cinematic establishing/lifestyle/product motion -> 'veo-broll' (DEFAULT, highest realism). 'kling' only as a Veo fallback or explicit high volume; avoid 'kling-turbo'/'higgsfield' unless explicitly requested.",
+    "- A static frame/hero image -> 'nano' (ultra/pro).",
     "- Casual selfie/UGC talking-head -> 'arcads' ONLY if listed above (else fall back to 'veo-presenter').",
     "- Match aspect to placement: Reels/Stories/TikTok = 9:16, feed = 1:1 or 4:5, link/landscape = 16:9.",
     "",

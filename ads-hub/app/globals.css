@@ -67,6 +67,8 @@ th{font-family:'Manrope',sans-serif;font-size:9.5px;letter-spacing:.12em;text-tr
 .qc{background:var(--glass);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:.15s;backdrop-filter:blur(10px)}
 .qc.appr{box-shadow:0 0 0 2px var(--mint)}.qc.rej{box-shadow:0 0 0 2px var(--coral);opacity:.82}.qc.hold{box-shadow:0 0 0 2px var(--amber)}
 .rej-note{margin-top:8px;font-size:11px;color:var(--coral);opacity:.95}
+.rejected-wrap{margin-top:32px;border-top:1px solid var(--line-soft);padding-top:18px}
+.rejected-q{margin-top:14px;opacity:.85}
 .qframe{position:relative;background:#04070e}
 .qframe img{display:block;width:100%;object-fit:cover}
 .qframe.sq img{aspect-ratio:1/1}.qframe.v img{aspect-ratio:9/16}

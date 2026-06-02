@@ -1,4 +1,4 @@
-import { ANTHROPIC_KEY } from "./connectors.js";
+import { ANTHROPIC_KEY, COPY_MODEL } from "./connectors.js";
 
 /**
  * AI "ads-expert" recommendations — a senior paid+organic social strategist that says WHEN to post
@@ -19,7 +19,7 @@ export async function recommend({ approved = [], connectedChannels = [], perform
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: process.env.COPY_MODEL || "claude-sonnet-4-6", max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: COPY_MODEL, max_tokens: 1500, messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const d = await res.json();

@@ -3,13 +3,15 @@ import angles from "../config/ad-angles.json";
 
 /**
  * Direct-REST generation connectors (serverless-safe, fetch-only — no CLI, no SDK deps).
- *   copy   → Anthropic Messages API   (COPY_MODEL, default claude-sonnet-4-6)
+ *   copy   → Anthropic Messages API   (COPY_MODEL, default claude-opus-4-8)
  *   image  → Google Gemini API "Nano Banana"  (IMG_MODEL, default gemini-3.1-flash-image-preview)
  *   video  → Higgsfield (lib/higgsfield.js)
  * Brand-locked + pricing-guarded (D-01: $375/mo flat is OK; setup fee / rev-share are NOT).
  * Nothing here publishes or spends on ads (D-04).
  */
-const COPY_MODEL = process.env.COPY_MODEL || "claude-sonnet-4-6";
+// Single source of truth for the marketing/ads "brain" model — imported by director, score, research,
+// swipe, recommend, and the Settings display. Best Claude for ads/prompt-writing. Override per-env.
+export const COPY_MODEL = process.env.COPY_MODEL || "claude-opus-4-8";
 const IMG_MODEL = process.env.IMG_MODEL || "gemini-3.1-flash-image-preview";
 const IMG_FINAL = process.env.IMG_FINAL_MODEL || "gemini-3-pro-image-preview";
 
@@ -82,7 +84,7 @@ export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_fee
     `Premium editorial advertising visual, ${d.aspect} aspect (${d.w}x${d.h}). ${d.use}.`,
     `Brand palette: deep ink (#0a0a0b) and warm cream (#f5f1e8) with gold (#c9a961) accents; radial gold glow on dark for atmosphere; generous negative space.`,
     angle?.visual_direction ? `Art direction: ${angle.visual_direction}` : "Art direction: clean, premium real-estate / short-term-rental aesthetic.",
-    `Photoreal where it shows a space; tasteful, never stock-photo gloss. No purple, no SaaS-blue, no emoji.`,
+    `ULTRA-photorealistic — indistinguishable from a real professional photograph; absolutely no illustration, cartoon, 3D-render, or AI-looking artifacts. Tasteful, never stock-photo gloss. No purple, no SaaS-blue, no emoji.`,
     extra ? `Operator note: ${extra}` : "",
     `Leave clean upper space for an overlaid headline. Do NOT render garbled text in the image. Concept: "${headline}".`,
     `No fabricated people implying a real customer or founder.`,
@@ -94,7 +96,7 @@ export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_fee
 export function buildBrollPrompt({ headline = "", angleId = "", brief = "" }) {
   const angle = getAngle(angleId);
   return [
-    "Cinematic, photorealistic short-form ad B-ROLL. Premium short-term-rental / luxury real-estate aesthetic.",
+    "Cinematic, ULTRA-photorealistic short-form ad B-ROLL — broadcast / film grade, indistinguishable from real footage; no CGI, cartoon, or AI-looking artifacts. Premium short-term-rental / luxury real-estate aesthetic.",
     "Warm editorial color grade, soft natural light, shallow depth of field, smooth gimbal or drone motion. Never stock-photo gloss.",
     angle?.visual_direction ? `Scene direction: ${angle.visual_direction}.` : "Scene: a beautifully furnished luxury short-term rental / penthouse with aspirational lifestyle moments.",
     brief ? `Operator note: ${brief}.` : "",
@@ -111,7 +113,7 @@ export function buildPresenterPrompt({ headline = "", body = "", cta = "", angle
   const angle = getAngle(angleId);
   const line = (spokenLine || headline || "").trim();
   return [
-    "Cinematic, photorealistic short-form VIDEO AD with a single on-camera PRESENTER (brand spokesperson) — premium real-estate / luxury commercial look, NOT a selfie or phone-shot UGC video.",
+    "Cinematic, ULTRA-photorealistic short-form VIDEO AD with a single on-camera PRESENTER (brand spokesperson) — broadcast-grade; the host looks like a real human on real film, no uncanny / CGI / AI-looking artifacts. Premium real-estate / luxury commercial look, NOT a selfie or phone-shot UGC video.",
     "The presenter is a credible, aspirational host who walks through and presents a beautifully furnished luxury short-term-rental space, speaking directly and naturally to camera. Confident and conversational — no hype, no influencer cadence, no hard-sell energy.",
     angle?.visual_direction ? `Scene / art direction: ${angle.visual_direction}.` : "Scene: a high-end furnished STR / penthouse — floor-to-ceiling windows, city or coastal view, warm editorial lighting; smooth gimbal/steadicam motion following the host through the space.",
     brief ? `Director's note: ${brief}.` : "",

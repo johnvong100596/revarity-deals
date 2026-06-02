@@ -142,7 +142,7 @@ export default function CreateClient({ angles, formats }) {
       if (output === "copy") await runGenerate({ ...base, type: "copy", n: 3 }, "Copy");
       else if (output === "image") await runGenerate({ ...base, type: "image" }, "Image");
       else if (output === "presenter") await runGenerate({ ...base, type: "video", mode: "presenter", engine: "veo" }, "Presenter");
-      else await runGenerate({ ...base, type: "video", mode: "broll", engine: "kling" }, "Video");
+      else await runGenerate({ ...base, type: "video", mode: "broll", engine: "veo" }, "Video"); // veo = top realism
       if (wantVoice) await makeAudio("voice", { text: voScript || idea }, "Voiceover");
       if (wantMusic && musicPrompt.trim()) await makeAudio("music", { prompt: musicPrompt }, "Music");
     } finally { setBusy(false); }

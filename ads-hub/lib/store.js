@@ -129,6 +129,28 @@ async function cloudAppend(items) {
 }
 export async function appendCreatives(items) { return DRIVER === "cloud" ? cloudAppend(items) : fsAppend(items); }
 
+/* ───────────────────────── permanently delete a creative ─────────────────────────
+ * Only invoked from the Review "Rejected" section's explicit Delete action (two-step: reject → delete).
+ * Removes the card from the queue (and best-effort the public image blob). D-04 unaffected. */
+function fsDelete(id) {
+  const safe = String(id).replace(/\.\./g, "").replace(/^\/+/, "");
+  for (const ext of [".json", ".png", ".ad.png", ".ad-photo.png"]) {
+    const p = path.join(OUTPUT_DIR, `${safe}${ext}`);
+    try { if (p.startsWith(OUTPUT_DIR) && fs.existsSync(p)) fs.unlinkSync(p); } catch {}
+  }
+}
+async function cloudDelete(id) {
+  const { put, del } = await blobApi();
+  const queue = (await cloudReadQueue()).filter((c) => c.id !== id);
+  await put(QUEUE_KEY, JSON.stringify(queue), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  try { for (const v of ["ad", "ad-photo"]) { const u = await blobUrl(`creatives/${id}${suffixFor(v)}`); if (u) await del(u); } } catch {}
+}
+export async function deleteCreative(id) {
+  if (!id) return false;
+  if (DRIVER === "cloud") await cloudDelete(id); else fsDelete(id);
+  return true;
+}
+
 /** Upload a source image to PUBLIC Blob and return its URL (Cloud video needs a fetchable image_url). Cloud only. */
 export async function putPublicImage(buf, name = "src") {
   if (DRIVER !== "cloud") throw new Error("video needs Blob image hosting — set STORE_DRIVER=cloud (+ BLOB_READ_WRITE_TOKEN)");

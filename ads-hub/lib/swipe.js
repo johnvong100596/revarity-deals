@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { OUTPUT_DIR } from "./paths.js";
-import { ANTHROPIC_KEY } from "./connectors.js";
+import { ANTHROPIC_KEY, COPY_MODEL } from "./connectors.js";
 import angles from "../config/ad-angles.json";
 
 /**
@@ -56,7 +56,7 @@ export async function minePatterns(refs) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: process.env.COPY_MODEL || "claude-sonnet-4-6", max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
+    body: JSON.stringify({ model: COPY_MODEL, max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const d = await res.json();

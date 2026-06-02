@@ -44,6 +44,7 @@ export default function ReviewClient() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState("");
   const [mode, setMode] = useState("ink"); // ink | photo backdrop
+  const [showRejected, setShowRejected] = useState(false);
 
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
@@ -71,6 +72,18 @@ export default function ReviewClient() {
   const set = (id, s) => setState((p) => ({ ...p, [id]: p[id] === s ? undefined : s }));
   const approveAllPass = () => setState((p) => { const n = { ...p }; queue.forEach((c) => { if (c.qa === "pass") n[c.id] = "approve"; }); return n; });
   const tally = (s) => Object.values(state).filter((v) => v === s).length;
+  // Reject HIDES from the gate (kept, recoverable); the Rejected section can Restore or permanently Delete.
+  const rejected = queue.filter((c) => state[c.id] === "reject");
+  const active = queue.filter((c) => state[c.id] !== "reject");
+  const restore = (id) => setState((p) => ({ ...p, [id]: undefined }));
+  async function removeCreative(id) {
+    try {
+      const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      if (!res.ok) return;
+      setQueue((q) => q.filter((c) => c.id !== id));
+      setState((p) => { const n = { ...p }; delete n[id]; return n; });
+    } catch {}
+  }
 
   async function save() {
     try {
@@ -105,8 +118,12 @@ export default function ReviewClient() {
       {loading ? <p className="muted">Loading queue…</p> : queue.length === 0 ? (
         <div className="gate"><span>Queue is empty. Run the pipeline from <b>Create</b> to generate creatives.</span></div>
       ) : (
+        <>
+        {active.length === 0 ? (
+          <div className="gate"><span>No active concepts — everything is in <b>Rejected</b> below. Restore or delete them there.</span></div>
+        ) : (
         <div className="q">
-          {queue.map((c) => {
+          {active.map((c) => {
             const st = state[c.id];
             const badge = c.qa === "pass" ? "" : c.qa === "fail" ? "bad" : "warn";
             return (
@@ -138,6 +155,33 @@ export default function ReviewClient() {
             );
           })}
         </div>
+        )}
+        {rejected.length > 0 && (
+          <div className="rejected-wrap">
+            <button className="btn ghost" onClick={() => setShowRejected((v) => !v)}>Rejected ({rejected.length}) {showRejected ? "▲" : "▼"}</button>
+            <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>kept out of the gate — not deleted until you click Delete</span>
+            {showRejected && (
+              <div className="q rejected-q">
+                {rejected.map((c) => (
+                  <figure key={c.id} className="qc rej">
+                    <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
+                      {c.video_url ? <video src={c.video_url} muted loop playsInline controls preload="metadata" /> : <img src={adSrc(c)} alt={c.headline} />}
+                    </div>
+                    <div className="qbody">
+                      <div className="qmeta"><span className="tag">{c.angle_id}</span><span className="tag">{c.spec}</span></div>
+                      <p className="qtext">{c.headline || c.body}</p>
+                      <div className="acts">
+                        <button className="hd" onClick={() => restore(c.id)}>Restore</button>
+                        <button className="rj" onClick={() => removeCreative(c.id)}>Delete ✕</button>
+                      </div>
+                    </div>
+                  </figure>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        </>
       )}
     </>
   );

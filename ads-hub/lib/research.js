@@ -1,5 +1,5 @@
 import angles from "../config/ad-angles.json";
-import { ANTHROPIC_KEY, GEMINI_KEY } from "./connectors.js";
+import { ANTHROPIC_KEY, GEMINI_KEY, COPY_MODEL } from "./connectors.js";
 
 /**
  * Research / "find similar ads" — paste path.
@@ -32,7 +32,7 @@ export async function extractPattern({ text = "", url = "" }) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": ANTHROPIC_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: process.env.COPY_MODEL || "claude-sonnet-4-6", max_tokens: 1200, messages: [{ role: "user", content: prompt + "\n\nReturn ONLY the JSON object — no prose, no markdown fences." }] }),
+    body: JSON.stringify({ model: COPY_MODEL, max_tokens: 1200, messages: [{ role: "user", content: prompt + "\n\nReturn ONLY the JSON object — no prose, no markdown fences." }] }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const d = await res.json();

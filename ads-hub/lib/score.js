@@ -1,4 +1,4 @@
-import { ANTHROPIC_KEY, getAngle, specDims } from "./connectors.js";
+import { ANTHROPIC_KEY, getAngle, specDims, COPY_MODEL } from "./connectors.js";
 
 /**
  * Predictive "Creative Score" — reuses the SAME Anthropic brain as copy generation (no new vendor or
@@ -12,9 +12,9 @@ import { ANTHROPIC_KEY, getAngle, specDims } from "./connectors.js";
  * STILL reaches the Review queue. Scoring is an enhancement, not a gate — unlike publishing it fails OPEN.
  * (D-04: scoring never publishes or spends; D-03 unaffected — it only reads copy/brief, never generates.)
  *
- *   SCORE_MODEL  Anthropic model for scoring (default: COPY_MODEL, then claude-sonnet-4-6)
+ *   SCORE_MODEL  Anthropic model for scoring (default: COPY_MODEL = claude-opus-4-8)
  */
-const SCORE_MODEL = process.env.SCORE_MODEL || process.env.COPY_MODEL || "claude-sonnet-4-6";
+const SCORE_MODEL = process.env.SCORE_MODEL || COPY_MODEL;
 
 const RUBRIC = [
   "You are a senior performance-marketing strategist scoring ONE short-term-rental (Airbnb) ad creative for Revarity.",

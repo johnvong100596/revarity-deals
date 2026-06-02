@@ -56,7 +56,8 @@ export async function POST(req) {
       if (!copy) throw new Error("copy generation returned nothing");
       const prompt = directorPrompt || buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief });
       const [adPng, scores] = await Promise.all([
-        renderImage(prompt, { final: !!b.final }),
+        renderImage(prompt, { final: b.final !== false }), // ultra-realism: default to the PRO image model
+
         scoreCreative({ headline: copy.headline, body: copy.body, cta: copy.cta, angleId, spec, brief }),
       ]);
       const d = specDims(spec);
