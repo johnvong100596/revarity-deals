@@ -1,11 +1,28 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Home "Recent creatives" gallery. Cards pop on hover; click opens a review lightbox (no navigation).
 // The kebab menu keeps the D-04 guardrail: "Approve & send to Schedule" only writes an approve DECISION
 // (a human still launches it on /schedule) — nothing publishes or spends here. "Remake" reopens Create.
 const isVideo = (u = "") => /\.(mp4|webm|mov)(\?|$)/i.test(u);
+
+// Frozen-until-hover preview: thumbnails no longer all autoplay at once (that pegged the browser with a
+// full gallery). Each clip parks on its first frame (#t=0.1 poster) and plays only while hovered. Click
+// still bubbles to the card button → opens the lightbox (which plays with controls).
+function HoverVideo({ src }) {
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const frozen = src && src.includes("#") ? src : `${src}#t=0.1`;
+  const play = () => { const v = ref.current; if (v) v.play().then(() => setPlaying(true)).catch(() => {}); };
+  const stop = () => { const v = ref.current; if (!v) return; v.pause(); try { v.currentTime = 0.1; } catch {} setPlaying(false); };
+  return (
+    <div className="vprev" onMouseEnter={play} onMouseLeave={stop}>
+      <video ref={ref} src={frozen} muted loop playsInline preload="metadata" tabIndex={-1} />
+      {!playing && <span className="vprev-play" aria-hidden="true">▶</span>}
+    </div>
+  );
+}
 const badgeClass = (qa) => (qa === "pass" ? "ok" : qa === "fail" ? "bad" : "warn");
 
 export default function CreativeGallery({ creatives = [] }) {
@@ -87,7 +104,7 @@ export default function CreativeGallery({ creatives = [] }) {
             <button className="cg-open" onClick={() => setLightbox(c)} aria-label={`Review ${c.headline || "creative"}`}>
               <div className={`sg-frame ${c.vertical ? "v" : "sq"}`}>
                 {isVideo(c.src)
-                  ? <video src={c.src} muted loop autoPlay playsInline />
+                  ? <HoverVideo src={c.src} />
                   : <img src={c.src} alt={c.headline} loading="lazy" />}
                 <div className="sg-badges">
                   <span className={`chip ${badgeClass(c.qa)}`}>QA {c.qa}</span>

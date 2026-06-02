@@ -44,6 +44,18 @@ export function sanitizeAngles(list) {
   }).filter(Boolean);
 }
 
+// Format library (overrides brand.json creative_specs). specDims() reads these during generation, so clamp
+// dimensions to sane pixel bounds and force a safe slug name; drop entries missing a name or dimensions.
+export function sanitizeFormats(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 24).map((f) => {
+    const name = STR(f?.name, 48).trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
+    const w = Math.round(+f?.w || 0), h = Math.round(+f?.h || 0);
+    if (!name || w < 64 || h < 64 || w > 8192 || h > 8192) return null;
+    return { name, w, h, use: STR(f?.use, 200) };
+  }).filter(Boolean);
+}
+
 async function blobApi() { return import(/* webpackIgnore: true */ "@vercel/blob"); }
 
 export async function readSettings() {
@@ -63,8 +75,9 @@ export async function writeSettings(input) {
     clean.kpi = { ...(prev.kpi || {}) };
     for (const k of KPI_KEYS) if (input.kpi[k] != null && Number.isFinite(+input.kpi[k])) clean.kpi[k] = Math.max(0, +input.kpi[k]);
   }
-  // An empty array clears the override (falls back to the read-only base angles in config.js).
+  // An empty array clears the override (falls back to the read-only base in config.js / brand.json).
   if (Array.isArray(input.angles)) clean.angles = sanitizeAngles(input.angles);
+  if (Array.isArray(input.formats)) clean.formats = sanitizeFormats(input.formats);
   clean.updatedAt = new Date().toISOString();
   if (DRIVER === "cloud") { const { put } = await blobApi(); await put(KEY, JSON.stringify(clean), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" }); }
   else { fs.mkdirSync(OUTPUT_DIR, { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(clean, null, 2)); }

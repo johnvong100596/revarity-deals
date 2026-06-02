@@ -42,6 +42,14 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
   const [angErr, setAngErr] = useState("");
   const [genBrief, setGenBrief] = useState("");
 
+  // ── Format library (editable; overrides brand.json creative_specs) ──
+  const [formats, setFormats] = useState(() => (config.formatsFull || []).map((f) => ({ ...f })));
+  const [fmtEditing, setFmtEditing] = useState(null);
+  const [fmtDirty, setFmtDirty] = useState(false);
+  const [fmtBusy, setFmtBusy] = useState(false);
+  const [fmtMsg, setFmtMsg] = useState(config.formatsCustomized ? "Custom format set" : "Using default formats");
+  const [fmtErr, setFmtErr] = useState("");
+
   async function save() {
     setErr(""); setBusy(true);
     try {
@@ -97,6 +105,34 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
       await reloadAngles();
     } catch (e) { setAngErr(String(e.message || e)); }
     finally { setAngBusy(false); }
+  }
+
+  const patchFormat = (i, patch) => { setFormats((p) => p.map((f, idx) => (idx === i ? { ...f, ...patch } : f))); setFmtDirty(true); };
+  const removeFormat = (i) => { setFormats((p) => p.filter((_, idx) => idx !== i)); setFmtEditing(null); setFmtDirty(true); };
+  const addFormat = () => { setFormats((p) => [...p, { name: "custom_format", w: 1080, h: 1080, use: "" }]); setFmtEditing(formats.length); setFmtDirty(true); };
+
+  async function reloadFormats() {
+    const r = await fetch("/api/settings", { cache: "no-store" });
+    const d = await r.json();
+    setFormats((d.config?.formatsFull || []).map((f) => ({ ...f })));
+    setFmtMsg(d.config?.formatsCustomized ? "Custom format set saved" : "Reset to default formats");
+    setFmtDirty(false); setFmtEditing(null);
+  }
+  async function saveFormats() {
+    setFmtErr(""); setFmtBusy(true);
+    try {
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ formats }) });
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || "save failed");
+      await reloadFormats();
+    } catch (e) { setFmtErr(String(e.message || e)); } finally { setFmtBusy(false); }
+  }
+  async function resetFormats() {
+    setFmtErr(""); setFmtBusy(true);
+    try {
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ formats: [] }) });
+      const d = await r.json(); if (!d.ok) throw new Error(d.error || "reset failed");
+      await reloadFormats();
+    } catch (e) { setFmtErr(String(e.message || e)); } finally { setFmtBusy(false); }
   }
 
   return (
@@ -176,11 +212,43 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
         ))}
       </div>
 
-      <div className="sec"><h2>Formats</h2><span className="muted" style={{ fontSize: 12 }}>placement sizes (reference)</span></div>
-      <table>
-        <thead><tr><th>Format</th><th>Dimensions</th><th>Use</th></tr></thead>
-        <tbody>{(config.formats || []).map((f) => <tr key={f.name}><td><code>{f.name}</code></td><td>{f.dims}</td><td>{f.use}</td></tr>)}</tbody>
-      </table>
+      <div className="sec"><h2>Formats</h2><span className="muted" style={{ fontSize: 12 }}>{fmtDirty ? "Unsaved changes" : fmtMsg}</span></div>
+      <p className="muted" style={{ fontSize: 12.5, margin: "0 0 12px", maxWidth: 720 }}>The placement sizes the studio renders to. Add a size, edit dimensions, or remove one — changes are local until you press <b>Save formats</b>, and only override your working set (the brand file is never touched).</p>
+      <div className="angle-bar">
+        <button className="btn ghost sm" onClick={addFormat} disabled={fmtBusy}>+ Add format</button>
+        <button className="btn sm" onClick={saveFormats} disabled={fmtBusy || !fmtDirty}>Save formats</button>
+        <button className="btn ghost sm" onClick={resetFormats} disabled={fmtBusy} title="Discard the override and return to the default formats">Reset to defaults</button>
+      </div>
+      {fmtErr && <div className="log" style={{ color: "var(--red)" }}>{fmtErr}</div>}
+      <div className="angle-list">
+        {formats.length === 0 && <div className="gate"><span>No formats — add one or reset to defaults.</span></div>}
+        {formats.map((f, i) => (
+          <div className="angle-card" key={i}>
+            <div className="angle-head">
+              <code>{f.name || "—"}</code>
+              <span className="tag">{f.w}×{f.h}</span>
+              <div className="angle-acts">
+                <button className="btn ghost sm" onClick={() => setFmtEditing(fmtEditing === i ? null : i)}>{fmtEditing === i ? "Close" : "Edit"}</button>
+                <button className="btn ghost sm danger" onClick={() => removeFormat(i)}>Remove</button>
+              </div>
+            </div>
+            {fmtEditing === i ? (
+              <div className="angle-edit">
+                <div className="fld"><label className="l">Name (slug)</label><input value={f.name} onChange={(e) => patchFormat(i, { name: e.target.value })} /></div>
+                <div className="row" style={{ marginBottom: 0 }}>
+                  <div className="fld"><label className="l">Width (px)</label><input type="number" value={f.w} onChange={(e) => patchFormat(i, { w: +e.target.value || 0 })} /></div>
+                  <div className="fld"><label className="l">Height (px)</label><input type="number" value={f.h} onChange={(e) => patchFormat(i, { h: +e.target.value || 0 })} /></div>
+                </div>
+                <div className="fld"><label className="l">Use</label><input value={f.use || ""} onChange={(e) => patchFormat(i, { use: e.target.value })} /></div>
+              </div>
+            ) : (
+              <div className="angle-meta">
+                <div><b>Use</b> {f.use || "—"}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </>
   );
 }

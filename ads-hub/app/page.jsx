@@ -19,7 +19,7 @@ export default async function Studio() {
   const pass = queue.filter((c) => c.qa === "pass").length;
   const approved = Object.values(dec).filter((v) => v === "approve").length;
   const awaiting = queue.filter((c) => !dec[c.id]).length;
-  const gallery = queue.slice(0, 12);
+  const gallery = queue.filter((c) => dec[c.id] !== "reject").slice(0, 12); // hide already-rejected from Recent creatives
   const src = (c) => c.video_url || c.ad_url || c.image_url || `/api/image?id=${encodeURIComponent(c.id)}&v=ad`;
 
   return (

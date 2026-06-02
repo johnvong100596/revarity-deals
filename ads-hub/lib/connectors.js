@@ -27,17 +27,27 @@ export function keyStatus() {
   };
 }
 
-// Operator angle overrides (Settings) merged over the read-only base. Request-scoped cache: a generation
-// route calls `await primeAngles()` once before building prompts; the sync builders then read via getAngle.
+// Operator overrides (Settings) merged over the read-only base. Request-scoped cache: a generation route
+// calls `await primeOverrides()` once before building prompts / computing dims; the sync helpers below then
+// read the merged angles + formats. (primeAngles kept as an alias for existing callers.)
 let _angleOverride = null;
-export async function primeAngles() {
-  try { const s = await readSettings(); _angleOverride = Array.isArray(s.angles) && s.angles.length ? s.angles : null; }
-  catch { _angleOverride = null; }
+let _specOverride = null; // array of { name, w, h, use }
+export async function primeOverrides() {
+  try {
+    const s = await readSettings();
+    _angleOverride = Array.isArray(s.angles) && s.angles.length ? s.angles : null;
+    _specOverride = Array.isArray(s.formats) && s.formats.length ? s.formats : null;
+  } catch { _angleOverride = null; _specOverride = null; }
 }
+export const primeAngles = primeOverrides;
 export function effectiveAngles() { return _angleOverride || angles.angles; }
 export function getAngle(id) { return effectiveAngles().find((a) => a.id === id) || null; }
+function specsMap() {
+  if (_specOverride) { const m = {}; for (const f of _specOverride) if (f && f.name) m[f.name] = { w: f.w, h: f.h, use: f.use }; return m; }
+  return brand.creative_specs;
+}
 export function specDims(spec) {
-  const s = brand.creative_specs[spec];
+  const s = specsMap()[spec];
   return s ? { w: s.w, h: s.h, aspect: s.w === s.h ? "1:1" : s.h > s.w ? "9:16" : "16:9", label: spec, use: s.use } : { w: 1080, h: 1080, aspect: "1:1", label: spec || "meta_feed_square" };
 }
 

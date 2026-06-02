@@ -5,7 +5,7 @@ import { pollVeo, fetchVeoVideo } from "@/lib/veo";
 import { pollFal } from "@/lib/fal";
 import { pollUgc } from "@/lib/arcads";
 import { putPublicVideo, appendCreatives } from "@/lib/store";
-import { specDims } from "@/lib/connectors";
+import { specDims, primeOverrides } from "@/lib/connectors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +54,7 @@ export async function GET(_req, { params }) {
   // When a video finishes, append it to the Review queue once (so it shows as an approve/post card — D-04 still holds).
   if (job.type === "video" && job.status === "done" && job.result_url && !job.queued) {
     try {
+      await primeOverrides(); // honor custom format dimensions when stamping the finished video's record
       const d = specDims(job.spec || "");
       const rec = {
         id: `hub-generated/${job.id}`, angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,

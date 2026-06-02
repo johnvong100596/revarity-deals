@@ -7,13 +7,15 @@ import brand from "../config/brand.json";
 import { readSettings } from "./settings.js";
 
 export function getConfig() {
+  const formatsFull = Object.entries(brand.creative_specs).map(([name, v]) => ({ name, w: v.w, h: v.h, use: v.use }));
   return {
     budgetMonthly: angles.campaign_budget_monthly_usd,
     kpi: angles.kpi_targets,
     angles: angles.angles.map((a) => ({
       id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length,
     })),
-    formats: Object.entries(brand.creative_specs).map(([name, v]) => ({ name, dims: `${v.w}x${v.h}`, use: v.use })),
+    formats: formatsFull.map((f) => ({ name: f.name, dims: `${f.w}x${f.h}`, use: f.use })),
+    formatsFull,
   };
 }
 
@@ -24,6 +26,7 @@ export async function loadConfig() {
   const base = getConfig();
   const ov = await readSettings();
   const full = Array.isArray(ov.angles) && ov.angles.length ? ov.angles : angles.angles;
+  const fullFormats = Array.isArray(ov.formats) && ov.formats.length ? ov.formats : base.formatsFull;
   return {
     ...base,
     budgetMonthly: ov.budgetMonthly ?? base.budgetMonthly,
@@ -31,6 +34,9 @@ export async function loadConfig() {
     angles: full.map((a) => ({ id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length })),
     anglesFull: full,
     anglesCustomized: Array.isArray(ov.angles) && ov.angles.length > 0,
+    formats: fullFormats.map((f) => ({ name: f.name, dims: `${f.w}x${f.h}`, use: f.use })),
+    formatsFull: fullFormats,
+    formatsCustomized: Array.isArray(ov.formats) && ov.formats.length > 0,
     settingsUpdatedAt: ov.updatedAt || null,
   };
 }
