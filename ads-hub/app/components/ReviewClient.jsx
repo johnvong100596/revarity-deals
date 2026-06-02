@@ -63,6 +63,9 @@ export default function ReviewClient() {
   const [saved, setSaved] = useState("");
   const [mode, setMode] = useState("ink"); // ink | photo backdrop
   const [showRejected, setShowRejected] = useState(false);
+  const [varN, setVarN] = useState(5); // variations-per-card count (1–10)
+  const [varBusy, setVarBusy] = useState(null); // id of the card currently spinning variations
+  const [varMsg, setVarMsg] = useState("");
 
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
@@ -119,14 +122,60 @@ export default function ReviewClient() {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "approved-set.json"; a.click();
   }
 
+  // ── Spin N variations off an existing creative (same script + background, varied hook) ──
+  // Maps a variation shot from /api/variations to a /api/generate body, seeded by the source creative.
+  function varShotBody(shot, base) {
+    const spec = shot.spec && shot.spec !== "auto" ? shot.spec : (base.spec || "meta_feed_square");
+    const b = { spec, directorPrompt: shot.prompt, headline: shot.headline || base.headline || "", spokenLine: shot.spokenLine || "", angleId: base.angle_id || "" };
+    if (shot.kind === "image") return { ...b, type: "image" };
+    if (shot.kind === "presenter") return { ...b, type: "video", mode: "presenter", engine: "veo" };
+    if (shot.kind === "ugc") return { ...b, type: "video", engine: "arcads" };
+    const e = shot.engine === "veo-broll" ? "veo" : shot.engine;
+    const engine = ["veo", "kling", "kling-turbo", "higgsfield"].includes(e) ? e : "kling";
+    return { ...b, type: "video", mode: "broll", engine };
+  }
+  async function pollVarJob(jobId) { // a finished video appends to the queue on completion — refresh when it lands
+    for (let i = 0; i < 150; i++) {
+      await new Promise((r) => setTimeout(r, 4000));
+      try { const res = await fetch(`/api/generate/${jobId}`, { cache: "no-store" }); if (!res.ok) continue; const { job } = await res.json(); if (job?.status === "done" || job?.status === "failed") { await load(); return; } } catch {}
+    }
+  }
+  async function spinVariations(c) {
+    if (varBusy) return;
+    setVarBusy(c.id); setVarMsg("");
+    try {
+      const idea = [c.headline, c.body, c.script].filter(Boolean).join(" — ");
+      const isVid = !!c.video_url;
+      const output = isVid ? (c.disclosure === "ai-presenter" ? "presenter" : "video") : "image";
+      const res = await fetch("/api/variations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ idea, n: varN, output, format: c.spec || "auto", angleId: c.angle_id || "" }) });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "variations failed");
+      const shots = data.plan?.shots || [];
+      if (!shots.length) throw new Error("no variations returned");
+      let made = 0;
+      for (const shot of shots) { // sequential — avoids the queue append race
+        setVarMsg(`Spinning ${made + 1}/${shots.length}…`);
+        try {
+          const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(varShotBody(shot, c)) });
+          const d = await r.json();
+          if (d.ok) { made++; if (d.jobId) pollVarJob(d.jobId); }
+        } catch {}
+      }
+      await load();
+      setVarMsg(`${made} variation${made === 1 ? "" : "s"} off ${c.angle_id || "creative"} — ${isVid ? "videos rendering, they'll appear as they finish" : "added to the queue below"}.`);
+    } catch (e) { setVarMsg(`Variations failed — ${String(e.message || e)}`); }
+    finally { setVarBusy(null); setTimeout(() => setVarMsg(""), 7000); }
+  }
+
   return (
     <>
       <div className="eyebrow">— Review &amp; approve —</div>
       <h1>The approval <em>gate</em></h1>
       <p className="lead">Every creative with its copy and auto-QA verdict. Approve, hold, or reject.</p>
       <div className="bar">
-        <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}</div>
-        <div style={{ display: "flex", gap: 9 }}>
+        <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}{varMsg && <span className="muted"> — {varMsg}</span>}</div>
+        <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
+          <span className="chip-sel" title="Variations per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
           <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
           <button className="btn ghost" onClick={approveAllPass}>Approve all QA-pass</button>
           <button className="btn ghost" onClick={save}>Save decisions</button>
@@ -166,7 +215,10 @@ export default function ReviewClient() {
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>
                     <button className={`rj ${st === "reject" ? "on" : ""}`} onClick={() => set(c.id, "reject")}>Reject</button>
                   </div>
-                  <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
+                  <div className="card-foot">
+                    <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
+                    <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Spin ${varN} variations off this creative — same script & background, varied hook. They land in the queue for review (D-04).`}>{varBusy === c.id ? "Spinning…" : `✨ ${varN} variations`}</button>
+                  </div>
                   {st === "reject" && <div className="rej-note">Rejected — still here, not deleted. Click Reject again to undo.</div>}
                 </div>
               </figure>
