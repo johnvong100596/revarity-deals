@@ -10,7 +10,7 @@ import { useState } from "react";
  * /public/hero/world-tour.mp4 auto-upgrades the hero with no code change, and nothing regresses while it's
  * absent (a 404 just advances to the next source; if all fail, the still crossfade carries it).
  */
-export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero/world-tour.mp4", "/hero/hero-loop.mp4"] }) {
+export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero/world-tour.mp4", "/hero/hero-loop.mp4"], children }) {
   const [idx, setIdx] = useState(0);
   const [videoOn, setVideoOn] = useState(false);
   const poster = scenes[0] ? `/hero/${scenes[0]}.png` : undefined;
@@ -38,13 +38,17 @@ export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero
       )}
       <div className="hero-grad" />
       <div className="hero-in">
-        <div className="k"><span className="d" /> What is Revarity Ads</div>
-        <h1>Turn rooms into <em>income</em>.</h1>
-        <p>Your creative studio writes the words, designs the frame, and films the dream — short-stay ads that feel like a getaway, screened and approved before a single dollar moves.</p>
-        <div className="hero-cta">
-          <Link className="btn" href="/create">Make your first ad →</Link>
-          <Link className="btn ghost" href="/welcome">See how it works</Link>
-        </div>
+        {children || (
+          <>
+            <div className="k"><span className="d" /> What is Revarity Ads</div>
+            <h1>Turn rooms into <em>income</em>.</h1>
+            <p>Your creative studio writes the words, designs the frame, and films the dream — short-stay ads that feel like a getaway, screened and approved before a single dollar moves.</p>
+            <div className="hero-cta">
+              <Link className="btn" href="/create">Make your first ad →</Link>
+              <Link className="btn ghost" href="/welcome">See how it works</Link>
+            </div>
+          </>
+        )}
       </div>
     </header>
   );

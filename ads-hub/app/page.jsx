@@ -5,6 +5,7 @@ import WeeklySummary from "@/app/components/WeeklySummary";
 import FirstVisit from "@/app/components/FirstVisit";
 import HeroVideo from "@/app/components/HeroVideo";
 import CreativeGallery from "@/app/components/CreativeGallery";
+import StudioComposer from "@/app/components/StudioComposer";
 
 export const dynamic = "force-dynamic";
 
@@ -39,20 +40,7 @@ export default async function Studio() {
   return (
     <>
       <FirstVisit />
-      <HeroVideo scenes={SCENES} heroDur={HERO_DUR} />
-
-      <div className="grid cards4">
-        <div className="stat"><div className="k">In review queue</div><div className="v">{queue.length}</div><div className="sub">finished ads</div></div>
-        <div className="stat"><div className="k">Awaiting approval</div><div className="v good">{awaiting}</div><div className="sub">need your eyes</div></div>
-        <div className="stat"><div className="k">Approved → ready</div><div className="v">{approved}</div><div className="sub">to hand to David</div></div>
-        <div className="stat"><div className="k">Monthly plan</div><div className="v">${(cfg.budgetMonthly || 0).toLocaleString()}<small> · CPL ≤ ${cfg.kpi.cpl_usd_max}</small></div><div className="sub">$375/mo offer · no rev share</div></div>
-      </div>
-
-      <div className="qa-row">
-        <Link className="qa" href="/create"><div className="t">Generate creatives</div><div className="s">Run the engine across angles → finished ads</div></Link>
-        <Link className="qa" href="/review"><div className="t">Review &amp; approve</div><div className="s">{awaiting} creatives waiting on you</div></Link>
-        <Link className="qa" href="/budget"><div className="t">Plan budget</div><div className="s">Test / scale split · target leads</div></Link>
-      </div>
+      <HeroVideo scenes={SCENES} heroDur={HERO_DUR}><StudioComposer /></HeroVideo>
 
       <div className="sec"><h2>Generate across formats</h2><Link className="link" href="/create">Open the studio →</Link></div>
       <div className="fmt-grid">
@@ -65,6 +53,19 @@ export default async function Studio() {
             </div>
           </Link>
         ))}
+      </div>
+
+      <div className="grid cards4">
+        <div className="stat"><div className="k">In review queue</div><div className="v">{queue.length}</div><div className="sub">finished ads</div></div>
+        <div className="stat"><div className="k">Awaiting approval</div><div className="v good">{awaiting}</div><div className="sub">need your eyes</div></div>
+        <div className="stat"><div className="k">Approved → ready</div><div className="v">{approved}</div><div className="sub">to hand to David</div></div>
+        <div className="stat"><div className="k">Monthly plan</div><div className="v">${(cfg.budgetMonthly || 0).toLocaleString()}<small> · CPL ≤ ${cfg.kpi.cpl_usd_max}</small></div><div className="sub">$375/mo offer · no rev share</div></div>
+      </div>
+
+      <div className="qa-row">
+        <Link className="qa" href="/create"><div className="t">Generate creatives</div><div className="s">Run the engine across angles → finished ads</div></Link>
+        <Link className="qa" href="/review"><div className="t">Review &amp; approve</div><div className="s">{awaiting} creatives waiting on you</div></Link>
+        <Link className="qa" href="/budget"><div className="t">Plan budget</div><div className="s">Test / scale split · target leads</div></Link>
       </div>
 
       <div className="sec"><h2>Pipeline</h2></div>
