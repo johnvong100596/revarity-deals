@@ -1,8 +1,10 @@
 /**
  * Veo 3.1 text-to-video via the Gemini API (REST, serverless-safe, fetch-only — stateless poll pattern,
  * mirrors lib/higgsfield-cloud.js so /api/generate/[id] can poll without holding a function open).
- * Used for real-looking cinematic B-ROLL ad footage (penthouse, lifestyle). We do NOT generate
- * talking-head/testimonial UGC (brand rule D-03) — voiceover is layered separately via ElevenLabs.
+ * Two modes: (1) silent cinematic B-ROLL (penthouse, lifestyle) — voiceover layered via ElevenLabs;
+ * (2) PRESENTER commercials — a brand spokesperson walking/presenting with NATIVE synced dialogue
+ * (generateAudio + personGeneration). Revised-D-03: a presenter/host is allowed; fake-client
+ * testimonials and guaranteed-return claims are NOT (enforced in the prompt + the human gate).
  *
  *   start: POST /v1beta/models/{model}:predictLongRunning  { instances:[{prompt}], parameters:{...} } → { name }
  *   poll:  GET  /v1beta/{operation.name}  → { done, response|error }
@@ -16,12 +18,16 @@ const KEY = () => process.env.GEMINI_API_KEY || "";
 export function hasVeo() { return !!KEY(); }
 
 /** Start a Veo b-roll job. Returns the long-running operation name (store it on the job). */
-export async function startVeo({ prompt, aspectRatio = "9:16", resolution = "720p" }) {
+export async function startVeo({ prompt, aspectRatio = "9:16", resolution = "720p", generateAudio, personGeneration }) {
   if (!KEY()) throw new Error("GEMINI_API_KEY not set — required for Veo video.");
+  const parameters = { aspectRatio, resolution };
+  // Presenter mode opts in to people + native synced speech; b-roll leaves these unset (prior behavior).
+  if (personGeneration) parameters.personGeneration = personGeneration;
+  if (generateAudio !== undefined) parameters.generateAudio = generateAudio;
   const res = await fetch(`${BASE}/models/${MODEL}:predictLongRunning`, {
     method: "POST",
     headers: { "x-goog-api-key": KEY(), "Content-Type": "application/json" },
-    body: JSON.stringify({ instances: [{ prompt }], parameters: { aspectRatio, resolution } }),
+    body: JSON.stringify({ instances: [{ prompt }], parameters }),
   });
   if (!res.ok) throw new Error(`Veo start ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const j = await res.json();

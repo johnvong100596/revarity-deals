@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { genCopy, buildImagePrompt, buildBrollPrompt, renderImage, specDims } from "@/lib/connectors";
+import { genCopy, buildImagePrompt, buildBrollPrompt, buildPresenterPrompt, renderImage, specDims } from "@/lib/connectors";
 import { startVideo } from "@/lib/higgsfield-cloud";
 import { startVeo } from "@/lib/veo";
 import { startFal, FAL_MODELS } from "@/lib/fal";
+import { startUgc } from "@/lib/arcads";
 import { appendCreatives, putPublicImage } from "@/lib/store";
 import { saveJob, newId } from "@/lib/jobs";
 import { scoreCreative } from "@/lib/score";
@@ -12,12 +13,25 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 /**
- * On-demand generation (serverless, direct REST — no CLI). The operator generates as many as they
- * want until they find a winner; everything lands in the Review queue and still stops there (D-04).
- *   type "copy"  → N original copy variants (fast, no image)
- *   type "image" → copy + brand-locked render → appended to the queue (fast)
- *   type "video" → render base image → Higgsfield image→video job → poll via GET /api/generate/{jobId}
+ * On-demand generation (serverless, direct REST — no CLI). Everything lands in the Review queue and
+ * still stops there (D-04). Types:
+ *   "copy"  → N original copy variants (+ Creative Score)
+ *   "image" → copy + brand-locked render → queue
+ *   "video" → b-roll (Veo/Kling/Higgsfield) OR mode:"presenter" commercial (Veo native dialogue);
+ *             engine:"arcads" routes the gated UGC talking-head lane. Poll via GET /api/generate/{jobId}.
+ * The Director (/api/director) calls this per shot with directorPrompt + headline/spokenLine overrides,
+ * so a planned shot renders without re-deriving copy.
  */
+
+// Use director/operator-provided copy if present, else generate it.
+async function resolveCopy({ provided, angleId, brief, reference }) {
+  if (provided && (provided.headline || provided.body || provided.cta)) {
+    return { headline: provided.headline || "", body: provided.body || "", cta: provided.cta || "Learn more", pricing_flag: null, hook: "custom" };
+  }
+  const [c] = await genCopy({ angleId, brief, reference, n: 1 });
+  return c;
+}
+
 export async function POST(req) {
   let b = {};
   try { b = await req.json(); } catch {}
@@ -25,24 +39,22 @@ export async function POST(req) {
   const angleId = b.angleId || "";
   const brief = (b.brief || "").slice(0, 2000);
   const reference = (b.reference || "").slice(0, 4000);
-  const spec = b.spec || "meta_feed_square";
+  const spec = b.spec && b.spec !== "auto" ? b.spec : "meta_feed_square";
   const n = Math.min(Math.max(parseInt(b.n, 10) || 1, 1), 4);
+  const directorPrompt = (b.directorPrompt || "").slice(0, 1800);
+  const provided = b.headline || b.body || b.cta ? { headline: b.headline, body: b.body, cta: b.cta } : null;
 
   try {
     if (type === "copy") {
       const variants = await genCopy({ angleId, brief, reference, n });
-      // Predictive Creative Score per variant (non-blocking, parallel — null if scoring fails).
-      const scored = await Promise.all(
-        variants.map(async (v) => ({ ...v, scores: await scoreCreative({ ...v, angleId, spec, brief }) }))
-      );
+      const scored = await Promise.all(variants.map(async (v) => ({ ...v, scores: await scoreCreative({ ...v, angleId, spec, brief }) })));
       return NextResponse.json({ ok: true, type, variants: scored });
     }
 
     if (type === "image") {
-      const [copy] = await genCopy({ angleId, brief, reference, n: 1 });
+      const copy = await resolveCopy({ provided, angleId, brief, reference });
       if (!copy) throw new Error("copy generation returned nothing");
-      const prompt = buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief });
-      // Render the image and score the copy in parallel — scoring never blocks the creative.
+      const prompt = directorPrompt || buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief });
       const [adPng, scores] = await Promise.all([
         renderImage(prompt, { final: !!b.final }),
         scoreCreative({ headline: copy.headline, body: copy.body, cta: copy.cta, angleId, spec, brief }),
@@ -60,36 +72,51 @@ export async function POST(req) {
     }
 
     if (type === "video") {
-      const engine = b.engine || "kling"; // default to the scalable fal engine (no preview cap)
-      const [copy] = await genCopy({ angleId, brief, reference, n: 1 });
+      const mode = b.mode === "presenter" ? "presenter" : "broll";
+      let engine = b.engine || "kling";
+      if (mode === "presenter") engine = "veo"; // presenter commercials need Veo's native synced dialogue
+      const copy = await resolveCopy({ provided, angleId, brief, reference });
       const d = specDims(spec);
       const aspect = d.aspect === "9:16" ? "9:16" : d.aspect === "1:1" ? "1:1" : "16:9";
-      const brollPrompt = buildBrollPrompt({ headline: copy?.headline || brief, angleId, brief });
-      // Score the concept now (non-blocking); stash on the job so the poll route attaches it to the
-      // finished video creative in Review. Judges the copy as it will run over b-roll + voiceover.
+      const spokenLine = (b.spokenLine || copy?.headline || brief || "").slice(0, 400);
+      const disclosure = mode === "presenter" || engine === "arcads" ? "ai-presenter" : null;
+      const videoPrompt = directorPrompt || (mode === "presenter"
+        ? buildPresenterPrompt({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, brief, spokenLine })
+        : buildBrollPrompt({ headline: copy?.headline || brief, angleId, brief }));
       const scores = await scoreCreative({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, spec, brief, hasVideo: true });
+      const baseJob = { type: "video", angleId, spec, headline: copy?.headline || "", brief, mode, disclosure, scores };
 
-      // fal.ai (Kling) — scalable, parallel, no preview daily cap. D-03-safe b-roll (no talking-head).
-      if (FAL_MODELS[engine]) {
-        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: brollPrompt, duration: "5", aspect_ratio: aspect });
-        const job = await saveJob({ id: newId("vid"), type: "video", engine, status: "rendering", falStatusUrl: statusUrl, falResponseUrl: responseUrl, angleId, spec, headline: copy?.headline || "", brief, scores, createdAt: Date.now() });
+      // Arcads — gated UGC talking-head lane (fails closed until ARCADS_CLIENT_ID/SECRET set).
+      if (engine === "arcads") {
+        const scriptId = await startUgc({ script: spokenLine || copy?.headline || brief });
+        const job = await saveJob({ id: newId("vid"), engine: "arcads", status: "rendering", arcadsScriptId: scriptId, ...baseJob, createdAt: Date.now() });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
-      // Veo 3.1 — premium b-roll (rate-limited preview model)
+      // fal.ai (Kling / Kling Turbo) — scalable D-03-safe b-roll.
+      if (FAL_MODELS[engine]) {
+        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: "5", aspect_ratio: aspect });
+        const job = await saveJob({ id: newId("vid"), engine, status: "rendering", falStatusUrl: statusUrl, falResponseUrl: responseUrl, ...baseJob, createdAt: Date.now() });
+        return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
+      }
+
+      // Veo — presenter commercial (native synced audio + people) OR premium silent b-roll.
       if (engine === "veo") {
         const aspectRatio = d.aspect === "9:16" ? "9:16" : "16:9"; // Veo has no 1:1
-        const opName = await startVeo({ prompt: brollPrompt, aspectRatio, resolution: "720p" });
-        const job = await saveJob({ id: newId("vid"), type: "video", engine, status: "rendering", veoOp: opName, aspectRatio, angleId, spec, headline: copy?.headline || "", brief, scores, createdAt: Date.now() });
+        const opName = await startVeo({
+          prompt: videoPrompt, aspectRatio, resolution: "720p",
+          ...(mode === "presenter" ? { generateAudio: true, personGeneration: "allow_adult" } : {}),
+        });
+        const job = await saveJob({ id: newId("vid"), engine: "veo", status: "rendering", veoOp: opName, aspectRatio, ...baseJob, createdAt: Date.now() });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
-      // Higgsfield — subtle motion on a brand still (silent; fine for ambient image-ads)
-      const imgPrompt = buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
+      // Higgsfield — subtle motion on a brand still (silent ambient; b-roll only).
+      const imgPrompt = directorPrompt || buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
       const adPng = await renderImage(imgPrompt, { final: false });
       const imageUrl = await putPublicImage(adPng, newId("src").slice(4));
       const setId = await startVideo({ imageUrl, prompt: brief || copy?.headline || "slow cinematic push-in, subtle motion" });
-      const job = await saveJob({ id: newId("vid"), type: "video", engine: "higgsfield", status: "rendering", cloudSetId: setId, angleId, spec, headline: copy?.headline || "", brief, scores, createdAt: Date.now() });
+      const job = await saveJob({ id: newId("vid"), engine: "higgsfield", status: "rendering", cloudSetId: setId, ...baseJob, createdAt: Date.now() });
       return NextResponse.json({ ok: true, type, engine: "higgsfield", jobId: job.id, status: "rendering" });
     }
 

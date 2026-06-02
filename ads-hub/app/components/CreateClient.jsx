@@ -2,57 +2,54 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-const TYPES = [
-  { id: "image", label: "Image ad" },
+const OUTPUTS = [
+  { id: "auto", label: "Auto — studio decides" },
+  { id: "presenter", label: "Presenter commercial" },
+  { id: "video", label: "Video b-roll" },
+  { id: "image", label: "Image" },
   { id: "copy", label: "Copy only" },
-  { id: "video", label: "Video (b-roll)" },
 ];
+const FORMAT_LABELS = {
+  meta_feed_square: "Feed · Square 1:1",
+  meta_feed_portrait: "Feed · Portrait 4:5",
+  meta_story_vertical: "Reels / Stories 9:16",
+  meta_landscape: "Landscape 16:9",
+  before_after_split: "Before / After",
+};
+const ENGINE_LABEL = {
+  "veo-presenter": "Veo · presenter", "veo-broll": "Veo · b-roll", kling: "Kling",
+  "kling-turbo": "Kling Turbo", higgsfield: "Higgsfield", nano: "Nano image", arcads: "Arcads UGC",
+};
 
 export default function CreateClient({ angles, formats }) {
   const sp = useSearchParams();
-  const remakeId = sp.get("remake");
-  const [type, setType] = useState("image");
+  const [idea, setIdea] = useState(() => sp.get("brief") || "");
+  const [output, setOutput] = useState("auto");
+  const [format, setFormat] = useState("auto");
   const [angleId, setAngleId] = useState("");
-  const [spec, setSpec] = useState(formats[0]?.name || "meta_feed_square");
-  const [brief, setBrief] = useState(() => sp.get("brief") || ""); // prefill once from ?brief (Remake)
+
+  const [showInsp, setShowInsp] = useState(false);
   const [reference, setReference] = useState("");
   const [refUrl, setRefUrl] = useState("");
   const [refVideo, setRefVideo] = useState("");
-  const [includeRef, setIncludeRef] = useState(true);
-  const [finalRender, setFinalRender] = useState(false);
-  const [engine, setEngine] = useState("kling"); // video engine: kling/kling-turbo (fal, scalable) | veo | higgsfield
+  const [wantVoice, setWantVoice] = useState(false);
   const [voScript, setVoScript] = useState("");
-  const [voUrl, setVoUrl] = useState("");
-  const [voBusy, setVoBusy] = useState(false);
-  const [voErr, setVoErr] = useState("");
+  const [wantMusic, setWantMusic] = useState(false);
   const [musicPrompt, setMusicPrompt] = useState("");
-  const [musicUrl, setMusicUrl] = useState("");
-  const [musicBusy, setMusicBusy] = useState(false);
-  const [musicErr, setMusicErr] = useState("");
 
-  const [pattern, setPattern] = useState(null);
-  const [researching, setResearching] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [plan, setPlan] = useState(null);
+  const [planErr, setPlanErr] = useState("");
   const [generating, setGenerating] = useState(false);
   const [err, setErr] = useState("");
   const [results, setResults] = useState([]);
 
-  function refForGen() {
-    if (!includeRef) return "";
-    if (pattern) return `Hook: ${pattern.hook}. Angle: ${pattern.angle}. Framework: ${pattern.framework}. ${pattern.suggested_brief || ""}`;
-    return reference;
-  }
+  const inspirationText = () =>
+    [reference.trim(), refUrl.trim() && `Source URL: ${refUrl.trim()}`, refVideo.trim() && `Reference video: ${refVideo.trim()}`]
+      .filter(Boolean).join("\n");
 
-  async function research() {
-    setErr(""); setResearching(true); setPattern(null);
-    try {
-      const res = await fetch("/api/research", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: reference, url: refUrl, videoUrl: refVideo }) });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "research failed");
-      setPattern(data.pattern);
-      if (!brief.trim() && data.pattern.suggested_brief) setBrief(data.pattern.suggested_brief);
-    } catch (e) { setErr(String(e.message || e)); }
-    finally { setResearching(false); }
-  }
+  const addResult = (r) => setResults((rs) => [r, ...rs]);
+  const update = (key, patch) => setResults((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
   async function pollVideo(jobId, key) {
     for (let i = 0; i < 200; i++) {
@@ -67,143 +64,175 @@ export default function CreateClient({ angles, formats }) {
     }
     update(key, { status: "failed", error: "timed out" });
   }
-  const update = (key, patch) => setResults((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
-  async function makeVoiceover() {
-    setVoErr(""); setVoBusy(true); setVoUrl("");
-    try {
-      const res = await fetch("/api/voiceover", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: voScript }) });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "voiceover failed");
-      setVoUrl(data.url);
-    } catch (e) { setVoErr(String(e.message || e)); }
-    finally { setVoBusy(false); }
-  }
-
-  async function makeMusic() {
-    setMusicErr(""); setMusicBusy(true); setMusicUrl("");
-    try {
-      const res = await fetch("/api/music", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: musicPrompt }) });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "music failed");
-      setMusicUrl(data.url);
-    } catch (e) { setMusicErr(String(e.message || e)); }
-    finally { setMusicBusy(false); }
-  }
-
-  async function generate() {
-    setErr(""); setGenerating(true);
+  // Core: POST one generate request and track its result. Returns when the request is accepted
+  // (video keeps polling in the background). Sequential callers avoid the queue.json append race.
+  async function runGenerate(body, label) {
     const key = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     try {
-      const body = { type, angleId, brief, reference: refForGen(), spec, final: finalRender, engine };
       const res = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "generation failed");
-      if (type === "copy") {
-        const items = (data.variants || []).map((v, i) => ({ key: `${key}-${i}`, type: "copy", ...v }));
-        setResults((rs) => [...items, ...rs]);
-      } else if (type === "image") {
-        setResults((rs) => [{ key, type: "image", id: data.id, headline: data.headline, body: data.body, cta: data.cta, pricing_flag: data.pricing_flag, ad_url: `/api/image?id=${encodeURIComponent(data.id)}&v=ad` }, ...rs]);
-      } else if (type === "video") {
-        setResults((rs) => [{ key, type: "video", status: "rendering", headline: brief.slice(0, 60) }, ...rs]);
+      if (body.type === "copy") {
+        (data.variants || []).forEach((v, i) => addResult({ key: `${key}-${i}`, type: "copy", label, ...v }));
+      } else if (body.type === "image") {
+        addResult({ key, type: "image", label, id: data.id, headline: data.headline, body: data.body, cta: data.cta, pricing_flag: data.pricing_flag, scores: data.scores, ad_url: `/api/image?id=${encodeURIComponent(data.id)}&v=ad` });
+      } else {
+        addResult({ key, type: "video", label, status: "rendering", headline: label || body.headline || "" });
         pollVideo(data.jobId, key);
       }
-    } catch (e) { setErr(String(e.message || e)); }
-    finally { setGenerating(false); }
+    } catch (e) {
+      addResult({ key, type: body.type === "image" ? "image" : "video", label, status: "failed", error: String(e.message || e), headline: label || "" });
+    }
   }
+
+  async function makeAudio(kind, payload, label) {
+    const key = `${Date.now()}-${kind}`;
+    addResult({ key, type: kind, label, status: "rendering" });
+    try {
+      const res = await fetch(`/api/${kind === "voice" ? "voiceover" : "music"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || `${kind} failed`);
+      update(key, { status: "done", url: data.url });
+    } catch (e) { update(key, { status: "failed", error: String(e.message || e) }); }
+  }
+
+  // Map a director shot to a /api/generate body.
+  function shotBody(shot) {
+    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId };
+    if (shot.kind === "image") return { ...base, type: "image" };
+    if (shot.kind === "presenter") return { ...base, type: "video", mode: "presenter", engine: "veo" };
+    if (shot.kind === "ugc") return { ...base, type: "video", engine: "arcads" };
+    const e = shot.engine === "veo-broll" ? "veo" : shot.engine;
+    const engine = ["veo", "kling", "kling-turbo", "higgsfield"].includes(e) ? e : "kling";
+    return { ...base, type: "video", mode: "broll", engine };
+  }
+
+  async function planIt() {
+    setBusy(true); setPlanErr(""); setPlan(null); setErr("");
+    try {
+      const res = await fetch("/api/director", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "planning failed");
+      setPlan(data.plan);
+    } catch (e) { setPlanErr(String(e.message || e)); }
+    finally { setBusy(false); }
+  }
+
+  async function generateAll() {
+    if (!plan) return;
+    setGenerating(true); setErr("");
+    try {
+      for (const shot of plan.shots) await runGenerate(shotBody(shot), shot.label); // sequential — avoids queue race
+      if (plan.voice?.include) await makeAudio("voice", { text: plan.voice.script || idea }, "Voiceover");
+      if (plan.music?.include) await makeAudio("music", { prompt: plan.music.prompt }, "Music");
+    } finally { setGenerating(false); }
+  }
+
+  // Forced single output (no director): generate directly from the idea.
+  async function directGenerate() {
+    setBusy(true); setErr("");
+    try {
+      const base = { spec: format, brief: idea, reference: inspirationText(), angleId };
+      if (output === "copy") await runGenerate({ ...base, type: "copy", n: 3 }, "Copy");
+      else if (output === "image") await runGenerate({ ...base, type: "image" }, "Image");
+      else if (output === "presenter") await runGenerate({ ...base, type: "video", mode: "presenter", engine: "veo" }, "Presenter");
+      else await runGenerate({ ...base, type: "video", mode: "broll", engine: "kling" }, "Video");
+      if (wantVoice) await makeAudio("voice", { text: voScript || idea }, "Voiceover");
+      if (wantMusic && musicPrompt.trim()) await makeAudio("music", { prompt: musicPrompt }, "Music");
+    } finally { setBusy(false); }
+  }
+
+  const spinUp = () => (output === "auto" ? planIt() : directGenerate());
 
   return (
     <>
-      <div className="eyebrow">— Create a run —</div>
-      <h1>Spin up <em>creatives</em></h1>
-      <p className="lead">Describe what you want, optionally paste an ad you like, and generate as many as you need until one clicks. Everything lands in the Review queue.</p>
-      {remakeId && <div className="gate"><span>Remaking <b>{remakeId}</b> — your brief is pre-filled from that ad. Tweak it and generate a fresh original.</span></div>}
+      <div className="eyebrow">— Spin up a creative —</div>
+      <h1>The <em>studio</em></h1>
+      <p className="lead">Describe the ad you want — or paste a full script (hook, scenes, lines, b-roll). The studio routes each shot to the engine that does it best, then drops everything in Review for your yes.</p>
 
-      <div className="two">
-        <div>
-          <label className="l">What do you want? (brief / what's wrong with the current ones)</label>
-          <textarea rows={4} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="e.g. Make a calmer, more premium income-estimate ad for Toronto condos — show a revenue range, not one number." />
-          <div className="row" style={{ marginTop: 14 }}>
-            <div className="fld" style={{ maxWidth: 170 }}><label className="l">Type</label>
-              <select value={type} onChange={(e) => setType(e.target.value)}>{TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
-            </div>
-            <div className="fld"><label className="l">Angle</label>
-              <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
-                <option value="">Custom (use my brief)</option>
-                {angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
-              </select>
-            </div>
-            <div className="fld"><label className="l">Format</label>
-              <select value={spec} onChange={(e) => setSpec(e.target.value)} disabled={type === "copy"}>
-                {formats.map((f) => <option key={f.name} value={f.name}>{f.name} · {f.dims}</option>)}
-              </select>
-            </div>
+      <div className="composer">
+        <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
+          placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with hook, scenes, lines, and a b-roll shot list.'} />
+
+        <div className="chips">
+          <button className={`chip ${showInsp ? "on" : ""}`} onClick={() => setShowInsp((v) => !v)}>+ Inspiration{showInsp && <span className="x">×</span>}</button>
+          <button className={`chip ${wantVoice ? "on" : ""}`} onClick={() => setWantVoice((v) => !v)}>+ Voice{wantVoice && <span className="x">×</span>}</button>
+          <button className={`chip ${wantMusic ? "on" : ""}`} onClick={() => setWantMusic((v) => !v)}>+ Music{wantMusic && <span className="x">×</span>}</button>
+          <span className="chip-sel">Output <select value={output} onChange={(e) => setOutput(e.target.value)}>{OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></span>
+          <span className="chip-sel">Format <select value={format} onChange={(e) => setFormat(e.target.value)}>
+            <option value="auto">Auto — studio picks</option>
+            {formats.map((f) => <option key={f.name} value={f.name}>{FORMAT_LABELS[f.name] || f.name} · {f.dims}</option>)}
+          </select></span>
+          <span className="chip-sel">Angle <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
+            <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
+          </select></span>
+        </div>
+
+        {showInsp && (
+          <div className="chip-panel">
+            <label className="l">Inspiration — copy from others, or drop a URL / video link</label>
+            <textarea rows={3} value={reference} onChange={(e) => setReference(e.target.value)}
+              placeholder="Paste a competitor / swipe ad's copy. We learn the framework and make an ORIGINAL — never a copy." />
+            <input style={{ marginTop: 8 }} value={refUrl} onChange={(e) => setRefUrl(e.target.value)} placeholder="optional source URL" />
+            <input style={{ marginTop: 8 }} value={refVideo} onChange={(e) => setRefVideo(e.target.value)} placeholder="…or a reference VIDEO link (Dropbox / Drive / YouTube) — we mimic its structure, not its footage" />
           </div>
-          {type === "image" && (
-            <label className="cbx"><input type="checkbox" checked={finalRender} onChange={(e) => setFinalRender(e.target.checked)} /> Final render (slower, sharper text — use when in-image text must read cleanly)</label>
-          )}
-          {type === "video" && (
-            <div className="row" style={{ marginTop: 10 }}>
-              <div className="fld" style={{ maxWidth: 320 }}><label className="l">Video engine</label>
-                <select value={engine} onChange={(e) => setEngine(e.target.value)}>
-                  <option value="kling">Cinematic b-roll — Kling (fal.ai · scalable)</option>
-                  <option value="kling-turbo">Fast b-roll — Kling Turbo (fal.ai · cheap/volume)</option>
-                  <option value="veo">Cinematic b-roll — Veo 3.1 (premium · rate-limited)</option>
-                  <option value="higgsfield">Subtle motion on a brand still (Higgsfield)</option>
-                </select>
+        )}
+        {wantVoice && (
+          <div className="chip-panel">
+            <label className="l">Voice (ElevenLabs) — optional script (blank = the studio writes it from your idea)</label>
+            <textarea rows={2} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Narration to speak over the b-roll cut." />
+          </div>
+        )}
+        {wantMusic && (
+          <div className="chip-panel">
+            <label className="l">Music (Lyria) — mood & instruments, no vocals</label>
+            <input value={musicPrompt} onChange={(e) => setMusicPrompt(e.target.value)} placeholder="e.g. warm cinematic piano + soft strings, calm and aspirational, ~30s bed" />
+          </div>
+        )}
+
+        <div className="composer-foot">
+          <span className="hint">{output === "auto" ? "Auto: the studio plans the shots and routes engines — you approve before anything posts (D-04)." : "Forced output — generates directly into Review."}</span>
+          <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Spin up →"}</button>
+        </div>
+      </div>
+
+      {planErr && <div className="log" style={{ color: "var(--red)" }}>{planErr}</div>}
+
+      {plan && (
+        <div className="plan">
+          <div className="plan-h">
+            <div className="t">{plan.title}</div>
+            <button className="btn" onClick={generateAll} disabled={generating}>{generating ? "Generating…" : "Generate all →"}</button>
+          </div>
+          {plan.summary && <p className="why">{plan.summary}</p>}
+          <div className="shots">
+            {plan.shots.map((s) => (
+              <div className="shot" key={s.n}>
+                <span className="n">{s.n}</span>
+                <div>
+                  <div className="sh">{s.label}{s.disclosure && <span className="flag"> · AI presenter (label on post)</span>}</div>
+                  <div className="sd">{s.prompt}{s.spokenLine && <> — <em>“{s.spokenLine}”</em></>}</div>
+                  {s.engineWhy && <div className="sd" style={{ opacity: 0.7 }}>↳ {s.engineWhy}</div>}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                  <span className="eng">{ENGINE_LABEL[s.engine] || s.engine}</span>
+                  <button className="btn ghost" style={{ fontSize: 11, padding: "5px 10px" }} onClick={() => runGenerate(shotBody(s), s.label)} disabled={generating}>Generate</button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        <div className="drop">
-          <label className="l">Inspiration drop-bar — paste an ad you like</label>
-          <textarea rows={4} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Paste a competitor / swipe ad's copy here. We learn the framework and make an ORIGINAL one — never a copy." />
-          <input style={{ marginTop: 8 }} value={refUrl} onChange={(e) => setRefUrl(e.target.value)} placeholder="optional source URL" />
-          <input style={{ marginTop: 8 }} value={refVideo} onChange={(e) => setRefVideo(e.target.value)} placeholder="…or a reference VIDEO link (Dropbox / Drive / YouTube) — we mimic its structure, not its footage" />
-          <div className="row" style={{ margin: "10px 0 0", alignItems: "center" }}>
-            <button className="btn ghost" onClick={research} disabled={researching || (!reference.trim() && !refUrl.trim() && !refVideo.trim())}>{researching ? "Researching…" : "Research & mimic →"}</button>
-            <label className="cbx" style={{ margin: 0 }}><input type="checkbox" checked={includeRef} onChange={(e) => setIncludeRef(e.target.checked)} /> use as inspiration</label>
+            ))}
           </div>
-          {pattern && (
-            <div className="pattern">
-              <div><span className="tag">match {pattern.icp_match?.score ?? "—"}</span> {pattern.icp_match?.why}</div>
-              <div><b>Hook</b> {pattern.hook}</div>
-              <div><b>Angle</b> {pattern.angle}</div>
-              <div><b>Framework</b> {pattern.framework}</div>
-            </div>
-          )}
+          {plan.voice && <div className="sd" style={{ marginTop: 10 }}>+ Voiceover: <em>“{plan.voice.script.slice(0, 90)}…”</em></div>}
+          {plan.music && <div className="sd">+ Music: {plan.music.prompt}</div>}
+          {plan.guardrailFlags?.length > 0 && <div className="gflags">⚠ Guardrails: {plan.guardrailFlags.join(" · ")}</div>}
         </div>
-      </div>
+      )}
 
-      <p className="muted" style={{ fontSize: 12, margin: "22px 0 0" }}>
-        Voiceover &amp; music are standalone tools — generate and <b>download</b> them here, then drop them onto your video in your editor. They aren&rsquo;t auto-attached to the creative yet.
-      </p>
-      <div className="drop" style={{ marginTop: 10 }}>
-        <label className="l">Voiceover (ElevenLabs) — voice your b-roll cut</label>
-        <textarea rows={3} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Paste the narration to speak over the video. Tip: use the body copy your generator wrote above." />
-        <div className="row" style={{ margin: "10px 0 0", alignItems: "center" }}>
-          <button className="btn ghost" onClick={makeVoiceover} disabled={voBusy || !voScript.trim()}>{voBusy ? "Voicing…" : "Generate voiceover →"}</button>
-          {voUrl && <audio src={voUrl} controls style={{ height: 36 }} />}
-          {voUrl && <a className="link" href={voUrl} download>download mp3</a>}
-        </div>
-        {voErr && <div className="pattern" style={{ color: "var(--red)" }}>{voErr}</div>}
-      </div>
-
-      <div className="drop" style={{ marginTop: 14 }}>
-        <label className="l">Music (Lyria 3) — royalty-free background track</label>
-        <textarea rows={2} value={musicPrompt} onChange={(e) => setMusicPrompt(e.target.value)} placeholder="Describe mood + instruments, no vocals. e.g. warm cinematic piano + soft strings, calm and aspirational, ~30s bed." />
-        <div className="row" style={{ margin: "10px 0 0", alignItems: "center" }}>
-          <button className="btn ghost" onClick={makeMusic} disabled={musicBusy || !musicPrompt.trim()}>{musicBusy ? "Composing…" : "Generate music →"}</button>
-          {musicUrl && <audio src={musicUrl} controls style={{ height: 36 }} />}
-          {musicUrl && <a className="link" href={musicUrl} download>download mp3</a>}
-        </div>
-        {musicErr && <div className="pattern" style={{ color: "var(--red)" }}>{musicErr}</div>}
-      </div>
-
-      <div className="bar" style={{ position: "static", marginTop: 18 }}>
+      <div className="bar" style={{ position: "static", marginTop: 4 }}>
         <div className="tally">Generated this session <b>{results.length}</b> · <a className="link" href="/review">Open review queue →</a></div>
-        <button className="btn" onClick={generate} disabled={generating}>{generating ? "Generating…" : `Generate ${type === "copy" ? "copy" : type === "video" ? "video" : "ad"} →`}</button>
       </div>
       {err && <div className="log" style={{ color: "var(--red)" }}>{err}</div>}
 
@@ -214,17 +243,23 @@ export default function CreateClient({ angles, formats }) {
               {r.type === "image" && r.ad_url && <div className="thumb"><img src={r.ad_url} alt={r.headline} /></div>}
               {r.type === "video" && (
                 <div className="thumb">
-                  {r.status === "rendering" ? <div className="rendering">Rendering video…</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <video src={r.result_url} muted loop autoPlay playsInline controls />}
+                  {r.status === "rendering" ? <div className="rendering">Rendering…</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <video src={r.result_url} muted loop autoPlay playsInline controls />}
+                </div>
+              )}
+              {(r.type === "voice" || r.type === "music") && (
+                <div className="thumb" style={{ display: "grid", placeItems: "center", minHeight: 90 }}>
+                  {r.status === "rendering" ? <div className="rendering">{r.type === "voice" ? "Voicing…" : "Composing…"}</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <audio src={r.url} controls />}
                 </div>
               )}
               <div className="rbody">
-                {r.headline && <div className="rh">{r.headline}</div>}
+                {(r.headline || r.label) && <div className="rh">{r.headline || r.label}</div>}
                 {r.body && <div className="rt">{r.body}</div>}
                 {r.cta && <div className="rcta">{r.cta} →</div>}
                 <div className="rmeta">
                   <span className="tag">{r.type}</span>
                   {r.pricing_flag && <span className="tag flag">{r.pricing_flag}</span>}
-                  {r.type !== "copy" && <a className="link" href="/review">review →</a>}
+                  {(r.type === "voice" || r.type === "music") && r.url && <a className="link" href={r.url} download>download</a>}
+                  {(r.type === "image" || r.type === "video") && <a className="link" href="/review">review →</a>}
                 </div>
               </div>
             </div>

@@ -86,7 +86,8 @@
 
   "creative_specs": {
     "meta_feed_square": { "w": 1080, "h": 1080, "use": "Primary FB/IG feed static ad" },
-    "meta_story_vertical": { "w": 1080, "h": 1920, "use": "Story/Reel cover, vertical" },
+    "meta_feed_portrait": { "w": 1080, "h": 1350, "use": "FB/IG feed portrait 4:5 — max feed real estate, strong for feed video + static" },
+    "meta_story_vertical": { "w": 1080, "h": 1920, "use": "Reels / Stories / TikTok, full vertical 9:16" },
     "meta_landscape": { "w": 1200, "h": 628, "use": "Link/landscape ad" },
     "before_after_split": { "w": 1080, "h": 1080, "use": "Before/after unit transformation, vertical or horizontal split" }
   }

@@ -53,10 +53,21 @@ blueprint) is **not yet cleared for ad copy** — confirm before stating it. Ori
 
 ## DECIDED
 
-### D-03 · No AI UGC video — static + B-roll only  ✅
-AI talking-head / fake-testimonial UGC is a brand risk for a high-trust,
-high-ticket offer and is dishonest. Video social proof = real clients only.
-AI image gen approved for furnished units, before/after, lifestyle, B-roll.
+### D-03 · AI presenters OK for awareness creative; no AI testimonials  ✅ REVISED (COO, 2026-06-01)
+**Revised decision.** AI **presenters/spokespeople** are permitted for awareness/top-of-funnel
+creative — including cinematic **presenter commercials** (a host walking/presenting, built on Veo 3.1
+with native synced dialogue) and a separate, clearly-labeled **UGC talking-head** lane (Arcads, gated
+until contracted). Shipped ads carry an **"AI-generated / AI presenter" label** where the platform
+expects it (Meta/TikTok; EU AI Act Aug-2026; NY synthetic-performer law Jun-2026).
+**Still prohibited:** AI **testimonials/endorsements**, fake-client framing, and ANY guaranteed or
+specific income/return/occupancy claim — these are the FTC fake-testimonial trip-wire (16 CFR 465) and
+break the no-guarantee brand voice; disclosure does NOT cure them. **Social proof in the close = real
+clients only** (we have real testimonial content for that). Human approval before spend still applies (D-04).
+Guardrails are enforced in the prompt builders, the Director's routing brain, and the Review gate badge.
+
+_Original rationale (still the spirit):_ AI fake-testimonial UGC is a brand + legal risk for a
+high-trust, high-ticket offer and is dishonest. AI image/B-roll gen approved for furnished units,
+before/after, lifestyle, B-roll.
 
 ### D-04 · No autonomous ad publishing — human gate before spend  ✅
 The Creative Engine generates and QAs; it never auto-publishes to Meta.

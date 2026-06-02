@@ -114,6 +114,37 @@ th{font-family:'Manrope',sans-serif;font-size:9.5px;letter-spacing:.12em;text-tr
 label.l{display:block;font-family:'Manrope',sans-serif;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
 select,input{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--txt);font-family:'Manrope';font-size:14px;padding:11px 12px;border-radius:10px}
 select:focus,input:focus,textarea:focus{outline:none;border-color:var(--violet)}
+/* Fix: native dropdown list rendered white-on-white. Force dark options/list. */
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 18px) 18px,calc(100% - 13px) 18px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+select option,select optgroup{background:#0b1120;color:var(--txt)}
+/* ── Studio composer (idea box + chips) ── */
+.composer{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:16px;backdrop-filter:blur(12px);margin:6px 0 18px}
+.composer .idea{min-height:120px;font-size:15px;line-height:1.55}
+.composer .idea::placeholder{color:var(--mut-dark)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.chip{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:999px;padding:7px 13px;transition:.15s}
+.chip:hover{color:var(--txt);border-color:var(--violet)}
+.chip.on{color:var(--txt);background:linear-gradient(90deg,rgba(124,92,255,.22),rgba(34,211,238,.08));border-color:var(--violet)}
+.chip .x{opacity:.6;font-size:13px}
+.chip-sel{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut)}
+.chip-sel select{width:auto;min-width:150px;padding:7px 30px 7px 12px;font-size:12.5px;border-radius:999px}
+.chip-panel{margin-top:11px;padding:12px;border:1px dashed var(--line);border-radius:12px;background:var(--glass2)}
+.chip-panel .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;display:block}
+.composer-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
+.composer-foot .hint{font-size:12px;color:var(--mut-dark)}
+/* ── Director storyboard (the plan) ── */
+.plan{border:1px solid var(--line);border-radius:16px;padding:16px;margin:8px 0 18px;background:var(--glass2)}
+.plan-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.plan-h .t{font-family:'Instrument Serif',serif;font-size:22px}
+.plan .why{font-size:12.5px;color:var(--mut);margin:0 0 12px;line-height:1.5}
+.shots{display:grid;gap:10px}
+.shot{display:grid;grid-template-columns:30px 1fr auto;gap:11px;align-items:start;padding:11px 12px;border:1px solid var(--line-soft);border-radius:12px;background:rgba(255,255,255,.025)}
+.shot .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:rgba(124,92,255,.18);color:var(--cyan)}
+.shot .sh{font-size:13.5px;color:var(--txt);margin-bottom:3px}
+.shot .sd{font-size:12px;color:var(--mut);line-height:1.5}
+.shot .eng{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:rgba(34,211,238,.12);color:var(--cyan);white-space:nowrap}
+.shot .flag{display:inline-block;margin-top:5px;font-size:10.5px;color:var(--amber)}
+.gflags{margin-top:11px;font-size:12px;color:var(--amber);line-height:1.5}
 code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(255,255,255,.06);padding:2px 7px;border-radius:6px;color:var(--cyan)}
 .cmd{display:block;background:rgba(0,0,0,.35);border:1px solid var(--line-soft);border-radius:10px;padding:14px 16px;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--cyan);white-space:pre-wrap}
 .ph{display:inline-block;font-family:'Manrope',sans-serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);border:1px solid var(--amber);padding:3px 8px;border-radius:6px;vertical-align:middle}

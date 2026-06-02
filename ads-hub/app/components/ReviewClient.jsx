@@ -107,6 +107,7 @@ export default function ReviewClient() {
                   <div className="qmeta">
                     <span className="tag">{c.angle_id}</span><span className="tag">VAR {c.variant}</span><span className="tag">{c.spec}</span>
                     {c.pricing_flag && <span className="tag flag">{c.pricing_flag}</span>}
+                    {c.disclosure === "ai-presenter" && <span className="tag flag" title="AI presenter — not a real client. Apply the platform's AI-generated label when posting; no implied client, no return claims.">AI presenter · label on post</span>}
                   </div>
                   <p className="qtext">{c.body} <b>· {c.cta} →</b></p>
                   <ScoreStrip s={c.scores} />

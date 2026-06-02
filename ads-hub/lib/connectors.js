@@ -103,6 +103,24 @@ export function buildBrollPrompt({ headline = "", angleId = "", brief = "" }) {
   ].filter(Boolean).join(" ");
 }
 
+/** Build a PRESENTER / commercial prompt (Veo native synced dialogue). A brand SPOKESPERSON who walks
+ *  through and presents a luxury STR space, talking to camera — premium commercial, NOT selfie/UGC.
+ *  Revised-D-03 safe: a host/presenter is allowed; a fake CLIENT/testimonial or any guaranteed-return
+ *  claim is NOT. The spoken line is rendered as native audio by Veo, so keep it short enough for the clip. */
+export function buildPresenterPrompt({ headline = "", body = "", cta = "", angleId = "", brief = "", spokenLine = "" }) {
+  const angle = getAngle(angleId);
+  const line = (spokenLine || headline || "").trim();
+  return [
+    "Cinematic, photorealistic short-form VIDEO AD with a single on-camera PRESENTER (brand spokesperson) — premium real-estate / luxury commercial look, NOT a selfie or phone-shot UGC video.",
+    "The presenter is a credible, aspirational host who walks through and presents a beautifully furnished luxury short-term-rental space, speaking directly and naturally to camera. Confident and conversational — no hype, no influencer cadence, no hard-sell energy.",
+    angle?.visual_direction ? `Scene / art direction: ${angle.visual_direction}.` : "Scene: a high-end furnished STR / penthouse — floor-to-ceiling windows, city or coastal view, warm editorial lighting; smooth gimbal/steadicam motion following the host through the space.",
+    brief ? `Director's note: ${brief}.` : "",
+    line ? `The presenter says, in a natural conversational tone (lip-synced): "${line}"` : "",
+    "Warm cinematic color grade, shallow depth of field, premium broadcast quality. No on-screen text, captions, or logos burned into the frame.",
+    "GUARDRAILS (must hold): the presenter is a BRAND SPOKESPERSON, NOT a customer or testimonial. Do NOT have them claim to be a Revarity client, and do NOT state or imply any guaranteed or specific income, return, or occupancy. No fabricated results, no fake reviews.",
+  ].filter(Boolean).join(" ");
+}
+
 /** Render an image with Gemini (Nano Banana). Returns a PNG Buffer. */
 export async function renderImage(prompt, { final = false } = {}) {
   if (!GEMINI_KEY()) throw new Error("GEMINI_API_KEY not set — required for image rendering.");

@@ -3,6 +3,7 @@ import { getJob, saveJob } from "@/lib/jobs";
 import { pollVideo } from "@/lib/higgsfield-cloud";
 import { pollVeo, fetchVeoVideo } from "@/lib/veo";
 import { pollFal } from "@/lib/fal";
+import { pollUgc } from "@/lib/arcads";
 import { putPublicVideo, appendCreatives } from "@/lib/store";
 import { specDims } from "@/lib/connectors";
 
@@ -31,6 +32,10 @@ export async function GET(_req, { params }) {
         } else if (r.status === "failed") {
           job.status = "failed"; job.error = r.error || "veo failed"; await saveJob(job);
         } // else still rendering
+      } else if (job.engine === "arcads") {
+        const r = await pollUgc(job.arcadsScriptId);
+        if (r.status === "completed" && r.result_url) { job.status = "done"; job.result_url = r.result_url; await saveJob(job); }
+        else if (r.status === "failed") { job.status = "failed"; job.error = r.error || "arcads failed"; await saveJob(job); }
       } else if (job.falStatusUrl) {
         const r = await pollFal({ statusUrl: job.falStatusUrl, responseUrl: job.falResponseUrl });
         if (r.status === "completed") { job.status = "done"; job.result_url = r.result_url; await saveJob(job); }
@@ -54,7 +59,7 @@ export async function GET(_req, { params }) {
         id: `hub-generated/${job.id}`, angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,
         dimensions: `${d.w}x${d.h}`, headline: job.headline || "", body: "", cta: "",
         source: "hub", brief: job.brief || "", created_at: job.createdAt || Date.now(), video_url: job.result_url,
-        scores: job.scores || null,
+        scores: job.scores || null, mode: job.mode || "broll", disclosure: job.disclosure || null,
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated video — review before approve"], qa_model: "" },
       };
       await appendCreatives([{ rec }]);
