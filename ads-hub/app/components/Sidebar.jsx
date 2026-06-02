@@ -13,15 +13,24 @@ const GROUPS = [
   { title: "", items: [{ href: "/settings", label: "Settings" }] },
 ];
 
-// Persistent left rail on desktop (a real studio sidebar); a slide-in drawer on narrow screens via the
-// top-left toggle. The rail carries the brand, the primary CTA, grouped nav, and the operator footer.
+// Persistent left rail on desktop (hideable via the collapse toggle); slide-in drawer on mobile.
 export default function Sidebar() {
   const path = usePathname();
-  const [open, setOpen] = useState(false); // mobile drawer only
+  const [open, setOpen] = useState(false);        // mobile drawer
+  const [collapsed, setCollapsed] = useState(false); // desktop rail hidden
   const on = (href) => (href === "/" ? path === "/" : path.startsWith(href));
   const close = () => setOpen(false);
 
-  useEffect(() => { close(); }, [path]); // close the drawer after navigating (mobile)
+  // restore the collapsed preference (client-only)
+  useEffect(() => { try { setCollapsed(localStorage.getItem("rev_rail_collapsed") === "1"); } catch {} }, []);
+  // reflect collapsed on <html> (so .side / .main can react) + persist
+  useEffect(() => {
+    try { document.documentElement.classList.toggle("rail-collapsed", collapsed); localStorage.setItem("rev_rail_collapsed", collapsed ? "1" : "0"); } catch {}
+  }, [collapsed]);
+  // mark the home route so the front page can go full-width
+  useEffect(() => { try { document.documentElement.classList.toggle("home", path === "/"); } catch {} }, [path]);
+  // close the drawer after navigating (mobile)
+  useEffect(() => { close(); }, [path]);
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
     window.addEventListener("keydown", onKey);
@@ -30,7 +39,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile-only top bar with the menu toggle (hidden on desktop, where the rail is always present) */}
+      {/* Mobile-only top bar with the menu toggle */}
       <div className="topbar">
         <button className="side-toggle" onClick={() => setOpen((v) => !v)} aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -42,9 +51,17 @@ export default function Sidebar() {
         <Link href="/" className="brand" onClick={close}>Revarity <em>Ads</em></Link>
       </div>
 
+      {/* Desktop: floating button to bring the rail back when it's hidden */}
+      <button className="rail-expand" onClick={() => setCollapsed(false)} aria-label="Show sidebar" title="Show sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+      </button>
+
       <div className={"side-scrim" + (open ? " on" : "")} onClick={close} aria-hidden="true" />
 
       <aside className={"side" + (open ? " open" : "")}>
+        <button className="rail-collapse" onClick={() => setCollapsed(true)} aria-label="Hide sidebar" title="Hide sidebar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="13 17 8 12 13 7" /><line x1="17" y1="6" x2="17" y2="18" /></svg>
+        </button>
         <Link href="/" className="brand side-brand" onClick={close}>Revarity <em>Ads</em></Link>
         <Link href="/create" className="side-cta" onClick={close}>+ New creative</Link>
         <nav className="nav">

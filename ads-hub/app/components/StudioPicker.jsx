@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 // Reusable full-screen picker modal (mirrors the Higgsfield "HOOKS THAT STOP THE SCROLL" /
 // "SETTINGS THAT SET THE SCENE" panels): title + subtitle, optional category tabs, search, and a card
@@ -7,6 +8,8 @@ import { useEffect, useState } from "react";
 export default function StudioPicker({ open, onClose, title, subtitle, tabs = [], items = [], selected, onPick }) {
   const [tab, setTab] = useState(tabs[0] || "All");
   const [q, setQ] = useState("");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []); // portal target only exists client-side
 
   useEffect(() => { if (open) { setTab(tabs[0] || "All"); setQ(""); } }, [open]); // eslint-disable-line
   useEffect(() => {
@@ -16,7 +19,7 @@ export default function StudioPicker({ open, onClose, title, subtitle, tabs = []
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
   const ql = q.trim().toLowerCase();
   const list = items.filter((it) => {
     const matchTab = !tabs.length || tab === "All" || it.cat === tab;
@@ -24,7 +27,7 @@ export default function StudioPicker({ open, onClose, title, subtitle, tabs = []
     return matchTab && matchQ;
   });
 
-  return (
+  return createPortal(
     <div className="pk-scrim" onClick={onClose}>
       <div className="pk-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
         <button className="pk-x" onClick={onClose} aria-label="Close">✕</button>
@@ -56,6 +59,7 @@ export default function StudioPicker({ open, onClose, title, subtitle, tabs = []
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
