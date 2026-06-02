@@ -12,12 +12,35 @@ const KPI_FIELDS = [
   ["scale_creative_cpl_usd_under", "Scale creative if CPL under ($)"],
 ];
 
-export default function SettingsClient({ config, keys, models }) {
+const ANGLE_TYPES = ["lead_magnet", "direct_offer", "awareness", "custom"];
+
+function ModelRow({ m }) {
+  return (
+    <div className="mrow">
+      <span className={`kdot ${m.on ? "on" : "off"}`} />
+      <div className="mrow-main">
+        <div className="mrow-t">{m.label} <code>{m.model}</code></div>
+        <div className="mrow-s">{m.provider} · <span className={m.on ? "ok" : "muted"}>{m.on ? "connected" : m.hint}</span></div>
+      </div>
+    </div>
+  );
+}
+
+export default function SettingsClient({ config, copyModel, imageModels = [], videoModels = [] }) {
   const [budget, setBudget] = useState(config.budgetMonthly || 0);
   const [kpi, setKpi] = useState({ ...config.kpi });
   const [saved, setSaved] = useState(config.settingsUpdatedAt ? `Last saved ${new Date(config.settingsUpdatedAt).toLocaleString()}` : "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  // ── Angle library (editable; persists as an override over the read-only base ad-angles.json) ──
+  const [angles, setAngles] = useState(() => (config.anglesFull || []).map((a) => ({ ...a })));
+  const [editing, setEditing] = useState(null); // index being edited
+  const [dirty, setDirty] = useState(false);
+  const [angBusy, setAngBusy] = useState(false);
+  const [angMsg, setAngMsg] = useState(config.anglesCustomized ? "Custom angle set" : "Using default angles");
+  const [angErr, setAngErr] = useState("");
+  const [genBrief, setGenBrief] = useState("");
 
   async function save() {
     setErr(""); setBusy(true);
@@ -30,23 +53,66 @@ export default function SettingsClient({ config, keys, models }) {
     finally { setBusy(false); }
   }
 
-  const Key = ({ on, label, hint }) => (
-    <div className="keyrow"><span className={`kdot ${on ? "on" : "off"}`} /><b>{label}</b> <span className="muted">{on ? "connected" : hint}</span></div>
-  );
+  async function reloadAngles() {
+    const r = await fetch("/api/settings", { cache: "no-store" });
+    const d = await r.json();
+    setAngles((d.config?.anglesFull || []).map((a) => ({ ...a })));
+    setAngMsg(d.config?.anglesCustomized ? "Custom angle set saved" : "Reset to default angles");
+    setDirty(false); setEditing(null);
+  }
+
+  const patchAngle = (i, patch) => { setAngles((p) => p.map((a, idx) => (idx === i ? { ...a, ...patch } : a))); setDirty(true); };
+  const removeAngle = (i) => { setAngles((p) => p.filter((_, idx) => idx !== i)); setEditing(null); setDirty(true); };
+  const addBlank = () => { setAngles((p) => [...p, { id: "NEW_ANGLE", type: "custom", audience: "", lead_magnet: "", visual_direction: "", variants: [] }]); setEditing(angles.length); setDirty(true); };
+
+  async function genNewAngle() {
+    setAngErr(""); setAngBusy(true);
+    try {
+      const r = await fetch("/api/angle", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brief: genBrief, existing: angles.map((a) => ({ id: a.id })) }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || "could not generate angle");
+      setAngles((p) => [...p, { variants: [], ...d.angle }]);
+      setEditing(angles.length); setDirty(true); setGenBrief("");
+    } catch (e) { setAngErr(String(e.message || e)); }
+    finally { setAngBusy(false); }
+  }
+
+  async function saveAngles() {
+    setAngErr(""); setAngBusy(true);
+    try {
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || "save failed");
+      await reloadAngles();
+    } catch (e) { setAngErr(String(e.message || e)); }
+    finally { setAngBusy(false); }
+  }
+
+  async function resetAngles() {
+    setAngErr(""); setAngBusy(true);
+    try {
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: [] }) });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || "reset failed");
+      await reloadAngles();
+    } catch (e) { setAngErr(String(e.message || e)); }
+    finally { setAngBusy(false); }
+  }
 
   return (
     <>
       <div className="eyebrow">— Settings —</div>
       <h1>Engine <em>settings</em></h1>
-      <p className="lead">Budget and KPI targets the hub uses for planning and the (Phase-2) performance loop. Connections and models are shown for transparency. Changing money or launching ads is still a human action (D-04).</p>
+      <p className="lead">Your connected models, the budget and goals the hub plans against, and the ad angles it builds from. Changing money or launching ads is still a human action (D-04).</p>
 
-      <div className="sec"><h2>Connections</h2></div>
-      <div className="grid cards3">
-        <div className="stat"><div className="k">Copy model</div><div className="v" style={{ fontSize: 16 }}>{models.copy}</div><Key on={keys.copy} label="Anthropic" hint="set ANTHROPIC_API_KEY" /></div>
-        <div className="stat"><div className="k">Image model</div><div className="v" style={{ fontSize: 16 }}>{models.image}</div><Key on={keys.image} label="Gemini / Nano Banana" hint="set GEMINI_API_KEY" /></div>
-        <div className="stat"><div className="k">Video model</div><div className="v" style={{ fontSize: 16 }}>{models.video}</div><Key on={keys.video} label="Higgsfield" hint="set HIGGSFIELD_ACCESS_TOKEN" /></div>
-      </div>
-      <div className="gate" style={{ marginTop: 14 }}><span>Meta performance is intentionally off for now — Monitor + weekly ROI light up when a Meta token + live spend exist.</span></div>
+      <div className="sec"><h2>Connections &amp; models</h2></div>
+      <div className="subh">Marketing brain</div>
+      <div className="mlist">{copyModel && <ModelRow m={copyModel} />}</div>
+      <div className="subh">Image models</div>
+      <div className="mlist">{imageModels.map((m) => <ModelRow key={m.model} m={m} />)}</div>
+      <div className="subh">Video models</div>
+      <div className="mlist">{videoModels.map((m) => <ModelRow key={m.model + m.label} m={m} />)}</div>
+      <div className="gate" style={{ marginTop: 14 }}><span>Meta performance is intentionally off for now — Monitor + weekly ROI light up when a Meta token + live spend exist. Models connect via environment keys (shown above); nothing here ever publishes or spends.</span></div>
 
       <div className="sec"><h2>Budget &amp; targets</h2>{saved && <span className="muted" style={{ fontSize: 12 }}>{saved}</span>}</div>
       <div className="row">
@@ -62,10 +128,58 @@ export default function SettingsClient({ config, keys, models }) {
       </div>
       {err && <div className="log" style={{ color: "var(--red)" }}>{err}</div>}
 
-      <div className="sec"><h2>Angles &amp; formats</h2><a className="link" href="/create">Generate →</a></div>
+      <div className="sec"><h2>Angles</h2><span className="muted" style={{ fontSize: 12 }}>{dirty ? "Unsaved changes" : angMsg}</span></div>
+      <p className="muted" style={{ fontSize: 12.5, margin: "0 0 12px", maxWidth: 720 }}>The angles the studio builds ads from. Edit the targeting/direction, generate a fresh angle, or remove one — changes are local until you press <b>Save angles</b>, and only override your working set (the approved base file is never touched). Approved variant copy is preserved, not edited here.</p>
+
+      <div className="angle-bar">
+        <input className="angle-brief" placeholder="Optional: theme for a new angle (e.g. 'tax benefits for first-time hosts')" value={genBrief} onChange={(e) => setGenBrief(e.target.value)} />
+        <button className="btn ghost sm" onClick={genNewAngle} disabled={angBusy}>{angBusy ? "Working…" : "✨ Generate new angle"}</button>
+        <button className="btn ghost sm" onClick={addBlank} disabled={angBusy}>+ Add blank</button>
+        <button className="btn sm" onClick={saveAngles} disabled={angBusy || !dirty}>Save angles</button>
+        <button className="btn ghost sm" onClick={resetAngles} disabled={angBusy} title="Discard the override and return to the approved default angles">Reset to defaults</button>
+      </div>
+      {angErr && <div className="log" style={{ color: "var(--red)" }}>{angErr}</div>}
+
+      <div className="angle-list">
+        {angles.length === 0 && <div className="gate"><span>No angles — generate one, add a blank, or reset to defaults.</span></div>}
+        {angles.map((a, i) => (
+          <div className="angle-card" key={i}>
+            <div className="angle-head">
+              <code>{a.id || "—"}</code>
+              <span className="tag">{a.type || "custom"}</span>
+              <span className="muted" style={{ fontSize: 11 }}>{(a.variants || []).length} variant{(a.variants || []).length === 1 ? "" : "s"} · copy preserved</span>
+              <div className="angle-acts">
+                <button className="btn ghost sm" onClick={() => setEditing(editing === i ? null : i)}>{editing === i ? "Close" : "Edit"}</button>
+                <button className="btn ghost sm danger" onClick={() => removeAngle(i)}>Remove</button>
+              </div>
+            </div>
+            {editing === i ? (
+              <div className="angle-edit">
+                <div className="row" style={{ marginBottom: 0 }}>
+                  <div className="fld"><label className="l">ID</label><input value={a.id} onChange={(e) => patchAngle(i, { id: e.target.value })} /></div>
+                  <div className="fld" style={{ maxWidth: 200 }}><label className="l">Type</label>
+                    <select value={a.type || "custom"} onChange={(e) => patchAngle(i, { type: e.target.value })}>{ANGLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select>
+                  </div>
+                </div>
+                <div className="fld"><label className="l">Audience</label><input value={a.audience || ""} onChange={(e) => patchAngle(i, { audience: e.target.value })} /></div>
+                <div className="fld"><label className="l">Lead magnet (free thing offered)</label><input value={a.lead_magnet || ""} onChange={(e) => patchAngle(i, { lead_magnet: e.target.value })} /></div>
+                <div className="fld"><label className="l">Visual direction</label><textarea rows={2} value={a.visual_direction || ""} onChange={(e) => patchAngle(i, { visual_direction: e.target.value })} /></div>
+              </div>
+            ) : (
+              <div className="angle-meta">
+                <div><b>Audience</b> {a.audience || "—"}</div>
+                <div><b>Lead magnet</b> {a.lead_magnet || "—"}</div>
+                <div><b>Visual</b> {a.visual_direction || "—"}</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="sec"><h2>Formats</h2><span className="muted" style={{ fontSize: 12 }}>placement sizes (reference)</span></div>
       <table>
-        <thead><tr><th>Angle</th><th>Audience</th><th>Lead magnet</th><th>Variants</th></tr></thead>
-        <tbody>{config.angles.map((a) => <tr key={a.id}><td><code>{a.id}</code></td><td>{a.audience}</td><td>{a.lead_magnet || "—"}</td><td>{a.variants}</td></tr>)}</tbody>
+        <thead><tr><th>Format</th><th>Dimensions</th><th>Use</th></tr></thead>
+        <tbody>{(config.formats || []).map((f) => <tr key={f.name}><td><code>{f.name}</code></td><td>{f.dims}</td><td>{f.use}</td></tr>)}</tbody>
       </table>
     </>
   );

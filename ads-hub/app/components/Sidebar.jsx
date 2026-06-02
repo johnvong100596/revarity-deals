@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 
 // Grouped so it reads by job-to-be-done, not a flat list. Malcolm/David/Vu all see everything (no role gating).
 const GROUPS = [
-  { title: "", items: [{ href: "/", label: "Overview" }] },
+  { title: "", items: [{ href: "/welcome", label: "Guide" }, { href: "/", label: "Overview" }] },
   { title: "Make", items: [{ href: "/create", label: "Create" }, { href: "/swipe", label: "Mine winners" }] },
   { title: "Decide", items: [{ href: "/review", label: "Review & approve" }] },
   { title: "Publish", items: [{ href: "/schedule", label: "Schedule" }] },
   { title: "Plan", items: [{ href: "/budget", label: "Budget" }, { href: "/monitor", label: "Monitor" }] },
-  { title: "", items: [{ href: "/welcome", label: "Guide" }, { href: "/settings", label: "Settings" }] },
+  { title: "", items: [{ href: "/settings", label: "Settings" }] },
 ];
 
 // Hidden on standard; the top-left toggle (next to the brand) slides it in. On desktop the open drawer

@@ -1,5 +1,6 @@
 import brand from "../config/brand.json";
 import angles from "../config/ad-angles.json";
+import { readSettings } from "./settings.js";
 
 /**
  * Direct-REST generation connectors (serverless-safe, fetch-only — no CLI, no SDK deps).
@@ -26,7 +27,15 @@ export function keyStatus() {
   };
 }
 
-export function getAngle(id) { return angles.angles.find((a) => a.id === id) || null; }
+// Operator angle overrides (Settings) merged over the read-only base. Request-scoped cache: a generation
+// route calls `await primeAngles()` once before building prompts; the sync builders then read via getAngle.
+let _angleOverride = null;
+export async function primeAngles() {
+  try { const s = await readSettings(); _angleOverride = Array.isArray(s.angles) && s.angles.length ? s.angles : null; }
+  catch { _angleOverride = null; }
+}
+export function effectiveAngles() { return _angleOverride || angles.angles; }
+export function getAngle(id) { return effectiveAngles().find((a) => a.id === id) || null; }
 export function specDims(spec) {
   const s = brand.creative_specs[spec];
   return s ? { w: s.w, h: s.h, aspect: s.w === s.h ? "1:1" : s.h > s.w ? "9:16" : "16:9", label: spec, use: s.use } : { w: 1080, h: 1080, aspect: "1:1", label: spec || "meta_feed_square" };
@@ -76,6 +85,31 @@ export async function genCopy({ angleId, brief = "", reference = "", n = 1 }) {
   }));
 }
 
+/** Propose ONE new ad angle for the operator to review/edit before saving. Returns a single angle object
+ *  (id/type/audience/lead_magnet/visual_direction/variants). Brand-voice + claims-guard aware. */
+export async function genAngle({ brief = "", existing = [] } = {}) {
+  if (!ANTHROPIC_KEY()) throw new Error("ANTHROPIC_API_KEY not set — required to generate an angle.");
+  const ids = (existing || []).map((a) => a.id).filter(Boolean).join(", ");
+  const prompt = [
+    VOICE,
+    brief ? `The operator wants a new ad angle around: ${brief}` : "Propose one fresh, distinct ad angle for this brand's paid funnel.",
+    ids ? `Make it genuinely different from these existing angles: ${ids}.` : "",
+    "Honor the claims guard: no guaranteed returns; any income is a labelled estimate range.",
+    `Return ONLY JSON: {"id":"AD#_SHORT_SLUG (uppercase + underscores)","type":"lead_magnet|direct_offer|awareness","audience":"who this targets","lead_magnet":"the free thing offered (empty string for direct_offer)","visual_direction":"one sentence of art direction","variants":[{"id":"A","hook":"one-word hook","headline":"the hook headline","cta":"button text"}]}`,
+  ].filter(Boolean).join("\n\n");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": ANTHROPIC_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: COPY_MODEL, max_tokens: 900, messages: [{ role: "user", content: prompt + "\n\nReturn ONLY the JSON object — no prose, no markdown fences." }] }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const d = await res.json();
+  const txt = d?.content?.map((b) => b.text || "").join("") || "";
+  let a; try { a = JSON.parse(txt); } catch { const m = txt.match(/\{[\s\S]*\}/); a = m ? JSON.parse(m[0]) : null; }
+  if (!a || !a.id) throw new Error("angle generation returned nothing usable");
+  return a;
+}
+
 /** Build a brand-locked image prompt (template — deterministic, no extra model call). */
 export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_feed_square", extra = "" }) {
   const angle = getAngle(angleId);
@@ -91,17 +125,29 @@ export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_fee
   ].filter(Boolean).join(" ");
 }
 
-/** Build a cinematic B-ROLL prompt for Veo. D-03-safe: aspirational lifestyle footage, NEVER a
- *  talking-head/testimonial. The selling message is carried by a separate voiceover, not on-screen text. */
+/** Negative prompt for the text-to-video engines that accept one (Kling / fal). Targets the artifacts
+ *  that betray AI video and the low-frame-rate "choppy" look — so the b-roll reads as smooth real footage. */
+export const VIDEO_NEGATIVE = [
+  "low frame rate, choppy, stutter, judder, strobing, jerky motion, motion artifacts, ghosting, frame blending, time-lapse,",
+  "warping, morphing, melting, flickering, wobbling, blurry, soft focus, low resolution, pixelated, compression artifacts,",
+  "distorted, deformed, extra limbs, extra fingers, malformed hands, plastic skin, waxy skin, uncanny, mannequin,",
+  "cartoon, anime, illustration, painting, 3d render, cgi, video game, claymation, stop motion,",
+  "watermark, text, captions, subtitles, logo, timestamp, oversaturated, washed out, harsh flat lighting, stock footage look",
+].join(" ");
+
+/** Build a cinematic B-ROLL prompt for Veo / Kling. D-03-safe: aspirational lifestyle footage, NEVER a
+ *  talking-head/testimonial. The selling message is carried by a separate voiceover, not on-screen text.
+ *  Heavy realism + smooth-motion direction so the clip looks like real high-frame-rate film, not AI video. */
 export function buildBrollPrompt({ headline = "", angleId = "", brief = "" }) {
   const angle = getAngle(angleId);
   return [
-    "Cinematic, ULTRA-photorealistic short-form ad B-ROLL — broadcast / film grade, indistinguishable from real footage; no CGI, cartoon, or AI-looking artifacts. Premium short-term-rental / luxury real-estate aesthetic.",
-    "Warm editorial color grade, soft natural light, shallow depth of field, smooth gimbal or drone motion. Never stock-photo gloss.",
+    "Ultra-photorealistic cinematic B-ROLL for a premium short-form ad — indistinguishable from real footage shot on a high-end cinema camera (ARRI Alexa / RED) with a prime lens. Broadcast / film grade. Absolutely NO CGI, 3D render, cartoon, illustration, plastic texture, waxy skin, or AI-looking artifacts.",
+    "Motion: buttery-smooth, fluid, high-frame-rate look (60fps feel) — slow, deliberate, perfectly stabilized camera moves (gimbal, steadicam, gentle drone glide, or subtle dolly). Natural, tasteful motion blur. NO stutter, judder, strobing, warping, morphing, jitter, or frame-skipping.",
+    "Photography: warm editorial color grade, soft natural light, shallow depth of field, fine real-world texture and detail — fabric weave, wood grain, glass and metal reflections. Never stock-photo gloss, never over-saturated.",
     angle?.visual_direction ? `Scene direction: ${angle.visual_direction}.` : "Scene: a beautifully furnished luxury short-term rental / penthouse with aspirational lifestyle moments.",
     brief ? `Operator note: ${brief}.` : "",
     `Mood/theme to evoke (do NOT render as on-screen text): "${headline}".`,
-    "If a person appears, they are an aspirational lifestyle figure moving through the space — NOT speaking to camera, NOT a testimonial. No captions, no logos, no on-screen text.",
+    "If a person appears, they are an aspirational lifestyle figure moving naturally through the space — NOT speaking to camera, NOT a testimonial. No captions, no logos, no on-screen text, no watermark.",
   ].filter(Boolean).join(" ");
 }
 
@@ -116,6 +162,7 @@ export function buildPresenterPrompt({ headline = "", body = "", cta = "", angle
     "Cinematic, ULTRA-photorealistic short-form VIDEO AD with a single on-camera PRESENTER (brand spokesperson) — broadcast-grade; the host looks like a real human on real film, no uncanny / CGI / AI-looking artifacts. Premium real-estate / luxury commercial look, NOT a selfie or phone-shot UGC video.",
     "The presenter is a credible, aspirational host who walks through and presents a beautifully furnished luxury short-term-rental space, speaking directly and naturally to camera. Confident and conversational — no hype, no influencer cadence, no hard-sell energy.",
     angle?.visual_direction ? `Scene / art direction: ${angle.visual_direction}.` : "Scene: a high-end furnished STR / penthouse — floor-to-ceiling windows, city or coastal view, warm editorial lighting; smooth gimbal/steadicam motion following the host through the space.",
+    "Motion & realism: buttery-smooth, fluid, high-frame-rate look (60fps feel) — stabilized gimbal/steadicam moves, natural motion blur, no stutter, judder, warping, or strobing; the host's movement and lip-sync look completely natural, shot on a high-end cinema camera.",
     brief ? `Director's note: ${brief}.` : "",
     line ? `The presenter says, in a natural conversational tone (lip-synced): "${line}"` : "",
     "Warm cinematic color grade, shallow depth of field, premium broadcast quality. No on-screen text, captions, or logos burned into the frame.",

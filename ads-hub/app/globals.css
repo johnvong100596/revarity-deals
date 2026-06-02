@@ -43,7 +43,10 @@ a{color:inherit;text-decoration:none}
 .nav .dot{width:6px;height:6px;border-radius:50%;background:var(--mut-dark)}
 .nav a.on .dot{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 .side-foot{position:absolute;bottom:20px;left:16px;right:16px;font-family:'Manrope',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut-dark);line-height:1.7}
-.main{flex:1;padding:86px 48px 92px;max-width:1200px;width:100%;margin:0 auto}
+/* Fluid, resolution-aware content column: always centered, grows with the viewport instead of
+   a hard 1200px cap (which read as a skinny strip on wide monitors). Auto-fill grids fill the
+   extra width with more cards. Small-screen horizontal padding is overridden in the media queries below. */
+.main{flex:1;padding:86px clamp(20px,3vw,56px) 92px;max-width:min(1640px,92vw);width:100%;margin:0 auto}
 h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:var(--fs-h1);line-height:1.06;margin:0 0 10px;letter-spacing:-.4px}
 h1 em{font-style:italic;background:linear-gradient(90deg,var(--cyan),var(--violet),var(--coral));background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 7s linear infinite}
 .lead{color:var(--cream-soft);font-size:var(--fs-lead);margin:0 0 30px;max-width:740px;line-height:1.65}
@@ -234,6 +237,28 @@ textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line
 .kdot{width:8px;height:8px;border-radius:50%;flex:none}
 .kdot.on{background:var(--mint);box-shadow:0 0 6px var(--mint)}
 .kdot.off{background:var(--mut-dark)}
+/* Settings: model catalog rows + angle editor */
+.subh{font-family:'Manrope',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:16px 0 8px}
+.mlist{display:flex;flex-direction:column;gap:8px}
+.mrow{display:flex;gap:11px;align-items:flex-start;background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:12px 14px;backdrop-filter:blur(10px)}
+.mrow .kdot{margin-top:5px;flex:none}
+.mrow-main{min-width:0}
+.mrow-t{font-size:13.5px;color:var(--txt);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mrow-s{font-size:11.5px;color:var(--mut);margin-top:3px}
+.mrow-s .ok{color:var(--mint)}
+.btn.sm{font-size:11px;padding:7px 13px}
+.btn.ghost.danger:hover{border-color:var(--coral);color:var(--coral)}
+.angle-bar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:4px 0 14px}
+.angle-brief{flex:1;min-width:240px}
+.angle-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.angle-card{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:14px 16px;backdrop-filter:blur(10px)}
+.angle-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.angle-head code{font-size:12px}
+.angle-acts{display:flex;gap:6px;margin-left:auto}
+.angle-meta{margin-top:11px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--cream-soft);line-height:1.5}
+.angle-meta b{color:var(--mut);font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:1px}
+.angle-edit{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.angle-edit .row{margin-bottom:0}
 
 /* Weekly summary */
 .summary{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:16px;backdrop-filter:blur(10px)}
@@ -333,3 +358,8 @@ textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line
 .cg-card:hover .cg-open .sg-frame video{transform:scale(1.06)}
 .qframe video{display:block;width:100%;object-fit:cover}
 .qframe.sq video{aspect-ratio:1/1}.qframe.v video{aspect-ratio:9/16}
+/* Hover/tap-to-play preview wrapper (perf: only the hovered clip plays; the rest stay on a poster frame) */
+.vprev{position:relative;display:block;cursor:pointer}
+.vprev video{display:block;width:100%}
+.vprev-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:rgba(7,11,20,.5);border:1px solid rgba(255,255,255,.55);color:#fff;font-size:17px;padding-left:3px;backdrop-filter:blur(6px);pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+.qframe.v .vprev video{aspect-ratio:9/16}.qframe.sq .vprev video{aspect-ratio:1/1}

@@ -8,19 +8,19 @@ export default async function MonitorPage() {
   return (
     <>
       <div className="eyebrow">— Monitor —</div>
-      <h1>Performance <em>loop</em> <span className="ph">Phase 2</span></h1>
-      <p className="lead">Live CPL / CPC / CPA / CTR per creative, pulled read-only from Meta Ads Manager, scored against your targets. Winners feed <code>refresh</code> mode; losers are flagged for a human to pause. The loop proposes; the human disposes (D-04).</p>
-      <div className="gate"><span><b>Awaiting live data.</b> Activates after spend goes live and the Meta Ads MCP (read-only) is wired (PLAN Stream E). Targets below come from <code>ad-angles.json</code>.</span></div>
+      <h1>How your ads are <em>doing</em> <span className="ph">Turns on with live ads</span></h1>
+      <p className="lead">Once your ads are running, this is where you see how each one is performing — what you’re paying for a click, for a lead, and for a booked call — next to the goals you set. The studio points out the winners and quietly makes more like them, and flags the weak ones so you can switch them off. It only ever suggests; every spending decision stays yours.</p>
+      <div className="gate"><span><b>Nothing to show yet.</b> This page wakes up once your ads are live and connected to your Facebook / Instagram (Meta) account. The numbers below are the goals from your <b>Settings</b> — real results will fill in next to them.</span></div>
       <div className="grid cards4">
-        <div className="stat"><div className="k">CPC target</div><div className="v">${kpi.cpc_usd_max}<small> max</small></div><div className="sub muted">— awaiting data —</div></div>
-        <div className="stat"><div className="k">CPL target</div><div className="v">${kpi.cpl_usd_max}<small> max</small></div><div className="sub muted">— awaiting data —</div></div>
-        <div className="stat"><div className="k">CPA target</div><div className="v">${(kpi.cpa_usd_max).toLocaleString()}<small> max</small></div><div className="sub muted">— awaiting data —</div></div>
-        <div className="stat"><div className="k">Calls booked / mo</div><div className="v">{kpi.calls_booked_monthly_min}<small> min</small></div><div className="sub muted">— awaiting data —</div></div>
+        <div className="stat"><div className="k">Cost per click</div><div className="v">${kpi.cpc_usd_max}<small> or less</small></div><div className="sub muted">— no data yet —</div></div>
+        <div className="stat"><div className="k">Cost per lead</div><div className="v">${kpi.cpl_usd_max}<small> or less</small></div><div className="sub muted">— no data yet —</div></div>
+        <div className="stat"><div className="k">Cost per booked call</div><div className="v">${(kpi.cpa_usd_max).toLocaleString()}<small> or less</small></div><div className="sub muted">— no data yet —</div></div>
+        <div className="stat"><div className="k">Calls booked / month</div><div className="v">{kpi.calls_booked_monthly_min}<small> or more</small></div><div className="sub muted">— no data yet —</div></div>
       </div>
-      <div className="sec-h">Per-creative performance</div>
-      <div className="gate"><span>Table populates from <code>/api/metrics</code> once Meta data flows. Kill rule: CPL &gt; ${kpi.kill_creative_cpl_usd_over} after {kpi.kill_creative_after_impressions} impressions. Scale rule: CPL &lt; ${kpi.scale_creative_cpl_usd_under}.</span></div>
+      <div className="sec-h">How each ad is doing</div>
+      <div className="gate"><span>Every ad gets its own line here once results start coming in. We’ll suggest <b>switching off</b> any ad that costs more than <b>${kpi.kill_creative_cpl_usd_over}</b> per lead after <b>{kpi.kill_creative_after_impressions.toLocaleString()}</b> views, and <b>spending more</b> on any ad under <b>${kpi.scale_creative_cpl_usd_under}</b> per lead — you approve every change.</span></div>
 
-      <div className="sec"><h2>Winners &amp; auto-double-down</h2></div>
+      <div className="sec"><h2>Winners — and making more of them</h2></div>
       <PerformancePanel />
     </>
   );

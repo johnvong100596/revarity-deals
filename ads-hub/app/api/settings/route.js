@@ -22,7 +22,7 @@ export async function POST(req) {
   let b = {};
   try { b = await req.json(); } catch {}
   try {
-    const saved = await writeSettings({ budgetMonthly: b.budgetMonthly, kpi: b.kpi });
+    const saved = await writeSettings({ budgetMonthly: b.budgetMonthly, kpi: b.kpi, angles: b.angles });
     return NextResponse.json({ ok: true, saved });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e.message || e) }, { status: 500 });

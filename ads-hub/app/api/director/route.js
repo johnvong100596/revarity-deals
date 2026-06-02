@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { planFromScript } from "@/lib/director";
+import { primeAngles } from "@/lib/connectors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export const maxDuration = 60;
 export async function POST(req) {
   let b = {};
   try { b = await req.json(); } catch {}
+  await primeAngles(); // honor operator angle overrides when the Director routes a shot
   try {
     const plan = await planFromScript({
       idea: b.idea || b.script || "",

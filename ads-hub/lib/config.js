@@ -17,14 +17,20 @@ export function getConfig() {
   };
 }
 
-/** getConfig() merged with the editable Settings overrides (budget + KPI targets). Async. */
+/** getConfig() merged with the editable Settings overrides (budget + KPI targets + angle library). Async.
+ *  `angles` is the summary shape (variants as a count) for tables; `anglesFull` is the full objects for
+ *  the Settings editor + the generation path (connectors.getAngle reads the same override). */
 export async function loadConfig() {
   const base = getConfig();
   const ov = await readSettings();
+  const full = Array.isArray(ov.angles) && ov.angles.length ? ov.angles : angles.angles;
   return {
     ...base,
     budgetMonthly: ov.budgetMonthly ?? base.budgetMonthly,
     kpi: { ...base.kpi, ...(ov.kpi || {}) },
+    angles: full.map((a) => ({ id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length })),
+    anglesFull: full,
+    anglesCustomized: Array.isArray(ov.angles) && ov.angles.length > 0,
     settingsUpdatedAt: ov.updatedAt || null,
   };
 }

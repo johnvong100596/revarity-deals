@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 // Predictive Creative Score (AI estimate). Hook/Viral/Response are higher-is-better; Retention risk is
 // higher-is-WORSE (coral). Each axis shows the model's one-line reason inline. Estimates, not guarantees
@@ -34,6 +34,24 @@ function ScoreStrip({ s }) {
       <div className="score-legend">
         <b>Hook</b> first-3-sec scroll-stop · <b>Viral</b> shareability · <b>Response</b> predicted click/DM rate · <b>Retention risk</b> drop-off risk (higher = worse). <b>Overall</b> blends all four. Model estimate{s.model ? ` (${s.model})` : ""} — calibrate against real reach/saves once live.
       </div>
+    </div>
+  );
+}
+
+// Queue video previews stay FROZEN on their first frame until you hover (or tap on touch). With 50+
+// clips on screen, autoplaying every one at once pegged the browser and made the page crawl — this
+// decodes/plays only the clip under the cursor, and parks the rest on a still poster frame.
+function PreviewVideo({ src }) {
+  const ref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  // #t=0.1 nudges the browser to paint the first frame as a poster (instead of black) while paused.
+  const frozenSrc = src && src.includes("#") ? src : `${src}#t=0.1`;
+  const play = () => { const v = ref.current; if (v) v.play().then(() => setPlaying(true)).catch(() => {}); };
+  const stop = () => { const v = ref.current; if (!v) return; v.pause(); try { v.currentTime = 0.1; } catch {} setPlaying(false); };
+  return (
+    <div className="vprev" onMouseEnter={play} onMouseLeave={stop} onClick={() => (playing ? stop() : play())}>
+      <video ref={ref} src={frozenSrc} muted loop playsInline preload="metadata" tabIndex={-1} />
+      {!playing && <span className="vprev-play" aria-hidden="true">▶</span>}
     </div>
   );
 }
@@ -130,7 +148,7 @@ export default function ReviewClient() {
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
                   {c.video_url
-                    ? <video src={c.video_url} muted loop autoPlay playsInline controls preload="metadata" />
+                    ? <PreviewVideo src={c.video_url} />
                     : <img src={adSrc(c)} alt={c.headline} />}
                   <span className={`qbadge ${badge}`}>QA {c.qa}</span>
                 </div>
@@ -165,7 +183,7 @@ export default function ReviewClient() {
                 {rejected.map((c) => (
                   <figure key={c.id} className="qc rej">
                     <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
-                      {c.video_url ? <video src={c.video_url} muted loop playsInline controls preload="metadata" /> : <img src={adSrc(c)} alt={c.headline} />}
+                      {c.video_url ? <PreviewVideo src={c.video_url} /> : <img src={adSrc(c)} alt={c.headline} />}
                     </div>
                     <div className="qbody">
                       <div className="qmeta"><span className="tag">{c.angle_id}</span><span className="tag">{c.spec}</span></div>

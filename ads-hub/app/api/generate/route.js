@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { genCopy, buildImagePrompt, buildBrollPrompt, buildPresenterPrompt, renderImage, specDims } from "@/lib/connectors";
+import { genCopy, buildImagePrompt, buildBrollPrompt, buildPresenterPrompt, renderImage, specDims, VIDEO_NEGATIVE, primeAngles } from "@/lib/connectors";
 import { startVideo } from "@/lib/higgsfield-cloud";
 import { startVeo } from "@/lib/veo";
 import { startFal, FAL_MODELS } from "@/lib/fal";
@@ -43,6 +43,8 @@ export async function POST(req) {
   const n = Math.min(Math.max(parseInt(b.n, 10) || 1, 1), 4);
   const directorPrompt = (b.directorPrompt || "").slice(0, 1800);
   const provided = b.headline || b.body || b.cta ? { headline: b.headline, body: b.body, cta: b.cta } : null;
+
+  await primeAngles(); // load operator angle overrides so getAngle() inside the builders sees edited/custom angles
 
   try {
     if (type === "copy") {
@@ -97,7 +99,7 @@ export async function POST(req) {
       // fal.ai (Kling / Kling Turbo) — scalable D-03-safe b-roll.
       if (FAL_MODELS[engine]) {
         const falDuration = Number(b.targetSeconds) >= 10 ? "10" : "5"; // Kling supports 5s or 10s clips
-        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: falDuration, aspect_ratio: aspect });
+        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: falDuration, aspect_ratio: aspect, negative_prompt: VIDEO_NEGATIVE, cfg_scale: 0.5 });
         const job = await saveJob({ id: newId("vid"), engine, status: "rendering", falStatusUrl: statusUrl, falResponseUrl: responseUrl, ...baseJob, createdAt: Date.now() });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
