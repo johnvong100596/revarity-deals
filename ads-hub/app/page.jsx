@@ -42,6 +42,7 @@ export default async function Studio() {
       <FirstVisit />
       <HeroVideo scenes={SCENES} heroDur={HERO_DUR}><StudioComposer /></HeroVideo>
 
+      <div className="home-body">
       <div className="sec"><h2>Generate across formats</h2><Link className="link" href="/create">Open the studio →</Link></div>
       <div className="fmt-grid">
         {FORMATS.map((f) => (
@@ -99,6 +100,7 @@ export default async function Studio() {
 
       <div className="sec"><h2>Top performers <span className="ph">Phase 2</span></h2></div>
       <div className="gate"><span>Live CPL / CPC / CPA per creative activates once spend is live + the Meta Ads connection is wired. The loop proposes winners; a human scales them.</span></div>
+      </div>
     </>
   );
 }

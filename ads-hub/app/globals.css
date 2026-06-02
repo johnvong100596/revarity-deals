@@ -464,3 +464,26 @@ html.home .main{max-width:none}
   html.rail-collapsed .side{display:none}
   html.rail-collapsed .rail-expand{display:inline-flex}
 }
+
+/* No-thumbnail picker cards (e.g. hooks): filled label+desc panels, never empty boxes */
+.pk-noimg{position:relative;aspect-ratio:4/3;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:20px;background:linear-gradient(155deg,rgba(202,164,95,.20),rgba(207,143,99,.05))}
+.pk-card.noimg .pk-card-t{font-size:21px}
+
+/* Full-screen front page: hero fills the viewport; composer floats center-bottom; rest sits in .home-body */
+html.home .main{padding:0;max-width:none}
+.home-body{padding:42px clamp(20px,3.5vw,56px) 92px}
+html.home .hero{height:100vh;min-height:560px;border:none;border-radius:0;margin:0}
+html.home .hero-in{display:flex;justify-content:center;align-items:flex-end;width:100%;max-width:none;padding:0 24px 8vh}
+html.home .studio-hero{max-width:900px;text-align:center}
+html.home .studio-hero .k{justify-content:center}
+html.home .hcomposer{margin-left:auto;margin-right:auto}
+html.home .hcomposer-row{justify-content:center}
+html.home .hcomposer-go{margin-left:0}
+
+/* Consistent spacing between the home-body boxes */
+.home-body .fmt-grid{gap:16px;margin-bottom:30px}
+.home-body .grid{gap:16px}
+.home-body .qa-row{gap:16px;margin:16px 0 0}
+.home-body .pipe{gap:16px}
+.home-body .sgrid{gap:16px}
+.home-body .sec{margin:32px 0 16px}

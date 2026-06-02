@@ -46,15 +46,19 @@ export default function StudioPicker({ open, onClose, title, subtitle, tabs = []
         <div className="pk-grid">
           {list.length === 0 && <div className="muted" style={{ padding: "20px 4px" }}>No matches.</div>}
           {list.map((it) => (
-            <button key={it.value} className={"pk-card" + (selected === it.value ? " on" : "")} onClick={() => { onPick(it); onClose(); }}>
-              <div className="pk-thumb" style={it.thumb ? { backgroundImage: `url(${it.thumb})` } : {}}>
-                {!it.thumb && <span className="pk-thumb-ph">{it.label}</span>}
-                {it.cat && <span className="pk-tag">{it.cat}</span>}
-              </div>
-              <div className="pk-card-b">
-                <div className="pk-card-t">{it.label}</div>
-                {it.desc && <div className="pk-card-d">{it.desc}</div>}
-              </div>
+            <button key={it.value} className={"pk-card" + (it.thumb ? "" : " noimg") + (selected === it.value ? " on" : "")} onClick={() => { onPick(it); onClose(); }}>
+              {it.thumb ? (
+                <>
+                  <div className="pk-thumb" style={{ backgroundImage: `url(${it.thumb})` }}>{it.cat && <span className="pk-tag">{it.cat}</span>}</div>
+                  <div className="pk-card-b"><div className="pk-card-t">{it.label}</div>{it.desc && <div className="pk-card-d">{it.desc}</div>}</div>
+                </>
+              ) : (
+                <div className="pk-noimg">
+                  {it.cat && <span className="pk-tag">{it.cat}</span>}
+                  <div className="pk-card-t">{it.label}</div>
+                  {it.desc && <div className="pk-card-d">{it.desc}</div>}
+                </div>
+              )}
             </button>
           ))}
         </div>
