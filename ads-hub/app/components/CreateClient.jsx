@@ -20,13 +20,15 @@ const ENGINE_LABEL = {
   "veo-presenter": "Veo · presenter", "veo-broll": "Veo · b-roll", kling: "Kling",
   "kling-turbo": "Kling Turbo", higgsfield: "Higgsfield", nano: "Nano image", arcads: "Arcads UGC",
 };
+const LENGTHS = [["auto", "Auto length"], ["8", "~8s"], ["15", "~15s"], ["30", "~30s"], ["60", "~45–60s"]];
 
 export default function CreateClient({ angles, formats }) {
   const sp = useSearchParams();
   const [idea, setIdea] = useState(() => sp.get("brief") || "");
-  const [output, setOutput] = useState("auto");
-  const [format, setFormat] = useState("auto");
-  const [angleId, setAngleId] = useState("");
+  const [output, setOutput] = useState(() => sp.get("output") || "auto");
+  const [format, setFormat] = useState(() => sp.get("spec") || "auto");
+  const [angleId, setAngleId] = useState(() => sp.get("angle") || "");
+  const [duration, setDuration] = useState("auto");
 
   const [showInsp, setShowInsp] = useState(false);
   const [reference, setReference] = useState("");
@@ -99,7 +101,7 @@ export default function CreateClient({ angles, formats }) {
 
   // Map a director shot to a /api/generate body.
   function shotBody(shot) {
-    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId };
+    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId, targetSeconds: shot.durationSec || undefined };
     if (shot.kind === "image") return { ...base, type: "image" };
     if (shot.kind === "presenter") return { ...base, type: "video", mode: "presenter", engine: "veo" };
     if (shot.kind === "ugc") return { ...base, type: "video", engine: "arcads" };
@@ -113,7 +115,7 @@ export default function CreateClient({ angles, formats }) {
     try {
       const res = await fetch("/api/director", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId }),
+        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration) }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "planning failed");
@@ -136,7 +138,7 @@ export default function CreateClient({ angles, formats }) {
   async function directGenerate() {
     setBusy(true); setErr("");
     try {
-      const base = { spec: format, brief: idea, reference: inspirationText(), angleId };
+      const base = { spec: format, brief: idea, reference: inspirationText(), angleId, targetSeconds: duration === "auto" ? null : Number(duration) };
       if (output === "copy") await runGenerate({ ...base, type: "copy", n: 3 }, "Copy");
       else if (output === "image") await runGenerate({ ...base, type: "image" }, "Image");
       else if (output === "presenter") await runGenerate({ ...base, type: "video", mode: "presenter", engine: "veo" }, "Presenter");
@@ -169,6 +171,9 @@ export default function CreateClient({ angles, formats }) {
           </select></span>
           <span className="chip-sel">Angle <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
             <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
+          </select></span>
+          <span className="chip-sel">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
+            {LENGTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select></span>
         </div>
 

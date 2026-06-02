@@ -29,7 +29,7 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     hasImg, image_url: image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
     video_url: rec.video_url || null,
     scores: rec.scores || null,
-    mode: rec.mode || null, disclosure: rec.disclosure || null,
+    mode: rec.mode || null, disclosure: rec.disclosure || null, script: rec.script || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");

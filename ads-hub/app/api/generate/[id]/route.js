@@ -59,7 +59,7 @@ export async function GET(_req, { params }) {
         id: `hub-generated/${job.id}`, angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,
         dimensions: `${d.w}x${d.h}`, headline: job.headline || "", body: "", cta: "",
         source: "hub", brief: job.brief || "", created_at: job.createdAt || Date.now(), video_url: job.result_url,
-        scores: job.scores || null, mode: job.mode || "broll", disclosure: job.disclosure || null,
+        scores: job.scores || null, mode: job.mode || "broll", disclosure: job.disclosure || null, script: job.script || null,
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated video — review before approve"], qa_model: "" },
       };
       await appendCreatives([{ rec }]);

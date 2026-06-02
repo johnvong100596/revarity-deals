@@ -84,7 +84,7 @@ export async function POST(req) {
         ? buildPresenterPrompt({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, brief, spokenLine })
         : buildBrollPrompt({ headline: copy?.headline || brief, angleId, brief }));
       const scores = await scoreCreative({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, spec, brief, hasVideo: true });
-      const baseJob = { type: "video", angleId, spec, headline: copy?.headline || "", brief, mode, disclosure, scores };
+      const baseJob = { type: "video", angleId, spec, headline: copy?.headline || "", brief, mode, disclosure, scores, script: disclosure ? spokenLine : null };
 
       // Arcads — gated UGC talking-head lane (fails closed until ARCADS_CLIENT_ID/SECRET set).
       if (engine === "arcads") {
@@ -95,7 +95,8 @@ export async function POST(req) {
 
       // fal.ai (Kling / Kling Turbo) — scalable D-03-safe b-roll.
       if (FAL_MODELS[engine]) {
-        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: "5", aspect_ratio: aspect });
+        const falDuration = Number(b.targetSeconds) >= 10 ? "10" : "5"; // Kling supports 5s or 10s clips
+        const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: falDuration, aspect_ratio: aspect });
         const job = await saveJob({ id: newId("vid"), engine, status: "rendering", falStatusUrl: statusUrl, falResponseUrl: responseUrl, ...baseJob, createdAt: Date.now() });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }

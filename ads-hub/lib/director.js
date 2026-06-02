@@ -71,7 +71,7 @@ const clampShots = (arr) => (Array.isArray(arr) ? arr : []).slice(0, 12).map((s,
  * Plan a creative from a freeform idea/script.
  * @returns { title, summary, shots[], voice|null, music|null, guardrailFlags[], model } or null on failure.
  */
-export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "" } = {}) {
+export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null } = {}) {
   if (!ANTHROPIC_KEY()) return null;
   if (!idea.trim()) return null;
 
@@ -100,6 +100,7 @@ export async function planFromScript({ idea = "", inspiration = "", wantVoice = 
     specs.map((s) => `- ${s.name} (${s.aspect}): ${s.use}`).join("\n"),
     outputPref && outputPref !== "auto" ? `Operator forced OUTPUT preference: ${outputPref} (bias shots toward this).` : "Output type: AUTO — you decide the best mix.",
     formatPref && formatPref !== "auto" ? `Operator forced FORMAT/placement: ${formatPref}.` : "Format/placement: AUTO — you choose per shot.",
+    targetSeconds ? `TARGET TOTAL RUNTIME: ~${targetSeconds}s. Plan shots whose durationSec roughly sum to this (each video shot 4-8s; chain enough shots to reach the target — e.g. ~${Math.max(1, Math.round(targetSeconds / 6))} shots). If a script is provided, segment it to fit.` : "Runtime: AUTO — choose a sensible length for the format.",
     wantVoice ? "Operator wants VOICEOVER added (ElevenLabs) — include a voice object with a tight script for the b-roll cut." : "",
     wantMusic ? "Operator wants MUSIC added (Lyria) — include a music object with a mood/instrument prompt (no vocals)." : "",
     "",

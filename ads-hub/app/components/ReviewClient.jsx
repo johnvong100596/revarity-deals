@@ -2,18 +2,21 @@
 import { useEffect, useState, useCallback } from "react";
 
 // Predictive Creative Score (AI estimate). Hook/Viral/Response are higher-is-better; Retention risk is
-// higher-is-WORSE (shown coral). The "why" is exposed on hover. Estimates, not guarantees — calibrate
-// against real Meta insights once posts go live.
+// higher-is-WORSE (coral). Each axis shows the model's one-line reason inline. Estimates, not guarantees
+// — meant to be calibrated against real reach/saves once posts go live.
 function ScoreStrip({ s }) {
   if (!s) return null;
   const Bar = ({ label, axis, risk }) => {
     const v = typeof axis?.score === "number" ? axis.score : null;
     if (v === null) return null;
     return (
-      <div className={`score ${risk ? "risk" : ""}`} title={axis.why || ""}>
-        <span className="sl">{label}</span>
-        <span className="sbar"><i style={{ width: `${v}%` }} /></span>
-        <span className="sv">{v}</span>
+      <div className={`score ${risk ? "risk" : ""}`}>
+        <div className="score-top">
+          <span className="sl">{label}</span>
+          <span className="sbar"><i style={{ width: `${v}%` }} /></span>
+          <span className="sv">{v}</span>
+        </div>
+        {axis.why && <span className="swhy">{axis.why}</span>}
       </div>
     );
   };
@@ -22,12 +25,15 @@ function ScoreStrip({ s }) {
     <div className="scores" aria-label="AI creative score">
       <div className="score-head">
         <span className="score-cap">AI score <span className="muted">· estimate</span></span>
-        {typeof s.overall === "number" && <span className={`score-pill ${tier}`}>{s.overall}</span>}
+        {typeof s.overall === "number" && <span className={`score-pill ${tier}`} title="Blend of the four axes (retention risk inverted). Higher = stronger.">{s.overall}<span style={{ opacity: 0.6, fontSize: 9 }}>/100</span></span>}
       </div>
       <Bar label="Hook" axis={s.hook} />
       <Bar label="Viral" axis={s.virality} />
       <Bar label="Response" axis={s.response} />
       <Bar label="Retention risk" axis={s.retentionRisk} risk />
+      <div className="score-legend">
+        <b>Hook</b> first-3-sec scroll-stop · <b>Viral</b> shareability · <b>Response</b> predicted click/DM rate · <b>Retention risk</b> drop-off risk (higher = worse). <b>Overall</b> blends all four. Model estimate{s.model ? ` (${s.model})` : ""} — calibrate against real reach/saves once live.
+      </div>
     </div>
   );
 }
@@ -42,6 +48,14 @@ export default function ReviewClient() {
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
     return mode === "photo" ? (c.ad_photo_url || c.ad_url || bg) : (c.ad_url || c.ad_photo_url || bg);
+  };
+
+  // Send a creative back to the studio composer prefilled, so the operator can edit + re-spin it.
+  const remakeHref = (c) => {
+    const brief = [c.headline, c.body, c.script].filter(Boolean).join(" — ").slice(0, 600);
+    const output = c.video_url ? (c.disclosure === "ai-presenter" ? "presenter" : "video") : "image";
+    const p = new URLSearchParams({ brief, angle: c.angle_id || "", spec: c.spec || "auto", output });
+    return `/create?${p.toString()}`;
   };
 
   const load = useCallback(async () => {
@@ -99,7 +113,7 @@ export default function ReviewClient() {
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
                   {c.video_url
-                    ? <video src={c.video_url} muted loop autoPlay playsInline />
+                    ? <video src={c.video_url} muted loop autoPlay playsInline controls preload="metadata" />
                     : <img src={adSrc(c)} alt={c.headline} />}
                   <span className={`qbadge ${badge}`}>QA {c.qa}</span>
                 </div>
@@ -110,12 +124,15 @@ export default function ReviewClient() {
                     {c.disclosure === "ai-presenter" && <span className="tag flag" title="AI presenter — not a real client. Apply the platform's AI-generated label when posting; no implied client, no return claims.">AI presenter · label on post</span>}
                   </div>
                   <p className="qtext">{c.body} <b>· {c.cta} →</b></p>
+                  {c.script && <p className="qscript" title="What the presenter says on camera (Veo renders this as synced audio).">🎙 <em>“{c.script}”</em></p>}
                   <ScoreStrip s={c.scores} />
                   <div className="acts">
                     <button className={`ap ${st === "approve" ? "on" : ""}`} onClick={() => set(c.id, "approve")}>Approve</button>
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>
                     <button className={`rj ${st === "reject" ? "on" : ""}`} onClick={() => set(c.id, "reject")}>Reject</button>
                   </div>
+                  <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
+                  {st === "reject" && <div className="rej-note">Rejected — still here, not deleted. Click Reject again to undo.</div>}
                 </div>
               </figure>
             );
