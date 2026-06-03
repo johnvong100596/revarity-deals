@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Cinematic hero. The 8 stills crossfade underneath (pure CSS) and double as the fallback. A looping film
@@ -13,16 +13,26 @@ import { useState } from "react";
 export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero/world-tour.mp4", "/hero/hero-loop.mp4"], children }) {
   const [idx, setIdx] = useState(0);
   const [videoOn, setVideoOn] = useState(false);
+  const videoRef = useRef(null);
   const poster = scenes[0] ? `/hero/${scenes[0]}.png` : undefined;
   const src = sources[idx];
 
+  // `canplay` can fire BEFORE React attaches its handler (cached / fast mp4), so onCanPlay alone is unreliable —
+  // it would leave the video invisible (opacity 0) under the still layers, which then keep animating and flicker.
+  // Re-check readiness on mount / src change (and onPlaying/onLoadedData below) so videoOn reliably flips true.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && v.readyState >= 3) setVideoOn(true);
+  }, [src]);
+
   return (
-    <header className="hero" style={{ "--herodur": `${heroDur}s` }}>
+    <header className={"hero" + (videoOn ? " video-on" : "")} style={{ "--herodur": `${heroDur}s` }}>
       {scenes.map((n, i) => (
         <div key={n} className="scene" style={{ backgroundImage: `url(/hero/${n}.png)`, animationDelay: `${(-heroDur + i * 5).toFixed(0)}s` }} />
       ))}
       {src && (
         <video
+          ref={videoRef}
           key={src}
           className={"scene-video" + (videoOn ? " on" : "")}
           src={src}
@@ -32,7 +42,9 @@ export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero
           autoPlay
           playsInline
           preload="auto"
+          onLoadedData={() => setVideoOn(true)}
           onCanPlay={() => setVideoOn(true)}
+          onPlaying={() => setVideoOn(true)}
           onError={() => { setVideoOn(false); setIdx((i) => (i + 1 < sources.length ? i + 1 : i)); }}
         />
       )}
