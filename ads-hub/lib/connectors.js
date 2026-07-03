@@ -1,6 +1,7 @@
 import brand from "../config/brand.json";
 import angles from "../config/ad-angles.json";
 import { readSettings } from "./settings.js";
+import { claimViolations, VERIFIED_CLAIM, DISCLAIMER } from "./claims.js";
 
 /**
  * Direct-REST generation connectors (serverless-safe, fetch-only — no CLI, no SDK deps).
@@ -51,20 +52,19 @@ export function specDims(spec) {
   return s ? { w: s.w, h: s.h, aspect: s.w === s.h ? "1:1" : s.h > s.w ? "9:16" : "16:9", label: spec, use: s.use } : { w: 1080, h: 1080, aspect: "1:1", label: spec || "meta_feed_square" };
 }
 
+// SINGLE claims regime lives in lib/claims.js (money-arc / financing). Do NOT reintroduce a second
+// (legacy free-entry / $375-mo / at-cost) guard here — one regime only.
 const VOICE = [
-  "Brand: Revarity, Inc. — a done-for-you short-term-rental (Airbnb) BUSINESS builder for serious investors with real capital. We source the unit, coordinate the lease, design & furnish it, launch the listing, and manage it end-to-end.",
+  "Brand: Revarity — done-for-you short-term-rental (Airbnb) setup for property owners. We handle design, furniture, photography, and launch, end-to-end.",
   "Voice: direct, premium, honest. No hype adjectives, no emoji, no fake scarcity or countdowns.",
-  "Offer model (state honestly): clients come in FREE — browse sourced deals and join the community at no cost, and pay nothing until they ACCEPT a specific deal. There is NO tuition, franchise, membership, or entry ('door') fee. It is NOT a course or guru program. The client funds their own unit's launch cost (their business expense and asset), provided AT COST with no inflated markups. Management is a separate ONGOING service billed AFTER the unit is set up — never an upfront charge.",
-  "Claims guard: NEVER promise or imply guaranteed returns, occupancy, or profit — results vary and the client assumes full financial responsibility. Any projected income must be a RANGE labelled 'estimate' with a 'no guarantee' note. If you say 'no upfront cost,' you MUST qualify that it means no program/entry/franchise fee (the client still funds their own unit at cost). Never imply hidden markups; never show itemized markup.",
+  "Offer (money-arc): the real barrier to launching an Airbnb is the ~$30,000 setup, not the property. We do all of it, and that setup can be financed.",
+  `Claims (SINGLE regime — enforced by lib/claims.js): the ONLY financial claim allowed in creative is "${VERIFIED_CLAIM}". NEVER state or imply "0%", "APR", interest, or any credit-check language (locked until leadership unlocks per Malcolm's written terms). NEVER promise guaranteed returns/approval/income/occupancy. No fake urgency or countdowns. Every end card carries: "${DISCLAIMER}".`,
 ].join(" ");
 
-// Flag the highest-risk claims for human review under the at-cost / no-guarantee model.
+// Claims flag — delegates to the single regime (lib/claims). Returns the first violation kind, or null.
 function pricingFlag(text) {
-  const t = (text || "").toLowerCase();
-  if (/guarantee|guaranteed|risk[\s-]?free|can't lose|cannot lose/.test(t)) return "REVIEW-guarantee-claim";
-  if (/revenue share|%\s*(rev|revenue|share)/.test(t)) return "REVIEW-rev-share";
-  if (/\bno (up[\s-]?front|upfront) (cost|fee|investment)s?\b/.test(t) && !/(program|entry|franchise|tuition|door|membership) fee/.test(t)) return "REVIEW-upfront-claim";
-  return null;
+  const v = claimViolations(text);
+  return v.length ? v[0].kind : null;
 }
 
 /** Generate N original copy variants. Returns [{ headline, body, cta, pricing_flag }]. */
