@@ -91,3 +91,26 @@ the Creative Engine skill via Claude Code. Not adopted as a standalone
   the deposit flow applies there).
 - Full audit logging on every RevOS AI action.
 - GHL longevity is an open master-flow risk — keep an export/migration path.
+
+### D-07 · VO provider — Higgsfield "Zoe", behind a swappable seam  ✅
+Checked whether Higgsfield's "Zoe" exposes an underlying ElevenLabs voice id: it
+does NOT — Zoe is a Higgsfield preset voice (voice_id
+`d0374db1-44b9-4f05-939e-0a9ae9dbbe6a`, voice_type "preset"), not an ElevenLabs
+voice. The voice is a locked brand asset, so continuity beats architectural
+neatness: **route VO through Higgsfield** (default `VO_PROVIDER=higgsfield`).
+All VO goes through ONE seam — `lib/voice.js synthesizeVO()` — so the provider
+swaps via a single env var with zero caller changes; ElevenLabs stays available
+as the alternate (`VO_PROVIDER=elevenlabs`). Open item: the Higgsfield audio
+HTTP endpoint isn't in the codebase — set `HF_TTS_URL` (Key auth + Zoe voice_id
+are wired). Until then the render assembles caption-only and flags VO pending.
+
+### Phase-1 render branch (`phase1-drive-realphoto-bridge`) — status
+Built (committed locally, NOT pushed pending repo-remote confirmation):
+- `lib/drive.js` — Google Drive service-account, READ-ONLY (dep-free JWT).
+- `lib/render.js` — real-photo slideshow render (ffmpeg port of build_vo_ads.sh).
+- `lib/renderBatch.js` + `app/api/cron/render` — nightly 1–2/run batch → Review (HITL).
+- `lib/notify.js` — Slack webhook summary. `lib/voice.js` — the VO seam (D-07).
+Runtime notes: render shells to ffmpeg (ffmpeg-static / FFMPEG_PATH) + needs
+FONT_*_PATH; on a runtime without them the batch preflight reports exactly what's
+missing (no crash, no half-written draft). CLAIMS_APR_UNLOCKED stays UNSET —
+APR/credit claims remain build-failing until leadership flips it on written terms.
