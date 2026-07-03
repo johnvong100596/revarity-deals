@@ -1,0 +1,9 @@
+{
+  "note": "Prebaked Zoe voiceover — reused across every ad forever. The money-arc has 3 FIXED beats (problem / we-do-it-all / CTA); baked ONCE here so nightly renders never call live TTS. Only a brand-new HOOK needs fresh VO (batched on hook approval → put() adds it here). Key = the exact line the renderer requests (whitespace-normalized).",
+  "voice": "Zoe — Higgsfield text2speech_v2 preset, voice_id d0374db1-44b9-4f05-939e-0a9ae9dbbe6a",
+  "entries": [
+    { "kind": "fixed", "beat": "problem", "text": "It's not the property — it's the thirty-thousand-dollar setup.", "file": "fixed-problem.mp3" },
+    { "kind": "fixed", "beat": "weDoItAll", "text": "Design. Furniture. Photography. Launch. We do all of it.", "file": "fixed-wedoitall.mp3" },
+    { "kind": "fixed", "beat": "cta", "text": "Zero down for qualified properties. DM \"SETUP\".", "file": "fixed-cta.mp3" }
+  ]
+}

@@ -21,6 +21,7 @@
  */
 import { hasCloudKey } from "./higgsfield-cloud.js";
 import { hasEleven, tts as elevenTts } from "./elevenlabs.js";
+import { getPrebake, hasPrebake } from "./voicePrebake.js";
 
 export const ZOE_VOICE_ID = process.env.HF_ZOE_VOICE_ID || "d0374db1-44b9-4f05-939e-0a9ae9dbbe6a";
 
@@ -104,11 +105,22 @@ async function fetchAudio(u) {
  * Synthesize one VO line with the selected provider. Returns the mp3 bytes plus
  * which provider/voice produced it (for the render manifest + review card).
  */
-export async function synthesizeVO(text, { voiceId } = {}) {
+export async function synthesizeVO(text, { voiceId, allowLive = true } = {}) {
   const clean = String(text || "").trim();
   if (!clean) throw new Error("synthesizeVO: text required");
+  // 1) PREBAKE first — fixed money-arc beats + already-approved hooks resolve to a
+  //    committed Zoe buffer. Nightly renders never touch live TTS for these.
+  const pre = getPrebake(clean);
+  if (pre) return { buffer: pre, ext: "mp3", provider: "prebake", voice: "zoe-prebake" };
+  // 2) No prebake → live TTS if allowed + configured. When the caller can't accept a
+  //    live call (nightly render — allowLive:false), signal VO_PENDING so it renders
+  //    caption-only for that one novel line (honest; no fabricated audio).
+  if (!allowLive) { const e = new Error("voice_pending: no prebaked audio for this line"); e.code = "VO_PENDING"; throw e; }
   if (voiceProvider() === "elevenlabs") {
     return { buffer: await elevenTts(clean, { voiceId }), ext: "mp3", provider: "elevenlabs", voice: voiceId || process.env.ELEVENLABS_VOICE_ID || "default" };
   }
   return { buffer: await higgsfieldTts(clean, voiceId || ZOE_VOICE_ID), ext: "mp3", provider: "higgsfield", voice: voiceId || ZOE_VOICE_ID };
 }
+
+/** True if this exact line already has committed Zoe audio (fixed beat or approved hook). */
+export function voPrebaked(text) { return hasPrebake(text); }
