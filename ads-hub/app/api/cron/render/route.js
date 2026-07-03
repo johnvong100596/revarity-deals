@@ -6,15 +6,17 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * Nightly money-arc render batch — Vercel Cron hits this (see vercel.json).
+ * Money-arc render batch — MANUAL / dry-run / orchestration endpoint.
  * Drafts 1–2 real-photo money-arc ads into Review (HITL; nothing posts/spends).
  * Same CRON_SECRET Bearer auth as /api/cron. `?dryRun=1` reports the plan +
  * preflight gates with no side effects.
  *
- * Runtime note: the render shells to ffmpeg + needs font files. If this runs on
- * a runtime without ffmpeg/fonts, the batch preflight reports exactly what's
- * missing (it does NOT crash) — point the schedule at an ffmpeg-capable runtime
- * or set FFMPEG_PATH/FONT_*_PATH. Provider swap (VO) is one env var (VO_PROVIDER).
+ * The NIGHTLY schedule does NOT run here — Vercel serverless can't run ffmpeg.
+ * It runs in GitHub Actions (.github/workflows/nightly-render.yml), which has
+ * ffmpeg + fonts and writes to the same Vercel Blob queue (STORE_DRIVER=cloud).
+ * This route stays for on-demand dry-run/preflight from the app; on a runtime
+ * without ffmpeg/fonts the preflight reports exactly what's missing (no crash).
+ * Provider swap (VO) is one env var (VO_PROVIDER).
  */
 export async function GET(req) {
   const secret = process.env.CRON_SECRET;

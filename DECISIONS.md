@@ -114,3 +114,21 @@ Runtime notes: render shells to ffmpeg (ffmpeg-static / FFMPEG_PATH) + needs
 FONT_*_PATH; on a runtime without them the batch preflight reports exactly what's
 missing (no crash, no half-written draft). CLAIMS_APR_UNLOCKED stays UNSET —
 APR/credit claims remain build-failing until leadership flips it on written terms.
+
+### D-08 · Nightly render runs on GitHub Actions, not Vercel  ✅
+Vercel serverless can't run ffmpeg, so the nightly render COMPUTE runs in
+`.github/workflows/nightly-render.yml` (ubuntu, ffmpeg + fonts-liberation install
+in seconds, free). It runs `ads-hub/scripts/render-batch.mjs` → the same
+`lib/renderBatch` with `STORE_DRIVER=cloud` + `BLOB_READ_WRITE_TOKEN`, so drafts
+write to the SAME Vercel Blob queue the live Review reads. Vercel keeps the
+queue/API/orchestration (the `/api/cron/render` route stays for manual dry-run).
+Removed the Vercel cron schedule for `/api/cron/render` (it would fail on
+serverless). Required GitHub repo secrets mirror the Vercel env: BLOB_READ_WRITE_TOKEN,
+GDRIVE_SA_JSON, GDRIVE_PHOTOS_FOLDER_ID, ANTHROPIC_API_KEY, HF_API_KEY, HF_API_SECRET,
+SLACK_WEBHOOK_URL (+ optional HF_TTS_URL). Fonts on the runner = Liberation
+(Arial/Georgia-metric-compatible).
+
+### Phase-1b (approved) — remaining creative scope
+Approved to build next: both ad sizes (1080x1920 + 1080x1080) + carousel PNG
+export + the 2 QC gates + approve→Meta deep-link + reject-reason log. Tracked;
+not in this commit.

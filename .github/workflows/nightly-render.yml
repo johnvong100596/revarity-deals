@@ -1,0 +1,65 @@
+name: Nightly money-arc render
+
+# The nightly render compute runs HERE (GitHub Actions), not on Vercel —
+# ffmpeg + fonts install in seconds on the runner, and Vercel serverless can't
+# run ffmpeg. Vercel keeps the queue/API/orchestration + the Review UI: this job
+# writes finished drafts to the SAME Vercel Blob store (STORE_DRIVER=cloud), so
+# they land in Review on ads.revarity.com for human approval. Nothing posts or
+# spends (HITL / D-04) — the batch only drafts.
+#
+# Required repo secrets (mirror the Vercel env): BLOB_READ_WRITE_TOKEN,
+# GDRIVE_SA_JSON, GDRIVE_PHOTOS_FOLDER_ID, ANTHROPIC_API_KEY, HF_API_KEY,
+# HF_API_SECRET, SLACK_WEBHOOK_URL. Optional: HF_TTS_URL (until set → caption-only
+# drafts flagged "VO pending"; no fabricated audio).
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC nightly
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Preflight + plan only (no writes)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: nightly-render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ads-hub
+    env:
+      # Write to the same Blob queue the live Review reads.
+      STORE_DRIVER: cloud
+      BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+      # Brand voice = Higgsfield "Zoe" (D-07); swap providers via this one var.
+      VO_PROVIDER: higgsfield
+      HF_API_KEY: ${{ secrets.HF_API_KEY }}
+      HF_API_SECRET: ${{ secrets.HF_API_SECRET }}
+      HF_TTS_URL: ${{ secrets.HF_TTS_URL }}
+      # Real photos (read-only service account) + hook generation.
+      GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+      GDRIVE_PHOTOS_FOLDER_ID: ${{ secrets.GDRIVE_PHOTOS_FOLDER_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      RENDER_BATCH_LIMIT: "2"
+      # Liberation fonts (installed below) — Arial/Georgia-metric-compatible.
+      FONT_BOLD_PATH: /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
+      FONT_REG_PATH: /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf
+      FONT_DISPLAY_PATH: /usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install ffmpeg + Liberation fonts
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-liberation
+      - name: Install deps
+        run: npm ci
+      - name: Run nightly render batch
+        run: node scripts/render-batch.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.dryRun) && '--dry-run' || '' }}
