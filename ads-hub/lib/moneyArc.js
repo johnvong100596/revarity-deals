@@ -8,7 +8,10 @@
  * claims lock (lib/claims) and FAILS the build on any violation. AI hooks are additionally filtered
  * so a stray claim/urgency line can never reach assembly.
  */
-import { ANTHROPIC_KEY, COPY_MODEL } from "./connectors.js";
+// Env-direct (NOT imported from connectors.js) so this module stays portable — it runs in the
+// GitHub Actions render runner, which can't pull in the Next-coupled connectors chain (JSON imports etc).
+const ANTHROPIC_KEY = () => process.env.ANTHROPIC_API_KEY || "";
+const COPY_MODEL = process.env.COPY_MODEL || "claude-opus-4-8";
 import { CTA_LINE, DISCLAIMER, DM_KEYWORD, assertClean, claimViolations, endCard } from "./claims.js";
 
 // Fixed spine (never AI-generated — no claim drift possible).
