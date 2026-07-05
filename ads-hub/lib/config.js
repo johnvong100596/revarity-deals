@@ -26,7 +26,10 @@ export function getConfig() {
 export async function loadConfig() {
   const base = getConfig();
   const ov = await readSettings();
-  const full = Array.isArray(ov.angles) && ov.angles.length ? ov.angles : angles.angles;
+  // An EMPTY saved override is a deliberate "cleared working set" and must be respected —
+  // falling back to the base file here made "Remove all + Save" silently un-remove everything
+  // (the 2026-07-05 "Remove doesn't work" bug). Only an ABSENT override means "use the base".
+  const full = Array.isArray(ov.angles) ? ov.angles : angles.angles;
   const fullFormats = Array.isArray(ov.formats) && ov.formats.length ? ov.formats : base.formatsFull;
   return {
     ...base,
@@ -37,7 +40,7 @@ export async function loadConfig() {
     angles: anglesEnabled() ? full.map((a) => ({ id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length })) : [],
     anglesEnabled: anglesEnabled(),
     anglesFull: full,
-    anglesCustomized: Array.isArray(ov.angles) && ov.angles.length > 0,
+    anglesCustomized: Array.isArray(ov.angles), // a cleared (empty) set counts as customized
     formats: fullFormats.map((f) => ({ name: f.name, dims: `${f.w}x${f.h}`, use: f.use })),
     formatsFull: fullFormats,
     formatsCustomized: Array.isArray(ov.formats) && ov.formats.length > 0,
