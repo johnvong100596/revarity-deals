@@ -14,6 +14,17 @@ function claimsBlock(c) {
   return null;
 }
 
+// Human-readable names for internal spec keys (display only — the keys stay internal).
+const SPEC_LABEL = {
+  meta_story_vertical: "Reels / Stories",
+  meta_feed_portrait: "Feed portrait",
+  meta_feed_square: "Feed square",
+  meta_landscape: "Landscape",
+  before_after_split: "Before / After",
+};
+// Plain wording for the automatic-check badge (c.qa values stay internal).
+const QA_LABEL = { pass: "pass", fail: "needs a look" };
+
 // Predictive Creative Score (AI estimate). Hook/Viral/Response are higher-is-better; Retention risk is
 // higher-is-WORSE (coral). Each axis shows the model's one-line reason inline. Estimates, not guarantees
 // — meant to be calibrated against real reach/saves once posts go live.
@@ -35,17 +46,17 @@ function ScoreStrip({ s }) {
   };
   const tier = s.overall >= 70 ? "good" : s.overall >= 45 ? "mid" : "low";
   return (
-    <div className="scores" aria-label="AI creative score">
+    <div className="scores" aria-label="AI ad score">
       <div className="score-head">
         <span className="score-cap">AI score <span className="muted">· estimate</span></span>
-        {typeof s.overall === "number" && <span className={`score-pill ${tier}`} title="Blend of the four axes (retention risk inverted). Higher = stronger.">{s.overall}<span style={{ opacity: 0.6, fontSize: 9 }}>/100</span></span>}
+        {typeof s.overall === "number" && <span className={`score-pill ${tier}`} title="Blend of the four scores (scroll-past risk counts against). Higher = stronger.">{s.overall}<span style={{ opacity: 0.6, fontSize: 9 }}>/100</span></span>}
       </div>
-      <Bar label="Hook" axis={s.hook} />
-      <Bar label="Viral" axis={s.virality} />
-      <Bar label="Response" axis={s.response} />
-      <Bar label="Retention risk" axis={s.retentionRisk} risk />
+      <Bar label="Opening" axis={s.hook} />
+      <Bar label="Share appeal" axis={s.virality} />
+      <Bar label="Reply pull" axis={s.response} />
+      <Bar label="Scroll-past risk" axis={s.retentionRisk} risk />
       <div className="score-legend">
-        <b>Hook</b> first-3-sec scroll-stop · <b>Viral</b> shareability · <b>Response</b> predicted click/DM rate · <b>Retention risk</b> drop-off risk (higher = worse). <b>Overall</b> blends all four. Model estimate{s.model ? ` (${s.model})` : ""} — calibrate against real reach/saves once live.
+        <b>Opening</b> the first 3 seconds · <b>Share appeal</b> how likely people share it · <b>Reply pull</b> how likely people click or message · <b>Scroll-past risk</b> how likely people scroll past (higher = worse). <b>Overall</b> blends all four. Model estimate{s.model ? ` (${s.model})` : ""} — compare it with real results once ads are live.
       </div>
     </div>
   );
@@ -234,7 +245,7 @@ export default function ReviewClient() {
       if (!shots.length) throw new Error("no variations returned");
       let made = 0;
       for (const shot of shots) { // sequential — avoids the queue append race
-        setVarMsg(`Spinning ${made + 1}/${shots.length}…`);
+        setVarMsg(`Creating ${made + 1}/${shots.length}…`);
         try {
           const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(varShotBody(shot, c)) });
           const d = await r.json();
@@ -242,28 +253,28 @@ export default function ReviewClient() {
         } catch {}
       }
       await load();
-      setVarMsg(`${made} variation${made === 1 ? "" : "s"} off ${c.angle_id || "creative"} — ${isVid ? "videos rendering, they'll appear as they finish" : "added to the queue below"}.`);
-    } catch (e) { setVarMsg(`Variations failed — ${String(e.message || e)}`); }
+      setVarMsg(`${made} version${made === 1 ? "" : "s"} off ${c.angle_id || "this ad"} — ${isVid ? "the videos are being created and will appear as they finish" : "added to the queue below"}.`);
+    } catch (e) { setVarMsg(`Couldn't make versions — ${String(e.message || e)}`); }
     finally { setVarBusy(null); setTimeout(() => setVarMsg(""), 7000); }
   }
 
   return (
     <>
       <div className="eyebrow">— Review &amp; approve —</div>
-      <h1>The approval <em>gate</em></h1>
-      <p className="lead">Every creative with its copy and auto-QA verdict. Approve, hold, or reject.</p>
+      <h1>Your <em>approvals</em></h1>
+      <p className="lead">Every ad with its copy and our automatic check. Approve, hold, or reject.</p>
       <div className="bar">
         <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}{varMsg && <span className="muted"> — {varMsg}</span>}</div>
         <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-          <span className="chip-sel" title="Variations per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
+          <span className="chip-sel" title="Versions per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
           <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
-          <button className="btn ghost" onClick={approveAllPass}>Approve all QA-pass</button>
+          <button className="btn ghost" onClick={approveAllPass}>Approve all that passed</button>
           <button className="btn ghost" onClick={save}>Save decisions</button>
           <button className="btn" onClick={exportSet}>Export approved ↓</button>
         </div>
       </div>
       {loading ? <p className="muted">Loading queue…</p> : queue.length === 0 ? (
-        <div className="gate"><span>Queue is empty. Run the pipeline from <b>Create</b> to generate creatives.</span></div>
+        <div className="gate"><span>Queue is empty. Go to <b>Create</b> to make ads.</span></div>
       ) : (
         <>
         {active.length === 0 ? (
@@ -280,16 +291,16 @@ export default function ReviewClient() {
                   {c.video_url
                     ? <PreviewVideo src={c.video_url} />
                     : <img src={adSrc(c)} alt={c.headline} />}
-                  <span className={`qbadge ${badge}`}>QA {c.qa}</span>
+                  <span className={`qbadge ${badge}`} title={c.qa !== "pass" && c.qa_reasons?.length ? c.qa_reasons[0] : undefined}>Check: {QA_LABEL[c.qa] || c.qa}</span>
                 </div>
                 <div className="qbody">
                   <div className="qmeta">
-                    <span className="tag">{c.angle_id}</span><span className="tag">VAR {c.variant}</span><span className="tag">{c.spec}</span>
+                    <span className="tag">{c.angle_id}</span>{c.variant && c.variant !== "HUB" && <span className="tag">VAR {c.variant}</span>}<span className="tag">{SPEC_LABEL[c.spec] || c.spec}</span>
                     {c.pricing_flag && <span className="tag flag">{c.pricing_flag}</span>}
                     {c.disclosure === "ai-presenter" && <span className="tag flag" title="AI presenter — not a real client. Apply the platform's AI-generated label when posting; no implied client, no return claims.">AI presenter · label on post</span>}
                   </div>
                   <p className="qtext">{c.body} <b>· {c.cta} →</b></p>
-                  {c.script && <p className="qscript" title="What the presenter says on camera (Veo renders this as synced audio).">🎙 <em>“{c.script}”</em></p>}
+                  {c.script && <p className="qscript" title="What the presenter says on camera (Veo turns this into synced audio).">🎙 <em>“{c.script}”</em></p>}
                   <ScoreStrip s={c.scores} />
                   <QcGates c={c} g={gates[c.id] || {}} onTick={(k) => tickGate(c.id, k)} />
                   <DownloadRow c={c} />
@@ -312,7 +323,7 @@ export default function ReviewClient() {
                   )}
                   <div className="card-foot">
                     <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
-                    <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Spin ${varN} variations off this creative — same script & background, varied hook. They land in the queue for review (D-04).`}>{varBusy === c.id ? "Spinning…" : `✨ ${varN} variations`}</button>
+                    <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Make ${varN} versions of this ad — same script and background, different openings. They land in your approvals for review.`}>{varBusy === c.id ? "Creating…" : `✨ Make ${varN} versions`}</button>
                   </div>
                   {st === "reject" && (
                     <div className="rej-note">
@@ -335,7 +346,7 @@ export default function ReviewClient() {
         {rejected.length > 0 && (
           <div className="rejected-wrap">
             <button className="btn ghost" onClick={() => setShowRejected((v) => !v)}>Rejected ({rejected.length}) {showRejected ? "▲" : "▼"}</button>
-            <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>kept out of the gate — not deleted until you click Delete</span>
+            <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>kept out of your approvals — not deleted until you click Delete</span>
             {showRejected && (
               <div className="q rejected-q">
                 {rejected.map((c) => (
@@ -344,7 +355,7 @@ export default function ReviewClient() {
                       {c.video_url ? <PreviewVideo src={c.video_url} /> : <img src={adSrc(c)} alt={c.headline} />}
                     </div>
                     <div className="qbody">
-                      <div className="qmeta"><span className="tag">{c.angle_id}</span><span className="tag">{c.spec}</span></div>
+                      <div className="qmeta"><span className="tag">{c.angle_id}</span><span className="tag">{SPEC_LABEL[c.spec] || c.spec}</span></div>
                       <p className="qtext">{c.headline || c.body}</p>
                       <div className="acts">
                         <button className="hd" onClick={() => restore(c.id)}>Restore</button>

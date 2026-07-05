@@ -6,7 +6,7 @@ import StudioPicker from "./StudioPicker";
 // The studio centerpiece (mirrors the Higgsfield Marketing Studio prompt bar): describe the ad, pick a
 // Type + Placement (quick selects) and a Hook + Setting (full modal pickers), then Generate. It composes
 // the picks into a brief and hands off to the existing Create flow (?brief/?output/?spec).
-const OUTPUTS = [["auto", "Type: auto"], ["presenter", "Presenter"], ["video", "Video b-roll"], ["image", "Image"], ["copy", "Copy only"]];
+const OUTPUTS = [["auto", "Type: auto"], ["presenter", "Presenter"], ["video", "Video — just the property"], ["image", "Image"], ["copy", "Copy only"]];
 const PLACEMENTS = [["auto", "Placement: auto"], ["meta_story_vertical", "Reels 9:16"], ["meta_feed_square", "Feed 1:1"], ["meta_feed_portrait", "Feed 4:5"], ["meta_landscape", "Landscape 16:9"]];
 
 // HOOKS — Stunt or Subtle only (per brand guardrail): proven scroll-stoppers, never gimmicky-dishonest.
@@ -51,14 +51,14 @@ export default function StudioComposer() {
   return (
     <div className="studio-hero">
       <div className="k"><span className="d" /> Revarity Ads Studio</div>
-      <h1>Describe it. <em>We film it.</em></h1>
-      <p>Type the ad you want, pick a hook and a setting — the studio writes the words, designs the frame, and films the dream. Screened and approved before a dollar moves.</p>
+      <h1>Describe your ad. <em>We build it.</em></h1>
+      <p>Type one sentence about your offer. You get finished ads to review. Nothing spends until you approve them.</p>
       <div className="hcomposer">
         <input className="hcomposer-in" value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={onKey}
           placeholder="Describe what happens in the ad…" aria-label="Describe the ad" />
         <div className="hcomposer-row">
           <select value={output} onChange={(e) => setOutput(e.target.value)} aria-label="Type">{OUTPUTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <button type="button" className={"hcomposer-chip" + (hook ? " on" : "")} onClick={() => setPicker("hook")}>{hook ? hook.label : "Hook"} <span className="cv">▾</span></button>
+          <button type="button" className={"hcomposer-chip" + (hook ? " on" : "")} onClick={() => setPicker("hook")}>{hook ? hook.label : "Opening"} <span className="cv">▾</span></button>
           <button type="button" className={"hcomposer-chip" + (setting ? " on" : "")} onClick={() => setPicker("setting")}>{setting ? setting.label : "Setting"} <span className="cv">▾</span></button>
           <select value={spec} onChange={(e) => setSpec(e.target.value)} aria-label="Placement">{PLACEMENTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           <button className="btn hcomposer-go" onClick={go}>Generate →</button>
@@ -67,7 +67,7 @@ export default function StudioComposer() {
 
       <StudioPicker
         open={picker === "hook"} onClose={() => setPicker(null)}
-        title="Hooks that stop the scroll" subtitle="The first 3 seconds decide if your ad gets watched or skipped. Pick a proven opener."
+        title="Openings that stop the scroll" subtitle="The first 3 seconds decide if your ad gets watched or skipped. Pick a proven opener."
         tabs={["All", "Stunt", "Subtle"]} items={HOOKS} selected={hook?.value} onPick={setHook}
       />
       <StudioPicker

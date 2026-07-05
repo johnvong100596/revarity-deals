@@ -6,7 +6,7 @@ import { estimateCredits, estimatePlan } from "@/lib/computeCost";
 const OUTPUTS = [
   { id: "auto", label: "Auto — studio decides" },
   { id: "presenter", label: "Presenter commercial" },
-  { id: "video", label: "Video b-roll" },
+  { id: "video", label: "Video — just the property" },
   { id: "image", label: "Image" },
   { id: "copy", label: "Copy only" },
 ];
@@ -18,8 +18,8 @@ const FORMAT_LABELS = {
   before_after_split: "Before / After",
 };
 const ENGINE_LABEL = {
-  "veo-presenter": "Veo · presenter", "veo-broll": "Veo · b-roll", kling: "Kling",
-  "kling-turbo": "Kling Turbo", higgsfield: "Higgsfield", nano: "Nano image", arcads: "Arcads UGC",
+  "veo-presenter": "Veo · presenter", "veo-broll": "Veo · just the property", kling: "Kling",
+  "kling-turbo": "Kling Turbo", higgsfield: "Higgsfield", nano: "Nano image", arcads: "Arcads · host",
 };
 const LENGTHS = [["auto", "Auto length"], ["8", "~8s"], ["15", "~15s"], ["30", "~30s"], ["60", "~45–60s"]];
 
@@ -77,7 +77,7 @@ export default function CreateClient({ angles, formats }) {
         if (!res.ok) { update(key, { status: "failed", error: `poll failed (${res.status})` }); return; }
         const { job } = await res.json();
         if (job?.status === "done") { update(key, { status: "done", result_url: job.result_url }); return; }
-        if (job?.status === "failed") { update(key, { status: "failed", error: job.error || "render failed" }); return; }
+        if (job?.status === "failed") { update(key, { status: "failed", error: job.error || "creation failed" }); return; }
       } catch {}
     }
     update(key, { status: "failed", error: "timed out" });
@@ -211,13 +211,13 @@ export default function CreateClient({ angles, formats }) {
 
   return (
     <>
-      <div className="eyebrow">— Spin up a creative —</div>
+      <div className="eyebrow">— Make an ad —</div>
       <h1>The <em>studio</em></h1>
-      <p className="lead">Describe the ad you want — or paste a full script (hook, scenes, lines, b-roll). The studio routes each shot to the engine that does it best, then drops everything in Review for your yes.</p>
+      <p className="lead">Describe the ad you want, or paste a script you like. We build each part and put the results in your approvals.</p>
 
       <div className="composer">
         <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
-          placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with hook, scenes, lines, and a b-roll shot list.'} />
+          placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with the opening, scenes, and lines.'} />
 
         <div className="promise-split">
           <div className="promise-col">
@@ -238,15 +238,15 @@ export default function CreateClient({ angles, formats }) {
           <button className={`chip ${showInsp ? "on" : ""}`} onClick={() => setShowInsp((v) => !v)}>+ Inspiration{showInsp && <span className="x">×</span>}</button>
           <button className={`chip ${wantVoice ? "on" : ""}`} onClick={() => setWantVoice((v) => !v)}>+ Voice{wantVoice && <span className="x">×</span>}</button>
           <button className={`chip ${wantMusic ? "on" : ""}`} onClick={() => setWantMusic((v) => !v)}>+ Music{wantMusic && <span className="x">×</span>}</button>
-          <span className="chip-sel">Output <select value={output} onChange={(e) => setOutput(e.target.value)}>{OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></span>
-          <span className="chip-sel">Format <select value={format} onChange={(e) => setFormat(e.target.value)}>
+          <span className="chip-sel" title="Video, image, or words — or let us pick">What kind of ad? <select value={output} onChange={(e) => setOutput(e.target.value)}>{OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></span>
+          <span className="chip-sel" title="Where the ad will run">Format <select value={format} onChange={(e) => setFormat(e.target.value)}>
             <option value="auto">Auto — studio picks</option>
             {formats.map((f) => <option key={f.name} value={f.name}>{FORMAT_LABELS[f.name] || f.name} · {f.dims}</option>)}
           </select></span>
-          <span className="chip-sel">Angle <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
+          <span className="chip-sel" title="The story angle we build around">Theme <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
             <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
           </select></span>
-          <span className="chip-sel">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
+          <span className="chip-sel" title="How long the ad runs">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
             {LENGTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select></span>
         </div>
@@ -263,7 +263,7 @@ export default function CreateClient({ angles, formats }) {
         {wantVoice && (
           <div className="chip-panel">
             <label className="l">Voice (ElevenLabs) — optional script (blank = the studio writes it from your idea)</label>
-            <textarea rows={2} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Narration to speak over the b-roll cut." />
+            <textarea rows={2} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Narration to speak over the video." />
           </div>
         )}
         {wantMusic && (
@@ -274,9 +274,9 @@ export default function CreateClient({ angles, formats }) {
         )}
 
         <div className="composer-foot">
-          <span className="hint">{output === "auto" ? "Auto: the studio plans the shots and routes engines — planning is free; you approve before anything renders or posts (D-04)." : "Forced output — you'll see the cost and confirm before anything renders."}</span>
-          {meter && <span className="meter" title={`Render-compute estimates this month by engine: ${Object.entries(meter.byKind || {}).map(([k, v]) => `${k} ~${v}`).join(" · ") || "nothing yet"}. Estimates, not an invoice.`}>Compute: ~{meter.month} cr this month · ~{meter.today} today</span>}
-          <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Spin up →"}</button>
+          <span className="hint">{output === "auto" ? "Auto: we plan the shots first — planning is free, and you approve before anything is created or posted (D-04)." : "We create these now and send them to your approvals — you'll see the cost and confirm first."}</span>
+          {meter && <span className="meter" title={`This month's creation costs by engine: ${Object.entries(meter.byKind || {}).map(([k, v]) => `${k} ~${v}`).join(" · ") || "nothing yet"}. Estimates, not an invoice.`}>Used: ~{meter.month} credits this month · ~{meter.today} today</span>}
+          <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Create my ad →"}</button>
         </div>
 
         {confirm && (
@@ -290,12 +290,12 @@ export default function CreateClient({ angles, formats }) {
         )}
 
         <div className="batch-foot">
-          <span className="hint">Batch — up to 10 ideas at once, into Review (you still approve each):</span>
+          <span className="hint">Batch — up to 10 ideas at once, into your approvals (you still approve each):</span>
           <span className="chip-sel">Count <select value={nIdeas} onChange={(e) => setNIdeas(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>
             {Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}
           </select></span>
-          <button className="btn ghost" onClick={makeVariations} disabled={busy || !idea.trim()} title="Up to 10 variations of this concept — similar script & background, varied hook. Nothing posts; you review each.">✨ {nIdeas} variations</button>
-          <button className="btn ghost" onClick={autoFromAngle} disabled={busy} title="Up to 10 fresh concepts from the selected angle + your recent designs. Nothing posts; you review each.">⚡ Auto: {nIdeas} from angle</button>
+          <button className="btn ghost" onClick={makeVariations} disabled={busy || !idea.trim()} title="Up to 10 versions of this idea — similar script & background, different openings. Nothing posts; you review each.">✨ Make {nIdeas} versions</button>
+          <button className="btn ghost" onClick={autoFromAngle} disabled={busy} title="Up to 10 fresh ideas from the selected theme + your recent designs. Nothing posts; you review each.">⚡ Make {nIdeas} new ideas</button>
         </div>
       </div>
 
@@ -326,12 +326,12 @@ export default function CreateClient({ angles, formats }) {
           </div>
           {plan.voice && <div className="sd" style={{ marginTop: 10 }}>+ Voiceover: <em>“{plan.voice.script.slice(0, 90)}…”</em></div>}
           {plan.music && <div className="sd">+ Music: {plan.music.prompt}</div>}
-          {plan.guardrailFlags?.length > 0 && <div className="gflags">⚠ Guardrails: {plan.guardrailFlags.join(" · ")}</div>}
+          {plan.guardrailFlags?.length > 0 && <div className="gflags">⚠ Needs a look: {plan.guardrailFlags.join(" · ")}</div>}
         </div>
       )}
 
       <div className="bar" style={{ position: "static", marginTop: 4 }}>
-        <div className="tally">Generated this session <b>{results.length}</b> · <a className="link" href="/review">Open review queue →</a></div>
+        <div className="tally">Ads made this session <b>{results.length}</b> · <a className="link" href="/review">Open your approvals →</a></div>
       </div>
       {err && <div className="log" style={{ color: "var(--red)" }}>{err}</div>}
 
@@ -342,12 +342,12 @@ export default function CreateClient({ angles, formats }) {
               {r.type === "image" && r.ad_url && <div className="thumb"><img src={r.ad_url} alt={r.headline} /></div>}
               {r.type === "video" && (
                 <div className="thumb">
-                  {r.status === "rendering" ? <div className="rendering">Rendering…</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <video src={r.result_url} muted loop autoPlay playsInline controls />}
+                  {r.status === "rendering" ? <div className="rendering">Creating your ad…</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <video src={r.result_url} muted loop autoPlay playsInline controls />}
                 </div>
               )}
               {(r.type === "voice" || r.type === "music") && (
                 <div className="thumb" style={{ display: "grid", placeItems: "center", minHeight: 90 }}>
-                  {r.status === "rendering" ? <div className="rendering">{r.type === "voice" ? "Voicing…" : "Composing…"}</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <audio src={r.url} controls />}
+                  {r.status === "rendering" ? <div className="rendering">{r.type === "voice" ? "Recording the voice…" : "Making the music…"}</div> : r.status === "failed" ? <div className="rendering bad">Failed: {r.error}</div> : <audio src={r.url} controls />}
                 </div>
               )}
               <div className="rbody">
