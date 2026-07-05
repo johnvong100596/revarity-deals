@@ -213,6 +213,16 @@ gates every submission, pre- AND post-generation. Every queue-touching call is
 logged with the sending key → `state/mcp-log.json`. Video generation stays
 operator-only in the UI.
 
+Connector-setup fix (2026-07-05, verified live): claude.ai custom connectors
+can't send custom headers and probe `/.well-known/oauth-authorization-server`
+during setup — Clerk's 302→/sign-in there made Claude treat the hub as an OAuth
+provider and fail dynamic client registration. `/.well-known/(.*)` is now
+excluded from the middleware matcher (plain 404, no redirect, no
+WWW-Authenticate), and `/api/mcp` additionally accepts the key as
+`?key=<key>` in the connector URL (the only auth channel a custom connector
+carries; accepted trade-off, keys rotate via env). Team connects with:
+`https://ads.revarity.com/api/mcp?key=<personal-key>`.
+
 Charter rulings applied to existing surface (this slice):
 - Two-typefaces-max OVERRIDES brand.json's third face: JetBrains Mono label
   treatment is retired in both palettes (labels ride the body face). Revisit

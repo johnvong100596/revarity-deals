@@ -35,4 +35,8 @@ export default function middleware(req, ev) {
   return new NextResponse("Authentication required", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="Revarity Ads Hub"' } });
 }
 
-export const config = { matcher: ["/((?!_next/|favicon|api/health|api/cron|api/mcp).*)"] };
+// .well-known is excluded entirely: Claude's custom-connector setup probes
+// /.well-known/oauth-authorization-server, and a Clerk 302→/sign-in there makes it treat the hub
+// as an OAuth provider and fail dynamic client registration. With no route defined these paths
+// now fall through to Next's plain 404 — no redirect, no WWW-Authenticate.
+export const config = { matcher: ["/((?!_next/|favicon|api/health|api/cron|api/mcp|\\.well-known/).*)"] };
