@@ -187,18 +187,22 @@ export default function ReviewClient() {
       ? "Remove this ad? It disappears from everywhere. (You can bring it back from Trash for 30 days.)"
       : `Remove these ${list.length} ads? They disappear from everywhere. (You can bring them back from Trash for 30 days.)`;
     if (!window.confirm(msg)) return;
+    // A failed remove must FAIL LOUDLY — a silent return here reads as a dead button.
+    const fail = (why) => { setSaved(`Remove failed — ${why}. Nothing changed; try again or refresh.`); setTimeout(() => setSaved(""), 7000); };
     try {
       const res = await fetch("/api/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: list }) });
-      if (!res.ok) return;
+      if (!res.ok) return fail(`server said ${res.status}`);
       setSelected({}); setSelecting(false);
+      setSaved(`Removed ${list.length} — recoverable in Trash for 30 days.`); setTimeout(() => setSaved(""), 5000);
       await load();
-    } catch {}
+    } catch (e) { fail(String(e?.message || e)); }
   }
   async function restoreFromTrash(id) {
     try {
       const res = await fetch("/api/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [id], restore: true }) });
-      if (res.ok) await load();
-    } catch {}
+      if (!res.ok) { setSaved(`Restore failed — server said ${res.status}.`); setTimeout(() => setSaved(""), 6000); return; }
+      await load();
+    } catch (e) { setSaved(`Restore failed — ${String(e?.message || e)}.`); setTimeout(() => setSaved(""), 6000); }
   }
   const toggleSelect = (id) => setSelected((p) => ({ ...p, [id]: !p[id] }));
   const selectedIds = () => Object.keys(selected).filter((id) => selected[id]);

@@ -36,7 +36,10 @@ let _specOverride = null; // array of { name, w, h, use }
 export async function primeOverrides() {
   try {
     const s = await readSettings();
-    _angleOverride = Array.isArray(s.angles) && s.angles.length ? s.angles : null;
+    // Empty angle override = deliberately cleared working set (respected; [] is truthy so
+    // effectiveAngles() returns it). Formats keep the old rule — an empty format set would
+    // break specDims, so only a non-empty override applies there.
+    _angleOverride = Array.isArray(s.angles) ? s.angles : null;
     _specOverride = Array.isArray(s.formats) && s.formats.length ? s.formats : null;
   } catch { _angleOverride = null; _specOverride = null; }
 }

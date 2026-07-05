@@ -39,6 +39,7 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
   const [dirty, setDirty] = useState(false);
   const [angBusy, setAngBusy] = useState(false);
   const [angMsg, setAngMsg] = useState(config.anglesCustomized ? "Custom angle set" : "Using default angles");
+  const [showRestoreHelp, setShowRestoreHelp] = useState(false); // parked-mode "Restore library…" affordance
   const [angErr, setAngErr] = useState("");
   const [genBrief, setGenBrief] = useState("");
 
@@ -99,7 +100,8 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
   async function resetAngles() {
     setAngErr(""); setAngBusy(true);
     try {
-      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: [] }) });
+      // null deletes the override (base library returns); [] would mean a deliberately CLEARED set.
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: null }) });
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || "reset failed");
       await reloadAngles();
@@ -164,10 +166,21 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
       </div>
       {err && <div className="log" style={{ color: "var(--red)" }}>{err}</div>}
 
-      <div className="sec"><h2>Angles</h2><span className="muted" style={{ fontSize: 12 }}>{dirty ? "Unsaved changes" : angMsg}</span></div>
-      {!config.anglesEnabled && (
-        <div className="gate warn"><span><b>Parked.</b> The studio now builds each ad straight from your prompt — these presets are not used when generating. The library is kept here so we can bring it back (ANGLES_ENABLED=1) if free-prompt quality drops. Your promise check, our automatic check, and your approvals are unaffected.</span></div>
-      )}
+      <div className="sec"><h2>Angles</h2>{config.anglesEnabled && <span className="muted" style={{ fontSize: 12 }}>{dirty ? "Unsaved changes" : angMsg}</span>}</div>
+      {/* D-16: while parked, the editor doesn't render at all — buttons that do nothing don't
+          earn pixels. The approved base file is untouched; ANGLES_ENABLED=1 brings it all back. */}
+      {!config.anglesEnabled ? (
+        <div>
+          <p className="muted" style={{ fontSize: 13, margin: "0 0 10px", maxWidth: 720 }}>Angles are parked — the studio builds each ad straight from your prompt.</p>
+          <button className="btn ghost sm" onClick={() => setShowRestoreHelp((v) => !v)}>Restore library…</button>
+          {showRestoreHelp && (
+            <p className="muted" style={{ fontSize: 12, marginTop: 10, maxWidth: 640 }}>
+              To bring the preset angles back, set <code>ANGLES_ENABLED=1</code> in Vercel and redeploy. The approved base file was never touched, so nothing is lost — the full library and this editor return with the flag.
+            </p>
+          )}
+        </div>
+      ) : (
+      <>
       <p className="muted" style={{ fontSize: 12.5, margin: "0 0 12px", maxWidth: 720 }}>The angles the studio builds ads from. Edit the targeting/direction, generate a fresh angle, or remove one — changes are local until you press <b>Save angles</b>, and only override your working set (the approved base file is never touched). Approved variant copy is preserved, not edited here.</p>
 
       <div className="angle-bar">
@@ -214,6 +227,8 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
           </div>
         ))}
       </div>
+      </>
+      )}
 
       <div className="sec"><h2>Formats</h2><span className="muted" style={{ fontSize: 12 }}>{fmtDirty ? "Unsaved changes" : fmtMsg}</span></div>
       <p className="muted" style={{ fontSize: 12.5, margin: "0 0 12px", maxWidth: 720 }}>The placement sizes the studio renders to. Add a size, edit dimensions, or remove one — changes are local until you press <b>Save formats</b>, and only override your working set (the brand file is never touched).</p>
