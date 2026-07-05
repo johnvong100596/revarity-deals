@@ -24,6 +24,8 @@ export async function POST(req) {
       formatPref: b.format || "auto",
       angleId: b.angleId || "",
       targetSeconds: b.targetSeconds || null,
+      claimsVerified: (b.claimsVerified || "").slice(0, 800),
+      claimsNot: (b.claimsNot || "").slice(0, 800),
     });
     if (!plan) return NextResponse.json({ ok: false, error: "Could not plan this idea — confirm ANTHROPIC_API_KEY is set and give a bit more detail." }, { status: 502 });
     return NextResponse.json({ ok: true, plan });

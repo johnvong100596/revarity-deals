@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { estimateCredits, estimatePlan } from "@/lib/computeCost";
 
 const OUTPUTS = [
   { id: "auto", label: "Auto — studio decides" },
@@ -46,6 +47,20 @@ export default function CreateClient({ angles, formats }) {
   const [generating, setGenerating] = useState(false);
   const [err, setErr] = useState("");
   const [results, setResults] = useState([]);
+
+  // The promise split (UX14): what's on paper goes in the ad; the rest stays in DMs.
+  const [claimsVerified, setClaimsVerified] = useState("");
+  const [claimsNot, setClaimsNot] = useState("");
+  // Nothing renders without an explicit OK (engine-audit P0-1a + UX16).
+  const [confirm, setConfirm] = useState(null); // { label, credits, run }
+  // The running compute meter (P0-1c).
+  const [meter, setMeter] = useState(null);
+  const refreshMeter = useCallback(async () => {
+    try { const r = await fetch("/api/compute", { cache: "no-store" }); const d = await r.json(); if (d.ok) setMeter(d); } catch {}
+  }, []);
+  useEffect(() => { refreshMeter(); }, [refreshMeter]);
+  const askConfirm = (label, credits, run) => setConfirm({ label, credits, run });
+  const confirmRun = async () => { const c = confirm; setConfirm(null); if (c) { await c.run(); refreshMeter(); } };
 
   const inspirationText = () =>
     [reference.trim(), refUrl.trim() && `Source URL: ${refUrl.trim()}`, refVideo.trim() && `Reference video: ${refVideo.trim()}`]
@@ -100,9 +115,10 @@ export default function CreateClient({ angles, formats }) {
     } catch (e) { update(key, { status: "failed", error: String(e.message || e) }); }
   }
 
-  // Map a director shot to a /api/generate body.
+  // Map a director shot to a /api/generate body. Claims fields ride EVERY generate so the
+  // server-side claims lock sees the promise split no matter which path fired the shot.
   function shotBody(shot) {
-    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId, targetSeconds: shot.durationSec || undefined };
+    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId, targetSeconds: shot.durationSec || undefined, claimsVerified, claimsNot };
     if (shot.kind === "image") return { ...base, type: "image" };
     if (shot.kind === "presenter") return { ...base, type: "video", mode: "presenter", engine: "veo" };
     if (shot.kind === "ugc") return { ...base, type: "video", engine: "arcads" };
@@ -116,7 +132,7 @@ export default function CreateClient({ angles, formats }) {
     try {
       const res = await fetch("/api/director", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration) }),
+        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "planning failed");
@@ -132,21 +148,29 @@ export default function CreateClient({ angles, formats }) {
       for (const shot of plan.shots) await runGenerate(shotBody(shot), shot.label); // sequential — avoids queue race
       if (plan.voice?.include) await makeAudio("voice", { text: plan.voice.script || idea }, "Voiceover");
       if (plan.music?.include) await makeAudio("music", { prompt: plan.music.prompt }, "Music");
-    } finally { setGenerating(false); }
+    } finally { setGenerating(false); refreshMeter(); }
   }
 
   // Forced single output (no director): generate directly from the idea.
   async function directGenerate() {
     setBusy(true); setErr("");
     try {
-      const base = { spec: format, brief: idea, reference: inspirationText(), angleId, targetSeconds: duration === "auto" ? null : Number(duration) };
+      const base = { spec: format, brief: idea, reference: inspirationText(), angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot };
       if (output === "copy") await runGenerate({ ...base, type: "copy", n: 3 }, "Copy");
       else if (output === "image") await runGenerate({ ...base, type: "image" }, "Image");
       else if (output === "presenter") await runGenerate({ ...base, type: "video", mode: "presenter", engine: "veo" }, "Presenter");
       else await runGenerate({ ...base, type: "video", mode: "broll", engine: "veo" }, "Video"); // veo = top realism
       if (wantVoice) await makeAudio("voice", { text: voScript || idea }, "Voiceover");
       if (wantMusic && musicPrompt.trim()) await makeAudio("music", { prompt: musicPrompt }, "Music");
-    } finally { setBusy(false); }
+    } finally { setBusy(false); refreshMeter(); }
+  }
+
+  // Credit estimate for the forced-output path (the silent-spend click from the audit).
+  function directEstimate() {
+    let est = output === "copy" ? estimateCredits("copy") : output === "image" ? estimateCredits("image") : estimateCredits("veo");
+    if (wantVoice) est += estimateCredits("voice");
+    if (wantMusic && musicPrompt.trim()) est += estimateCredits("music");
+    return Math.round(est * 10) / 10;
   }
 
   // Batch: up to 10 VARIATIONS of the current idea (similar script + background, varied hook).
@@ -179,7 +203,11 @@ export default function CreateClient({ angles, formats }) {
     finally { setBusy(false); }
   }
 
-  const spinUp = () => (output === "auto" ? planIt() : directGenerate());
+  // Auto = plan first (free, nothing renders). Forced output = confirm with the cost, THEN render.
+  const spinUp = () =>
+    output === "auto"
+      ? planIt()
+      : askConfirm(output === "copy" ? "Write 3 copy variants" : `Create 1 ${output}`, directEstimate(), directGenerate);
 
   return (
     <>
@@ -190,6 +218,21 @@ export default function CreateClient({ angles, formats }) {
       <div className="composer">
         <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
           placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with hook, scenes, lines, and a b-roll shot list.'} />
+
+        <div className="promise-split">
+          <div className="promise-col">
+            <label className="l">Promises you can back up in writing</label>
+            <textarea rows={2} value={claimsVerified} onChange={(e) => setClaimsVerified(e.target.value)}
+              placeholder={'e.g. $0 down for qualified properties'} />
+            <span className="helper">These can go in the ad.</span>
+          </div>
+          <div className="promise-col">
+            <label className="l">Not confirmed yet</label>
+            <textarea rows={2} value={claimsNot} onChange={(e) => setClaimsNot(e.target.value)}
+              placeholder={'e.g. 0% APR available'} />
+            <span className="helper">We&rsquo;ll keep these out of the video and mention them in your DMs instead. This protects you from ad bans and refund fights. Move them over once you have it on paper.</span>
+          </div>
+        </div>
 
         <div className="chips">
           <button className={`chip ${showInsp ? "on" : ""}`} onClick={() => setShowInsp((v) => !v)}>+ Inspiration{showInsp && <span className="x">×</span>}</button>
@@ -231,9 +274,20 @@ export default function CreateClient({ angles, formats }) {
         )}
 
         <div className="composer-foot">
-          <span className="hint">{output === "auto" ? "Auto: the studio plans the shots and routes engines — you approve before anything posts (D-04)." : "Forced output — generates directly into Review."}</span>
+          <span className="hint">{output === "auto" ? "Auto: the studio plans the shots and routes engines — planning is free; you approve before anything renders or posts (D-04)." : "Forced output — you'll see the cost and confirm before anything renders."}</span>
+          {meter && <span className="meter" title={`Render-compute estimates this month by engine: ${Object.entries(meter.byKind || {}).map(([k, v]) => `${k} ~${v}`).join(" · ") || "nothing yet"}. Estimates, not an invoice.`}>Compute: ~{meter.month} cr this month · ~{meter.today} today</span>}
           <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Spin up →"}</button>
         </div>
+
+        {confirm && (
+          <div className="confirm-bar">
+            <span><b>{confirm.label}.</b> This will use about <b>{confirm.credits} credits</b>. Nothing runs without your OK.</span>
+            <span style={{ display: "flex", gap: 8 }}>
+              <button className="btn" onClick={confirmRun}>OK — create it →</button>
+              <button className="btn ghost" onClick={() => setConfirm(null)}>Cancel</button>
+            </span>
+          </div>
+        )}
 
         <div className="batch-foot">
           <span className="hint">Batch — up to 10 ideas at once, into Review (you still approve each):</span>
@@ -251,7 +305,7 @@ export default function CreateClient({ angles, formats }) {
         <div className="plan">
           <div className="plan-h">
             <div className="t">{plan.title}</div>
-            <button className="btn" onClick={generateAll} disabled={generating}>{generating ? "Generating…" : "Generate all →"}</button>
+            <button className="btn" onClick={() => askConfirm(`Create all ${plan.shots.length} shots`, estimatePlan(plan), generateAll)} disabled={generating}>{generating ? "Generating…" : "Generate all →"}</button>
           </div>
           {plan.summary && <p className="why">{plan.summary}</p>}
           <div className="shots">
@@ -265,7 +319,7 @@ export default function CreateClient({ angles, formats }) {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                   <span className="eng">{ENGINE_LABEL[s.engine] || s.engine}</span>
-                  <button className="btn ghost" style={{ fontSize: 11, padding: "5px 10px" }} onClick={() => runGenerate(shotBody(s), s.label)} disabled={generating}>Generate</button>
+                  <button className="btn ghost" style={{ fontSize: 11, padding: "5px 10px" }} onClick={() => askConfirm(`Create shot ${s.n} (${s.label})`, estimatePlan({ shots: [s] }), async () => { await runGenerate(shotBody(s), s.label); })} disabled={generating}>Generate</button>
                 </div>
               </div>
             ))}

@@ -71,7 +71,7 @@ const clampShots = (arr) => (Array.isArray(arr) ? arr : []).slice(0, 12).map((s,
  * Plan a creative from a freeform idea/script.
  * @returns { title, summary, shots[], voice|null, music|null, guardrailFlags[], model } or null on failure.
  */
-export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null } = {}) {
+export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null, claimsVerified = "", claimsNot = "" } = {}) {
   if (!ANTHROPIC_KEY()) return null;
   if (!idea.trim()) return null;
 
@@ -106,6 +106,8 @@ export async function planFromScript({ idea = "", inspiration = "", wantVoice = 
     wantMusic ? "Operator wants MUSIC added (Lyria) — include a music object with a mood/instrument prompt (no vocals)." : "",
     "",
     "GUARDRAILS (hard): a presenter is a BRAND SPOKESPERSON, never a real-client testimonial. NEVER write a line that claims to be a Revarity client or states/implies guaranteed or specific income/return/occupancy. No fake reviews. Flag in guardrailFlags any place the operator's script crosses these lines, and soften it in the prompt/spokenLine. Presenter & UGC shots get disclosure='ai-presenter'.",
+    claimsVerified ? `PROMISES VERIFIED IN WRITING (the ONLY claims allowed in any spokenLine/headline/caption, always qualified): ${claimsVerified}` : "",
+    claimsNot ? `NOT CONFIRMED YET (hard KEEP-OUT — never in any shot, spokenLine, or caption; these belong in DM replies / landing page only; flag any use in guardrailFlags): ${claimsNot}` : "",
     "",
     `Return ONLY JSON: {"title":"...","summary":"<2-3 lines: the creative + why this engine mix>","shots":[ ${SHOT_SCHEMA_HINT} ],"voice":{"include":bool,"script":"..."}|null,"music":{"include":bool,"prompt":"..."}|null,"guardrailFlags":["..."]}`,
     "Return ONLY the JSON object — no prose, no markdown fences.",

@@ -17,6 +17,7 @@ const DRIVER = process.env.STORE_DRIVER || "fs";
 const APPROVAL_NOTE = "Approved set is marked ready. Pushing live to Meta is a human action outside this hub (D-04).";
 export const QUEUE_KEY = "state/queue.json";
 export const APPROVALS_KEY = "state/approvals.json";
+export const COMPUTE_LOG_KEY = "state/compute-log.json";
 
 function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
   return {
@@ -183,6 +184,36 @@ export async function putPublicVideo(buf, name = "vid") {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${name}.mp4`), buf);
   return `/gen-video/${name}.mp4`;
+}
+
+/* ───────────────────────── compute-spend ledger (engine-audit P0-1c) ─────────────────────────
+ * Append-only log of render-compute estimates, one entry per engine start. Feeds the running
+ * meter in Create. Best-effort by design: a ledger hiccup must never fail a render. Same
+ * read-modify-write caveat as queue.json — the UI fires generates sequentially, so acceptable. */
+const COMPUTE_LOG_FILE = path.join(OUTPUT_DIR, "compute-log.json");
+function fsReadComputeLog() {
+  try { return JSON.parse(fs.readFileSync(COMPUTE_LOG_FILE, "utf8")); } catch { return []; }
+}
+async function cloudReadComputeLog() {
+  const url = await blobUrl(COMPUTE_LOG_KEY);
+  return (url && (await fetchJson(url))) || [];
+}
+export async function readComputeLog() { return DRIVER === "cloud" ? cloudReadComputeLog() : fsReadComputeLog(); }
+export async function appendComputeLog(entry) {
+  try {
+    if (!entry || !entry.kind) return false;
+    const log = await readComputeLog();
+    log.push({ kind: String(entry.kind), credits: Number(entry.credits) || 0, note: String(entry.note || "").slice(0, 200), at: new Date().toISOString() });
+    const trimmed = log.slice(-2000); // ledger, not archive — keep it bounded
+    if (DRIVER === "cloud") {
+      const { put } = await blobApi();
+      await put(COMPUTE_LOG_KEY, JSON.stringify(trimmed), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+    } else {
+      fs.mkdirSync(path.dirname(COMPUTE_LOG_FILE), { recursive: true });
+      fs.writeFileSync(COMPUTE_LOG_FILE, JSON.stringify(trimmed, null, 2));
+    }
+    return true;
+  } catch { return false; } // never fail the render over the meter
 }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
