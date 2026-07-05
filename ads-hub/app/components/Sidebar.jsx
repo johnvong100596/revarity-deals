@@ -23,6 +23,7 @@ export default function Sidebar() {
 
   // restore the collapsed preference (client-only)
   useEffect(() => { try { setCollapsed(localStorage.getItem("rev_rail_collapsed") === "1"); } catch {} }, []);
+
   // reflect collapsed on <html> (so .side / .main can react) + persist
   useEffect(() => {
     try { document.documentElement.classList.toggle("rail-collapsed", collapsed); localStorage.setItem("rev_rail_collapsed", collapsed ? "1" : "0"); } catch {}
@@ -74,7 +75,9 @@ export default function Sidebar() {
             </div>
           ))}
         </nav>
-        <div className="side-foot">ads.revarity.com · operator hub<br />proposes — never spends</div>
+        <div className="side-foot">
+          ads.revarity.com · operator hub<br />proposes — never spends<br />ctrl/⌘ K — jump anywhere
+        </div>
       </aside>
     </>
   );

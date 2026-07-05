@@ -1,48 +1,44 @@
 {
   "$schema": "https://revarity.com/schemas/brand-kit.v1.json",
   "brand": "Revarity",
-  "version": "1.0",
-  "updated": "2026-05-28",
-  "note": "Single source of truth for visual identity. The Creative Engine, lead-magnet assets, and all generated creatives MUST read tokens from this file. Do not hardcode hex values anywhere else.",
+  "version": "2.0",
+  "updated": "2026-07-05",
+  "note": "Single source of truth for visual identity. The Creative Engine, lead-magnet assets, and all generated creatives MUST read tokens from this file. Do not hardcode hex values anywhere else. v2.0 (D-14 ruling, Cena 2026-07-05): rewritten to describe what the live Revarity properties ACTUALLY ship — the deep-green/ivory/gold family from analyzethedeal.com (incl. its dark theme) + Inter body, verified against production CSS of revarity.com, analyzethedeal.com, and shop.revarity.com. The v1.0 ink/cream/#c9a961 + Manrope/JetBrains identity matched none of them. Creative claim/compliance rules folded in from the previously-richer vendored copy so nothing regresses.",
 
   "typography": {
     "display": {
       "family": "Fraunces",
-      "role": "Headlines, hero copy, emphasis. Serif. Editorial, premium.",
+      "role": "Headlines, hero copy, emphasis. Serif. Editorial, premium. (The one face v1.0 got right — ATD's funnel headlines ship in it.)",
       "weights": [300, 400, 500, 600, 700],
-      "italic_use": "Gold-colored italic at weight 300 is the signature emphasis treatment."
+      "italic_use": "Gold-colored italic is the signature emphasis treatment for the single most important word in a headline."
     },
     "ui": {
-      "family": "Manrope",
-      "role": "Body, UI, paragraphs, buttons. Sans-serif. Clean, modern.",
+      "family": "Inter",
+      "role": "Body, UI, paragraphs, buttons, labels, numbers. Sans-serif. The body face on every live Revarity property.",
       "weights": [300, 400, 500, 600, 700],
       "default_weight": 400,
       "letter_spacing": "-0.005em"
     },
-    "mono": {
-      "family": "JetBrains Mono",
-      "role": "Labels, eyebrows, metadata, code, data tags. Uppercase + wide tracking.",
-      "weights": [400, 500],
-      "treatment": "letter-spacing 0.15em-0.35em, text-transform uppercase, gold or muted color"
-    },
-    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    "max_faces": "TWO typefaces total (D-16 design charter). The v1.0 JetBrains Mono label face is retired; labels/eyebrows use Inter uppercase with wide tracking; code/data surfaces use the system monospace stack (not a loaded webfont).",
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600;700&display=swap"
   },
 
   "palette": {
-    "ink": "#0a0a0b",
-    "ink_soft": "#141416",
-    "cream": "#f5f1e8",
-    "cream_soft": "#ece6d6",
-    "paper": "#f9f6ee",
-    "gold": "#c9a961",
-    "gold_bright": "#e0c074",
-    "gold_deep": "#a88842",
-    "muted": "#8a857a",
-    "muted_dark": "#5a554b",
-    "line": "rgba(201,169,97,0.25)",
-    "line_dark": "rgba(201,169,97,0.12)",
+    "ink": "#121615",
+    "ink_soft": "#0c2620",
+    "cream": "#f5f3ef",
+    "cream_soft": "#d8d2c4",
+    "paper": "#0c2620",
+    "green_deep": "#0c2620",
+    "green": "#46a07c",
+    "gold": "#d9a859",
+    "gold_bright": "#e2b86b",
+    "gold_deep": "#8a6b2c",
+    "muted": "#a8a296",
+    "muted_dark": "#6f6a5e",
+    "line": "rgba(217,168,89,0.25)",
+    "line_dark": "rgba(217,168,89,0.12)",
     "line_light": "rgba(0,0,0,0.08)",
-    "green": "#7ba05b",
     "red": "#b86a55",
     "slate": "#7a7a7a",
     "amber": "#d4a24a"
@@ -50,12 +46,14 @@
 
   "semantic": {
     "background_dark": "ink",
+    "background_panel_dark": "green_deep",
     "background_light": "cream",
     "background_paper": "paper",
     "text_on_dark": "cream",
     "text_on_light": "ink",
     "accent": "gold",
     "accent_bright": "gold_bright",
+    "primary_brand_color": "green_deep",
     "status_positive": "green",
     "status_negative": "red",
     "status_warn": "amber",
@@ -66,9 +64,10 @@
 
   "creative_rules": {
     "do": [
-      "Gold-on-ink and ink-on-cream are the two primary contrast pairings.",
+      "Deep green (#0c2620) is the primary brand color across the family; gold is the accent, never the base.",
+      "Gold-on-dark and ink-on-ivory are the two primary contrast pairings.",
       "Use generous negative space. Premium, not crowded.",
-      "Radial gold glow on dark backgrounds for atmosphere.",
+      "One static radial gold glow on dark backgrounds for atmosphere — no animated decoration (D-16).",
       "Italic Fraunces in gold for the single most important word in a headline.",
       "Real photography of furnished units beats AI-rendered interiors where available.",
       "State the offer honestly: free to explore sourced deals + the community; pay nothing until you accept a deal; the client funds their own unit at cost; management is billed after setup."
@@ -76,7 +75,7 @@
     "dont": [
       "No purple gradients, no generic SaaS-blue, no stock-photo gloss.",
       "No emoji in any creative.",
-      "No fonts outside the three above.",
+      "No fonts outside the two above.",
       "No AI-generated talking-head / fake-testimonial UGC video (D-03). On-camera people may appear ONLY as aspirational lifestyle b-roll (not speaking to camera, not posing as a client); the selling message is carried by voiceover.",
       "No guaranteed-returns / guaranteed-income / risk-free / 'can't lose' language. No performance, occupancy, or profit guarantees — results vary; the client assumes financial responsibility (Agreement §16).",
       "Don't say 'no upfront cost' unqualified — it must read as no program / entry / franchise / 'door' fee; the client still funds their own unit at cost.",

@@ -146,3 +146,62 @@ wrong; nothing ships square.
   both are ticked. Approved money-arc cards get the Meta Ads Manager deep-LINK
   (upload/objective/AI-declare stay manual — D-04). Reject now takes a reason →
   append-only reject log (`state/reject-log.json` cloud / output/reject-log.json fs).
+
+### Studio-freedom slice (branch `studio-freedom-and-theme`, 2026-07-05)
+**D-13 · Angles PARKED, not deleted ✅** — Create no longer constrains generation to
+preset angles: the operator's prompt goes to the marketing brain (Opus), which
+freely decides copy, structure, and format per request. The library, Settings
+editor, and overrides are intact behind `ANGLES_ENABLED=1` (restore switch if
+free-prompt quality drops). NOT angles and unchanged: the claims lock
+(lib/claims assertClean, generate-boundary + approve-gate), QA scoring, and the
+human approve queue — infrastructure, always on.
+
+**D-14 · Palette ✅ RESOLVED (Cena, 2026-07-05): FAMILY WINS.** — brand.json v1.0
+contradicted what ALL THREE live properties actually use (verified from
+production CSS: no live site dark-ink based, Inter body everywhere, no
+Manrope/JetBrains anywhere, different golds, all three green-forward while
+v1.0 had no green). Ruling applied: the family palette is hard-set as the ONE
+:root token block (bg #121615 / deep-green panels #0c2620 / ivory #f5f3ef /
+gold #d9a859+#e2b86b+#8a6b2c / green #46a07c / Fraunces display + Inter body);
+the data-palette switch, sidebar toggle, ⌘K flip item and pre-paint script are
+REMOVED. **brand.json rewritten to v2.0** to describe what we actually ship
+("the law describes reality, not what someone once planned"): family palette +
+Fraunces/Inter two-face typography (D-16), richer claim/compliance
+creative_rules folded in from the vendored copy so nothing regressed, vendored
+`ads-hub/config/brand.json` re-synced via sync-config.mjs. Renderer end-card
+gold default follows v2.0 (#d9a859, RENDER_GOLD env still overrides — old ads
+keep their look; new drafts render in the ruled gold).
+
+**D-15 · Remove = 30-day trash, never silent destroy ✅** — every creative card
+(Review queue, Rejected section, home gallery) has Remove: plain confirm
+("Remove this ad? It disappears from everywhere."), soft-delete into
+`state/removed.json`, excluded from queue/gallery/counts/winner-ranking/posting
+via the single readQueue() filter, bulk-select for backlog clearing, Trash
+section with per-item days-left + "Put it back" + explicit "Delete now";
+anything past 30 days hard-deletes on the next trash read.
+
+## D-16 · STANDING DESIGN CHARTER (Cena, 2026-07-05) — applies from the theme slice onward
+1. **One primary action per screen.** Create = the prompt box. Review =
+   approve/remove. Schedule = the calendar. Everything else visually recedes.
+2. **Progressive disclosure.** Advanced controls live behind one "More options"
+   drawer or appear contextually after the first action — never all visible on
+   load. Default answer to "where does this new button go?" is the drawer, not
+   the surface.
+3. **Power through a command menu (⌘K), not toolbar sprawl** — every tool
+   reachable in two keystrokes at zero visual cost. This is how the studio gets
+   more creative tools forever without ever getting busier.
+4. **Empty states teach:** a screen with nothing shows one example and one
+   button, never a blank page.
+5. **Restraint reads expensive:** brand.json tokens only, generous spacing,
+   two typefaces max, no decoration that isn't information. Same rule as the
+   Brand 30 ad, applied to the product.
+6. **Every feature must earn its pixels.** If it can't justify surface space,
+   it ships in the drawer — shipping it hidden is fine, shipping it loud is not.
+
+Charter rulings applied to existing surface (this slice):
+- Two-typefaces-max OVERRIDES brand.json's third face: JetBrains Mono label
+  treatment is retired in both palettes (labels ride the body face). Revisit
+  with D-14 arbitration only if Cena wants it back.
+- "No decoration that isn't information": the animated aurora backdrop and the
+  headline shimmer animation are removed. The one sanctioned atmosphere is
+  brand.json's own rule — a single static radial gold glow on dark.

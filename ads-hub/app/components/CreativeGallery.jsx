@@ -31,6 +31,21 @@ export default function CreativeGallery({ creatives = [] }) {
   const [menuId, setMenuId] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [toast, setToast] = useState(null); // { msg, err }
+  const [removed, setRemoved] = useState({}); // locally hidden after Remove (server re-filters on next load)
+
+  // Remove → 30-day trash. Same soft-delete the Review queue uses; the card vanishes here instantly.
+  async function removeAd(c) {
+    if (!window.confirm("Remove this ad? It disappears from everywhere. (You can bring it back from Trash on the approvals page for 30 days.)")) return;
+    setMenuId(null); setLightbox(null);
+    try {
+      const res = await fetch("/api/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [c.id] }) });
+      if (!res.ok) throw new Error(`remove failed (${res.status})`);
+      setRemoved((p) => ({ ...p, [c.id]: true }));
+      setToast({ msg: "Removed — it's in Trash on the approvals page for 30 days." });
+    } catch (e) {
+      setToast({ msg: `Couldn't remove — ${e.message || e}`, err: true });
+    }
+  }
 
   useEffect(() => {
     if (!lightbox) return;
@@ -91,6 +106,9 @@ export default function CreativeGallery({ creatives = [] }) {
           <button role="menuitem" onClick={() => { setMenuId(null); router.push("/review"); }}>
             <span className="mi-ico">↗</span> Open in review queue
           </button>
+          <button role="menuitem" onClick={() => removeAd(c)}>
+            <span className="mi-ico">🗑</span><span>Remove<span className="mi-sub">Goes to a 30-day Trash — not gone forever</span></span>
+          </button>
         </>}
       </div>
     );
@@ -99,7 +117,7 @@ export default function CreativeGallery({ creatives = [] }) {
   return (
     <>
       <div className="sgrid">
-        {creatives.map((c) => (
+        {creatives.filter((c) => !removed[c.id]).map((c) => (
           <div className={"cg-card" + (menuId === c.id ? " menu-open" : "")} key={c.id}>
             <button className="cg-open" onClick={() => setLightbox(c)} aria-label={`Review ${c.headline || "creative"}`}>
               <div className={`sg-frame ${c.vertical ? "v" : "sq"}`}>

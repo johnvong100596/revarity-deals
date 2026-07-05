@@ -19,6 +19,8 @@ export const QUEUE_KEY = "state/queue.json";
 export const APPROVALS_KEY = "state/approvals.json";
 export const REJECT_LOG_KEY = "state/reject-log.json";
 export const COMPUTE_LOG_KEY = "state/compute-log.json";
+export const REMOVED_KEY = "state/removed.json";
+const TRASH_DAYS = 30;
 
 function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
   return {
@@ -157,6 +159,53 @@ export async function deleteCreative(id) {
   return true;
 }
 
+/* ───────────────────────── soft remove → 30-day trash ─────────────────────────
+ * "Remove" hides a creative EVERYWHERE (queue, gallery, counts, winner-ranking, the
+ * posting path) without destroying it: ids live in a removed map { id: removedAtISO }.
+ * The public readQueue() filters against the map, so every consumer is excluded by
+ * default. Trash restores in one click; entries older than TRASH_DAYS hard-delete on
+ * the next trash read. */
+const REMOVED_FILE = path.join(OUTPUT_DIR, "removed.json");
+async function readRemovedMap() {
+  if (DRIVER === "cloud") {
+    const url = await blobUrl(REMOVED_KEY);
+    return (url && (await fetchJson(url))) || {};
+  }
+  try { return JSON.parse(fs.readFileSync(REMOVED_FILE, "utf8")); } catch { return {}; }
+}
+async function writeRemovedMap(map) {
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    await put(REMOVED_KEY, JSON.stringify(map), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  } else {
+    fs.mkdirSync(path.dirname(REMOVED_FILE), { recursive: true });
+    fs.writeFileSync(REMOVED_FILE, JSON.stringify(map, null, 2));
+  }
+}
+/** Soft-remove (or restore) a batch of creatives. Returns the new trash size. */
+export async function removeCreatives(ids = [], { restore = false } = {}) {
+  const clean = (Array.isArray(ids) ? ids : []).map((i) => String(i)).filter(Boolean);
+  if (!clean.length) return { trash: null };
+  const map = await readRemovedMap();
+  for (const id of clean) {
+    if (restore) delete map[id];
+    else map[id] = map[id] || new Date().toISOString();
+  }
+  await writeRemovedMap(map);
+  return { trash: Object.keys(map).length };
+}
+const trashDaysLeft = (removedAt) => Math.max(0, TRASH_DAYS - Math.floor((Date.now() - new Date(removedAt).getTime()) / 86400000));
+/** Trash view: removed-but-recoverable items. Purges anything past TRASH_DAYS (hard delete). */
+export async function readTrash() {
+  const [q, map] = await Promise.all([readQueueRaw(), readRemovedMap()]);
+  let dirty = false;
+  for (const [id, at] of Object.entries(map)) {
+    if (trashDaysLeft(at) <= 0) { await deleteCreative(id).catch(() => {}); delete map[id]; dirty = true; }
+  }
+  if (dirty) await writeRemovedMap(map);
+  return q.filter((c) => map[c.id]).map((c) => ({ ...c, removed_at: map[c.id], trash_days_left: trashDaysLeft(map[c.id]) }));
+}
+
 /** Upload a source image to PUBLIC Blob and return its URL (Cloud video needs a fetchable image_url). Cloud only. */
 export async function putPublicImage(buf, name = "src") {
   if (DRIVER !== "cloud") throw new Error("video needs Blob image hosting — set STORE_DRIVER=cloud (+ BLOB_READ_WRITE_TOKEN)");
@@ -270,7 +319,14 @@ export async function appendComputeLog(entry) {
 }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */
-export async function readQueue() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }
+async function readQueueRaw() { return DRIVER === "cloud" ? cloudReadQueue() : fsReadQueue(); }
+/** The live queue — soft-removed items are filtered out for EVERY consumer (gallery, counts,
+ *  ranking, posting). Use readTrash() to see what's removed. */
+export async function readQueue() {
+  const [q, removed] = await Promise.all([readQueueRaw(), readRemovedMap()]);
+  if (!Object.keys(removed).length) return q;
+  return q.filter((c) => !removed[c.id]);
+}
 export async function getImage(id, variant) { return DRIVER === "cloud" ? cloudGetImage(id, variant) : fsGetImage(id, variant); }
 /** Public CDN URL of a creative's ad image (for Meta publishing, which needs a fetchable URL). Cloud only. */
 export async function publicImageUrl(id, variant = "ad") { return DRIVER === "cloud" ? blobUrl(`creatives/${id}${suffixFor(variant)}`) : null; }

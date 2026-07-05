@@ -80,7 +80,16 @@ export default async function Studio() {
 
       <div className="sec"><h2>Recent ads</h2><Link className="link" href="/review">Open your approvals →</Link></div>
       {gallery.length === 0 ? (
-        <div className="gate"><span>Queue is empty — generate a run to populate the studio.</span></div>
+        <div className="empty-teach">
+          <figure className="qc example" aria-hidden="true">
+            <div className="qframe sq"><div className="example-frame"><span>your ad&rsquo;s preview</span></div></div>
+            <div className="qbody">
+              <div className="qmeta"><span className="tag">Example</span></div>
+              <p className="qtext">Your newest ads appear here as they&rsquo;re made — hover to play, click to review.</p>
+            </div>
+          </figure>
+          <Link className="btn" href="/create">Make your first ad →</Link>
+        </div>
       ) : (
         <CreativeGallery creatives={gallery.map((c) => ({
           id: c.id,

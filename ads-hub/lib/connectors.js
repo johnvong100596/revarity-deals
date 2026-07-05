@@ -41,7 +41,16 @@ export async function primeOverrides() {
   } catch { _angleOverride = null; _specOverride = null; }
 }
 export const primeAngles = primeOverrides;
-export function effectiveAngles() { return _angleOverride || angles.angles; }
+
+/**
+ * Angle library is PARKED (studio-freedom): the marketing brain decides copy, structure and
+ * format from the operator's prompt alone. Set ANGLES_ENABLED=1 to restore preset angles if
+ * free-prompt quality drops — the library, Settings editor and overrides are all intact.
+ * The claims lock (lib/claims assertClean), QA scoring, and the human approve queue are
+ * infrastructure, NOT angles — they stay on regardless of this flag.
+ */
+export function anglesEnabled() { return String(process.env.ANGLES_ENABLED || "0") === "1"; }
+export function effectiveAngles() { return anglesEnabled() ? (_angleOverride || angles.angles) : []; }
 export function getAngle(id) { return effectiveAngles().find((a) => a.id === id) || null; }
 function specsMap() {
   if (_specOverride) { const m = {}; for (const f of _specOverride) if (f && f.name) m[f.name] = { w: f.w, h: f.h, use: f.use }; return m; }

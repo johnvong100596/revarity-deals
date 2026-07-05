@@ -20,7 +20,7 @@ import os from "node:os";
 import path from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 
-const GOLD = process.env.RENDER_GOLD || "c9a961"; // brand-kit gold (brand.json)
+const GOLD = process.env.RENDER_GOLD || "d9a859"; // brand-kit gold (brand.json v2.0, D-14)
 const FPS = 30;
 const CAPBOX = "fontcolor=white:box=1:boxcolor=black@0.42:boxborderw=24";
 
