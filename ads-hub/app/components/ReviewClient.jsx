@@ -151,6 +151,9 @@ export default function ReviewClient() {
   const [showTrash, setShowTrash] = useState(false);
   const [selecting, setSelecting] = useState(false); // bulk-select mode for clearing backlog
   const [selected, setSelected] = useState({}); // { id: true }
+  const [barMore, setBarMore] = useState(false); // D-16: secondary tools recede into one ⋯ menu
+  // deep link from the command menu: /review#trash opens straight into Trash
+  useEffect(() => { try { if (window.location.hash === "#trash") setShowTrash(true); } catch {} }, []);
 
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
@@ -303,18 +306,38 @@ export default function ReviewClient() {
             </>
           ) : (
             <>
-              <span className="chip-sel" title="Versions per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
-              <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
-              <button className="btn ghost" onClick={() => setSelecting(true)} title="Pick several ads, then remove them all at once — they go to a 30-day Trash, not gone forever.">Select…</button>
-              <button className="btn ghost" onClick={approveAllPass}>Approve all that passed</button>
-              <button className="btn ghost" onClick={save}>Save decisions</button>
-              <button className="btn" onClick={exportSet}>Export approved ↓</button>
+              {/* D-16: approve/remove on the cards is the screen's primary action; Save commits it.
+                  Every other tool recedes into one ⋯ menu. */}
+              <button className="btn" onClick={save}>Save decisions</button>
+              <span className="bar-more-wrap">
+                <button className="btn ghost" onClick={() => setBarMore((v) => !v)} aria-expanded={barMore} aria-haspopup="menu">⋯ More</button>
+                {barMore && (
+                  <span className="bar-menu" role="menu">
+                    <button role="menuitem" onClick={() => { setBarMore(false); approveAllPass(); }}>Approve all that passed</button>
+                    <button role="menuitem" onClick={() => { setBarMore(false); setSelecting(true); }} title="Pick several ads, then remove them all at once — they go to a 30-day Trash, not gone forever.">Select for bulk remove…</button>
+                    <button role="menuitem" onClick={() => { setBarMore(false); exportSet(); }}>Export approved ↓</button>
+                    <button role="menuitem" onClick={() => { setBarMore(false); setMode((m) => (m === "ink" ? "photo" : "ink")); }}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
+                    <span className="bar-menu-row">Versions per card <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
+                  </span>
+                )}
+              </span>
+              {barMore && <span className="bar-menu-scrim" onClick={() => setBarMore(false)} />}
             </>
           )}
         </div>
       </div>
       {loading ? <p className="muted">Loading queue…</p> : queue.length === 0 ? (
-        <div className="gate"><span>Queue is empty. Go to <b>Create</b> to make ads.</span></div>
+        <div className="empty-teach">
+          <figure className="qc example" aria-hidden="true">
+            <div className="qframe sq"><div className="example-frame"><span>your ad&rsquo;s preview</span></div></div>
+            <div className="qbody">
+              <div className="qmeta"><span className="tag">Example</span><span className="tag">Reels / Stories</span></div>
+              <p className="qtext">Every ad lands here with its words, a check result, and three buttons: Approve, Hold, Reject. Nothing goes live until you approve it — and even then, you launch it yourself.</p>
+              <div className="acts"><button className="ap" disabled>Approve</button><button className="hd" disabled>Hold</button><button className="rj" disabled>Reject</button></div>
+            </div>
+          </figure>
+          <a className="btn" href="/create">Make your first ad →</a>
+        </div>
       ) : (
         <>
         {active.length === 0 ? (

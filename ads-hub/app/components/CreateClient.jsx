@@ -51,6 +51,10 @@ export default function CreateClient({ angles, formats }) {
   // The promise split (UX14): what's on paper goes in the ad; the rest stays in DMs.
   const [claimsVerified, setClaimsVerified] = useState("");
   const [claimsNot, setClaimsNot] = useState("");
+  // D-16 progressive disclosure: ONE drawer for everything that isn't the prompt box.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // …except the promise check, which surfaces CONTEXTUALLY the moment the prompt sounds like money.
+  const claimish = /(\$|%|\bdown\b|financ|apr|credit|guarantee|\bfree\b|price|cost)/i.test(idea) || !!claimsVerified || !!claimsNot;
   // Nothing renders without an explicit OK (engine-audit P0-1a + UX16).
   const [confirm, setConfirm] = useState(null); // { label, credits, run }
   // The running compute meter (P0-1c).
@@ -215,73 +219,91 @@ export default function CreateClient({ angles, formats }) {
       <h1>The <em>studio</em></h1>
       <p className="lead">Describe the ad you want, or paste a script you like. We build each part and put the results in your approvals.</p>
 
+      {/* D-16: the prompt box is THE screen. One primary button. Everything else lives in the
+          "More options" drawer — except the promise check, which surfaces itself the moment
+          the prompt sounds like money (claims safety earns its pixels only when relevant). */}
       <div className="composer">
         <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
           placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with the opening, scenes, and lines.'} />
 
-        <div className="promise-split">
-          <div className="promise-col">
-            <label className="l">Promises you can back up in writing</label>
-            <textarea rows={2} value={claimsVerified} onChange={(e) => setClaimsVerified(e.target.value)}
-              placeholder={'e.g. $0 down for qualified properties'} />
-            <span className="helper">These can go in the ad.</span>
-          </div>
-          <div className="promise-col">
-            <label className="l">Not confirmed yet</label>
-            <textarea rows={2} value={claimsNot} onChange={(e) => setClaimsNot(e.target.value)}
-              placeholder={'e.g. 0% APR available'} />
-            <span className="helper">We&rsquo;ll keep these out of the video and mention them in your DMs instead. This protects you from ad bans and refund fights. Move them over once you have it on paper.</span>
-          </div>
-        </div>
-
-        <div className="chips">
-          <button className={`chip ${showInsp ? "on" : ""}`} onClick={() => setShowInsp((v) => !v)}>+ Inspiration{showInsp && <span className="x">×</span>}</button>
-          <button className={`chip ${wantVoice ? "on" : ""}`} onClick={() => setWantVoice((v) => !v)}>+ Voice{wantVoice && <span className="x">×</span>}</button>
-          <button className={`chip ${wantMusic ? "on" : ""}`} onClick={() => setWantMusic((v) => !v)}>+ Music{wantMusic && <span className="x">×</span>}</button>
-          <span className="chip-sel" title="Video, image, or words — or let us pick">What kind of ad? <select value={output} onChange={(e) => setOutput(e.target.value)}>{OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></span>
-          <span className="chip-sel" title="Where the ad will run">Format <select value={format} onChange={(e) => setFormat(e.target.value)}>
-            <option value="auto">Auto — studio picks</option>
-            {formats.map((f) => <option key={f.name} value={f.name}>{FORMAT_LABELS[f.name] || f.name} · {f.dims}</option>)}
-          </select></span>
-          {/* Themes (angle presets) are parked (ANGLES_ENABLED) — empty list hides the picker and
-              your prompt goes to the marketing brain unconstrained. */}
-          {angles.length > 0 && (
-            <span className="chip-sel" title="The story angle we build around">Theme <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
-              <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
-            </select></span>
-          )}
-          <span className="chip-sel" title="How long the ad runs">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
-            {LENGTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select></span>
-        </div>
-
-        {showInsp && (
-          <div className="chip-panel">
-            <label className="l">Inspiration — copy from others, or drop a URL / video link</label>
-            <textarea rows={3} value={reference} onChange={(e) => setReference(e.target.value)}
-              placeholder="Paste a competitor / swipe ad's copy. We learn the framework and make an ORIGINAL — never a copy." />
-            <input style={{ marginTop: 8 }} value={refUrl} onChange={(e) => setRefUrl(e.target.value)} placeholder="optional source URL" />
-            <input style={{ marginTop: 8 }} value={refVideo} onChange={(e) => setRefVideo(e.target.value)} placeholder="…or a reference VIDEO link (Dropbox / Drive / YouTube) — we mimic its structure, not its footage" />
-          </div>
-        )}
-        {wantVoice && (
-          <div className="chip-panel">
-            <label className="l">Voice (ElevenLabs) — optional script (blank = the studio writes it from your idea)</label>
-            <textarea rows={2} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Narration to speak over the video." />
-          </div>
-        )}
-        {wantMusic && (
-          <div className="chip-panel">
-            <label className="l">Music (Lyria) — mood & instruments, no vocals</label>
-            <input value={musicPrompt} onChange={(e) => setMusicPrompt(e.target.value)} placeholder="e.g. warm cinematic piano + soft strings, calm and aspirational, ~30s bed" />
+        {(claimish || moreOpen) && (
+          <div className="promise-split">
+            <div className="promise-col">
+              <label className="l">Promises you can back up in writing</label>
+              <textarea rows={2} value={claimsVerified} onChange={(e) => setClaimsVerified(e.target.value)}
+                placeholder={'e.g. $0 down for qualified properties'} />
+              <span className="helper">These can go in the ad.</span>
+            </div>
+            <div className="promise-col">
+              <label className="l">Not confirmed yet</label>
+              <textarea rows={2} value={claimsNot} onChange={(e) => setClaimsNot(e.target.value)}
+                placeholder={'e.g. 0% APR available'} />
+              <span className="helper">We&rsquo;ll keep these out of the video and mention them in your DMs instead. This protects you from ad bans and refund fights. Move them over once you have it on paper.</span>
+            </div>
           </div>
         )}
 
         <div className="composer-foot">
-          <span className="hint">{output === "auto" ? "Auto: we plan the shots first — planning is free, and you approve before anything is created or posted (D-04)." : "We create these now and send them to your approvals — you'll see the cost and confirm first."}</span>
+          <button className="more-toggle" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen}>More options {moreOpen ? "▲" : "▼"}</button>
           {meter && <span className="meter" title={`This month's creation costs by engine: ${Object.entries(meter.byKind || {}).map(([k, v]) => `${k} ~${v}`).join(" · ") || "nothing yet"}. Estimates, not an invoice.`}>Used: ~{meter.month} credits this month · ~{meter.today} today</span>}
-          <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Create my ad →"}</button>
+          <button className="btn" onClick={spinUp} disabled={busy || !idea.trim()} title={output === "auto" ? "We plan the shots first — planning is free, and you approve before anything is created or posted (D-04)." : "You'll see the cost and confirm before anything is created."}>{busy ? "Working…" : output === "auto" ? "Plan it →" : "Create my ad →"}</button>
         </div>
+
+        {moreOpen && (
+          <div className="more-drawer">
+            <div className="chips">
+              <button className={`chip ${showInsp ? "on" : ""}`} onClick={() => setShowInsp((v) => !v)}>+ Inspiration{showInsp && <span className="x">×</span>}</button>
+              <button className={`chip ${wantVoice ? "on" : ""}`} onClick={() => setWantVoice((v) => !v)}>+ Voice{wantVoice && <span className="x">×</span>}</button>
+              <button className={`chip ${wantMusic ? "on" : ""}`} onClick={() => setWantMusic((v) => !v)}>+ Music{wantMusic && <span className="x">×</span>}</button>
+              <span className="chip-sel" title="Video, image, or words — or let us pick">What kind of ad? <select value={output} onChange={(e) => setOutput(e.target.value)}>{OUTPUTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</select></span>
+              <span className="chip-sel" title="Where the ad will run">Format <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                <option value="auto">Auto — studio picks</option>
+                {formats.map((f) => <option key={f.name} value={f.name}>{FORMAT_LABELS[f.name] || f.name} · {f.dims}</option>)}
+              </select></span>
+              {/* Themes (angle presets) are parked (ANGLES_ENABLED) — empty list hides the picker and
+                  your prompt goes to the marketing brain unconstrained. */}
+              {angles.length > 0 && (
+                <span className="chip-sel" title="The story angle we build around">Theme <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
+                  <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
+                </select></span>
+              )}
+              <span className="chip-sel" title="How long the ad runs">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
+                {LENGTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select></span>
+            </div>
+
+            {showInsp && (
+              <div className="chip-panel">
+                <label className="l">Inspiration — copy from others, or drop a URL / video link</label>
+                <textarea rows={3} value={reference} onChange={(e) => setReference(e.target.value)}
+                  placeholder="Paste a competitor / swipe ad's copy. We learn the framework and make an ORIGINAL — never a copy." />
+                <input style={{ marginTop: 8 }} value={refUrl} onChange={(e) => setRefUrl(e.target.value)} placeholder="optional source URL" />
+                <input style={{ marginTop: 8 }} value={refVideo} onChange={(e) => setRefVideo(e.target.value)} placeholder="…or a reference VIDEO link (Dropbox / Drive / YouTube) — we mimic its structure, not its footage" />
+              </div>
+            )}
+            {wantVoice && (
+              <div className="chip-panel">
+                <label className="l">Voice (ElevenLabs) — optional script (blank = the studio writes it from your idea)</label>
+                <textarea rows={2} value={voScript} onChange={(e) => setVoScript(e.target.value)} placeholder="Narration to speak over the video." />
+              </div>
+            )}
+            {wantMusic && (
+              <div className="chip-panel">
+                <label className="l">Music (Lyria) — mood & instruments, no vocals</label>
+                <input value={musicPrompt} onChange={(e) => setMusicPrompt(e.target.value)} placeholder="e.g. warm cinematic piano + soft strings, calm and aspirational, ~30s bed" />
+              </div>
+            )}
+
+            <div className="batch-foot">
+              <span className="hint">Batch — up to 10 ideas at once, into your approvals (you still approve each):</span>
+              <span className="chip-sel">Count <select value={nIdeas} onChange={(e) => setNIdeas(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}
+              </select></span>
+              <button className="btn ghost" onClick={makeVariations} disabled={busy || !idea.trim()} title="Up to 10 versions of this idea — similar script & background, different openings. Nothing posts; you review each.">✨ Make {nIdeas} versions</button>
+              <button className="btn ghost" onClick={autoFromAngle} disabled={busy} title="Up to 10 fresh ideas from your recent designs. Nothing posts; you review each.">⚡ Make {nIdeas} new ideas</button>
+            </div>
+          </div>
+        )}
 
         {confirm && (
           <div className="confirm-bar">
@@ -292,15 +314,6 @@ export default function CreateClient({ angles, formats }) {
             </span>
           </div>
         )}
-
-        <div className="batch-foot">
-          <span className="hint">Batch — up to 10 ideas at once, into your approvals (you still approve each):</span>
-          <span className="chip-sel">Count <select value={nIdeas} onChange={(e) => setNIdeas(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}
-          </select></span>
-          <button className="btn ghost" onClick={makeVariations} disabled={busy || !idea.trim()} title="Up to 10 versions of this idea — similar script & background, different openings. Nothing posts; you review each.">✨ Make {nIdeas} versions</button>
-          <button className="btn ghost" onClick={autoFromAngle} disabled={busy} title="Up to 10 fresh ideas from the selected theme + your recent designs. Nothing posts; you review each.">⚡ Make {nIdeas} new ideas</button>
-        </div>
       </div>
 
       {planErr && <div className="log" style={{ color: "var(--red)" }}>{planErr}</div>}

@@ -176,3 +176,29 @@ label treatment (mono labels) under "law".
 via the single readQueue() filter, bulk-select for backlog clearing, Trash
 section with per-item days-left + "Put it back" + explicit "Delete now";
 anything past 30 days hard-deletes on the next trash read.
+
+## D-16 · STANDING DESIGN CHARTER (Cena, 2026-07-05) — applies from the theme slice onward
+1. **One primary action per screen.** Create = the prompt box. Review =
+   approve/remove. Schedule = the calendar. Everything else visually recedes.
+2. **Progressive disclosure.** Advanced controls live behind one "More options"
+   drawer or appear contextually after the first action — never all visible on
+   load. Default answer to "where does this new button go?" is the drawer, not
+   the surface.
+3. **Power through a command menu (⌘K), not toolbar sprawl** — every tool
+   reachable in two keystrokes at zero visual cost. This is how the studio gets
+   more creative tools forever without ever getting busier.
+4. **Empty states teach:** a screen with nothing shows one example and one
+   button, never a blank page.
+5. **Restraint reads expensive:** brand.json tokens only, generous spacing,
+   two typefaces max, no decoration that isn't information. Same rule as the
+   Brand 30 ad, applied to the product.
+6. **Every feature must earn its pixels.** If it can't justify surface space,
+   it ships in the drawer — shipping it hidden is fine, shipping it loud is not.
+
+Charter rulings applied to existing surface (this slice):
+- Two-typefaces-max OVERRIDES brand.json's third face: JetBrains Mono label
+  treatment is retired in both palettes (labels ride the body face). Revisit
+  with D-14 arbitration only if Cena wants it back.
+- "No decoration that isn't information": the animated aurora backdrop and the
+  headline shimmer animation are removed. The one sanctioned atmosphere is
+  brand.json's own rule — a single static radial gold glow on dark.

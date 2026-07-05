@@ -85,7 +85,7 @@ export default function Sidebar() {
           ))}
         </nav>
         <div className="side-foot">
-          ads.revarity.com · operator hub<br />proposes — never spends
+          ads.revarity.com · operator hub<br />proposes — never spends<br />ctrl/⌘ K — jump anywhere
           <button className="palette-toggle" onClick={flipPalette} title={palette === "law" ? "Showing brand.json as written. Click to preview the palette the live Revarity sites actually use (ATD greens/ivory/gold, Inter)." : "Showing the live-family palette. Click to go back to brand.json as written (ink/cream/gold, Manrope)."}>
             Palette: {palette === "law" ? "The Law (brand.json)" : "Family (live sites)"} ⇄
           </button>
