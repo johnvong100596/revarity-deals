@@ -25,16 +25,6 @@ export default function CommandMenu() {
     { label: "Monitor", hint: "performance", run: () => router.push("/monitor") },
     { label: "Settings", hint: "connections, models, library", run: () => router.push("/settings") },
     { label: "Guide", hint: "how the hub works", run: () => router.push("/welcome") },
-    {
-      label: "Flip palette (law ⇄ family)", hint: "compare brand.json vs the live-site look",
-      run: () => {
-        try {
-          const next = document.documentElement.dataset.palette === "family" ? "law" : "family";
-          document.documentElement.dataset.palette = next;
-          localStorage.setItem("rev-palette", next);
-        } catch {}
-      },
-    },
   ], [router]);
 
   const filtered = useMemo(() => {

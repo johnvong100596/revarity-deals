@@ -14,21 +14,15 @@ export const metadata = {
 
 function Shell({ children }) {
   return (
-    // data-palette: "law" = brand-kit/brand.json as written; "family" = tokens lifted from the live
-    // Revarity properties (ATD dark theme / revarity.com greens). Cena arbitrates which one wins —
-    // the sidebar toggle exists only for that comparison and persists per browser.
-    <html lang="en" data-palette="law">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Two typefaces per palette (D-16): Fraunces display + Manrope (law) / Inter (family) body.
-            Both bodies stay loaded until the D-14 palette arbitration lands. */}
+        {/* Two typefaces (D-16 + brand.json v2.0): Fraunces display + Inter body. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        {/* apply the saved palette before first paint (no flash) */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var p=localStorage.getItem("rev-palette");if(p==="family"||p==="law")document.documentElement.dataset.palette=p}catch(e){}` }} />
       </head>
       <body>
         <div className="glow" />

@@ -19,7 +19,7 @@ import path from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 import { SIZES } from "./render.js";
 
-const GOLD = process.env.RENDER_GOLD || "c9a961";
+const GOLD = process.env.RENDER_GOLD || "d9a859"; // brand.json v2.0 gold (D-14)
 const SHADOW = "shadowcolor=black@0.65:shadowx=3:shadowy=3";
 
 const ffmpegBin = () => process.env.FFMPEG_PATH || ffmpegStatic || "ffmpeg";

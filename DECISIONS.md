@@ -156,18 +156,21 @@ free-prompt quality drops). NOT angles and unchanged: the claims lock
 (lib/claims assertClean, generate-boundary + approve-gate), QA scoring, and the
 human approve queue — infrastructure, always on.
 
-**D-14 · Palette — AWAITING CENA'S ARBITRATION ⛔** — brand.json ("the visual law",
-v1.0 2026-05-28) contradicts what ALL THREE live properties actually use
-(verified from production CSS 2026-07-05): no live site is dark-ink based, none
-use Manrope or JetBrains Mono (body = Inter everywhere), none use brand.json's
-gold hexes (#c9a961/#e0c074), and all three are green-forward (#0c2620 ATD /
-#1e4a38 revarity.com) while brand.json has no green at all. Per the no-guessing
-rule the hub ships BOTH palettes behind `html[data-palette]` + a sidebar toggle:
-"law" (brand.json verbatim, default) vs "family" (ATD dark-theme tokens:
-#121615/#0c2620/#f5f3ef/#d9a859/#46a07c + Inter). Cena picks; then hard-set the
-winner, remove the toggle, and update brand.json to match reality if "family" wins.
-Shared in both: Fraunces display (the one point of agreement), brand.json's
-label treatment (mono labels) under "law".
+**D-14 · Palette ✅ RESOLVED (Cena, 2026-07-05): FAMILY WINS.** — brand.json v1.0
+contradicted what ALL THREE live properties actually use (verified from
+production CSS: no live site dark-ink based, Inter body everywhere, no
+Manrope/JetBrains anywhere, different golds, all three green-forward while
+v1.0 had no green). Ruling applied: the family palette is hard-set as the ONE
+:root token block (bg #121615 / deep-green panels #0c2620 / ivory #f5f3ef /
+gold #d9a859+#e2b86b+#8a6b2c / green #46a07c / Fraunces display + Inter body);
+the data-palette switch, sidebar toggle, ⌘K flip item and pre-paint script are
+REMOVED. **brand.json rewritten to v2.0** to describe what we actually ship
+("the law describes reality, not what someone once planned"): family palette +
+Fraunces/Inter two-face typography (D-16), richer claim/compliance
+creative_rules folded in from the vendored copy so nothing regressed, vendored
+`ads-hub/config/brand.json` re-synced via sync-config.mjs. Renderer end-card
+gold default follows v2.0 (#d9a859, RENDER_GOLD env still overrides — old ads
+keep their look; new drafts render in the ruled gold).
 
 **D-15 · Remove = 30-day trash, never silent destroy ✅** — every creative card
 (Review queue, Rejected section, home gallery) has Remove: plain confirm
