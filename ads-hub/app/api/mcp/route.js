@@ -38,17 +38,24 @@ function memberForRequest(req) {
   // URL. The query form exists because claude.ai custom connectors can't send custom headers —
   // the URL is the only channel a member can put their key in. Internal tool, keys rotate via
   // env; the trade-off is accepted and logged in D-17.
+  //
+  // KEYS MUST BE URL-SAFE ([A-Za-z0-9_-] only). Learned the hard way (2026-07-05): a key
+  // containing '&' is truncated by query-string parsing and one containing '#' never leaves
+  // the browser (fragment). Rotation = change MCP_API_KEYS, redeploy.
   let key = "";
   const h = req.headers.get("authorization") || "";
   if (h.startsWith("Bearer ")) key = h.slice(7).trim();
   if (!key) { try { key = (new URL(req.url).searchParams.get("key") || "").trim(); } catch {} }
+  key = key.replace(/^["']+|["']+$/g, ""); // forgive pasted quotes
   if (!key) return null;
   for (const pair of (process.env.MCP_API_KEYS || "").split(",")) {
     const i = pair.indexOf(":");
     if (i <= 0) continue;
     const name = pair.slice(0, i).trim();
     const k = pair.slice(i + 1).trim();
-    if (name && k && k === key) return name;
+    if (!name || !k) continue;
+    // Accept the bare personal key, and forgive the "name:key" paste form.
+    if (key === k || key === `${name}:${k}`) return name;
   }
   return null;
 }
