@@ -1,5 +1,18 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
+import { claimViolations } from "@/lib/claims";
+import { estimateCredits } from "@/lib/computeCost";
+
+// The claims lock at the APPROVE gate (engine-audit P0-3): a card whose copy trips the lock —
+// or carries the $0-down offer with no disclaimer machinery — can't be approved for spend.
+// Client-side aprUnlocked() correctly reads locked (the env flag is server-only).
+function claimsBlock(c) {
+  const text = [c.headline, c.body, c.cta, c.script, c.caption].filter(Boolean).join("\n");
+  const hits = claimViolations(text);
+  if (hits.length) return `Claims lock: ${[...new Set(hits.map((h) => h.kind))].join(", ")} — unconfirmed money/credit language can't ship. Route it to DM replies, or rebuild through the money-arc pipeline.`;
+  if (/\b(\$\s?0|zero)[\s-]*down\b/i.test(text) && !c.disclaimer) return "This ad makes the $0-down offer but has no disclaimer end card — route it through the money-arc pipeline, which burns the disclaimer in.";
+  return null;
+}
 
 // Predictive Creative Score (AI estimate). Hook/Viral/Response are higher-is-better; Retention risk is
 // higher-is-WORSE (coral). Each axis shows the model's one-line reason inline. Estimates, not guarantees
@@ -205,6 +218,10 @@ export default function ReviewClient() {
   }
   async function spinVariations(c) {
     if (varBusy) return;
+    // Nothing renders without an explicit OK (engine-audit P0-1a / UX16).
+    const isVideo = !!c.video_url;
+    const est = Math.round(estimateCredits(isVideo ? "veo" : "image", varN) * 10) / 10;
+    if (!window.confirm(`Create ${varN} variation${varN === 1 ? "" : "s"} of this ad? This will use about ${est} credits. Nothing runs without your OK.`)) return;
     setVarBusy(c.id); setVarMsg("");
     try {
       const idea = [c.headline, c.body, c.script].filter(Boolean).join(" — ");
@@ -256,6 +273,7 @@ export default function ReviewClient() {
           {active.map((c) => {
             const st = state[c.id];
             const badge = c.qa === "pass" ? "" : c.qa === "fail" ? "bad" : "warn";
+            const blocked = claimsBlock(c);
             return (
               <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
@@ -275,11 +293,12 @@ export default function ReviewClient() {
                   <ScoreStrip s={c.scores} />
                   <QcGates c={c} g={gates[c.id] || {}} onTick={(k) => tickGate(c.id, k)} />
                   <DownloadRow c={c} />
+                  {blocked && <div className="claims-block">⚠ {blocked}</div>}
                   <div className="acts">
                     <button
                       className={`ap ${st === "approve" ? "on" : ""}`}
-                      disabled={!!c.qc && st !== "approve" && !gatesPassed(c.id)}
-                      title={c.qc && !gatesPassed(c.id) ? "Tick both QC gates first — voice read + final claims check." : undefined}
+                      disabled={st !== "approve" && (!!blocked || (!!c.qc && !gatesPassed(c.id)))}
+                      title={blocked || (c.qc && !gatesPassed(c.id) ? "Tick both QC gates first — voice read + final claims check." : undefined)}
                       onClick={() => set(c.id, "approve")}
                     >Approve</button>
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>

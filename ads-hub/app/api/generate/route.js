@@ -4,9 +4,11 @@ import { startVideo } from "@/lib/higgsfield-cloud";
 import { startVeo } from "@/lib/veo";
 import { startFal, FAL_MODELS } from "@/lib/fal";
 import { startUgc } from "@/lib/arcads";
-import { appendCreatives, putPublicImage } from "@/lib/store";
+import { appendCreatives, putPublicImage, appendComputeLog } from "@/lib/store";
 import { saveJob, newId } from "@/lib/jobs";
 import { scoreCreative } from "@/lib/score";
+import { claimViolations } from "@/lib/claims";
+import { estimateCredits } from "@/lib/computeCost";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,12 +34,34 @@ async function resolveCopy({ provided, angleId, brief, reference }) {
   return c;
 }
 
+// The claims lock at the generate boundary (engine-audit P0-3). Advisory before; BLOCKING now:
+// a violating input never spends compute, a violating generated line never reaches the queue.
+// Plain-language error per the UX spec — protection, not restriction.
+const CLAIMS_BLOCKED_MSG = (hits) =>
+  `That wording can't go in an ad yet — it trips the claims lock (${[...new Set(hits.map((h) => h.kind))].join(", ")}). ` +
+  `Unconfirmed money/credit promises go in your DM replies instead of the video; move them to the ad once you have them on paper.`;
+function assertInputClean(...texts) {
+  const hits = claimViolations(texts.filter(Boolean).join("\n"));
+  if (hits.length) { const e = new Error(CLAIMS_BLOCKED_MSG(hits)); e.status = 422; throw e; }
+}
+// The promise-split (UX14): verified promises are allowed context; unverified ones are an
+// explicit KEEP-OUT list handed to the copywriter.
+function claimsBrief(brief, claimsVerified, claimsNot) {
+  const parts = [brief];
+  if (claimsVerified) parts.push(`\nPROMISES VERIFIED IN WRITING (the ONLY claims allowed in copy, always qualified): ${claimsVerified}`);
+  if (claimsNot) parts.push(`\nNOT CONFIRMED YET (NEVER put these in the ad — they live in DM replies/landing page only): ${claimsNot}`);
+  return parts.join("");
+}
+
 export async function POST(req) {
   let b = {};
   try { b = await req.json(); } catch {}
   const type = b.type || "image";
   const angleId = b.angleId || "";
-  const brief = (b.brief || "").slice(0, 2000);
+  const rawBrief = (b.brief || "").slice(0, 2000);
+  const claimsVerified = (b.claimsVerified || "").slice(0, 800);
+  const claimsNot = (b.claimsNot || "").slice(0, 800);
+  const brief = claimsBrief(rawBrief, claimsVerified, claimsNot);
   const reference = (b.reference || "").slice(0, 4000);
   const spec = b.spec && b.spec !== "auto" ? b.spec : "meta_feed_square";
   const n = Math.min(Math.max(parseInt(b.n, 10) || 1, 1), 4);
@@ -47,15 +71,25 @@ export async function POST(req) {
   await primeAngles(); // load operator angle overrides so getAngle() inside the builders sees edited/custom angles
 
   try {
+    // Claims lock, BEFORE any compute is spent: operator inputs + director copy + the verified
+    // list itself (a "verified" APR claim still stays out until CLAIMS_APR_UNLOCKED).
+    assertInputClean(rawBrief, claimsVerified, directorPrompt, b.spokenLine, provided?.headline, provided?.body, provided?.cta);
+
     if (type === "copy") {
       const variants = await genCopy({ angleId, brief, reference, n });
-      const scored = await Promise.all(variants.map(async (v) => ({ ...v, scores: await scoreCreative({ ...v, angleId, spec, brief }) })));
-      return NextResponse.json({ ok: true, type, variants: scored });
+      // Post-generation claims gate: a violating AI line is dropped, never returned.
+      const clean = variants.filter((v) => claimViolations([v.headline, v.body, v.cta].filter(Boolean).join("\n")).length === 0);
+      if (!clean.length) { const e = new Error(CLAIMS_BLOCKED_MSG(claimViolations(variants.map((v) => `${v.headline} ${v.body} ${v.cta}`).join("\n")))); e.status = 422; throw e; }
+      const scored = await Promise.all(clean.map(async (v) => ({ ...v, scores: await scoreCreative({ ...v, angleId, spec, brief }) })));
+      await appendComputeLog({ kind: "copy", credits: estimateCredits("copy"), note: `copy x${clean.length}` });
+      return NextResponse.json({ ok: true, type, variants: scored, dropped: variants.length - clean.length });
     }
 
     if (type === "image") {
       const copy = await resolveCopy({ provided, angleId, brief, reference });
       if (!copy) throw new Error("copy generation returned nothing");
+      // Claims gate BEFORE the paid render — a violating line never spends compute.
+      assertInputClean(copy.headline, copy.body, copy.cta);
       const prompt = directorPrompt || buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief });
       const [adPng, scores] = await Promise.all([
         renderImage(prompt, { final: b.final !== false }), // ultra-realism: default to the PRO image model
@@ -71,6 +105,7 @@ export async function POST(req) {
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated — review before approve"], qa_model: "" },
       };
       await appendCreatives([{ rec, adPng }]);
+      await appendComputeLog({ kind: "image", credits: estimateCredits("image"), note: spec });
       return NextResponse.json({ ok: true, type, id, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, scores });
     }
 
@@ -79,9 +114,11 @@ export async function POST(req) {
       let engine = b.engine || "kling";
       if (mode === "presenter") engine = "veo"; // presenter commercials need Veo's native synced dialogue
       const copy = await resolveCopy({ provided, angleId, brief, reference });
+      // Claims gate BEFORE the paid render — a violating line never spends compute.
+      assertInputClean(copy?.headline, copy?.body, copy?.cta);
       const d = specDims(spec);
       const aspect = d.aspect === "9:16" ? "9:16" : d.aspect === "1:1" ? "1:1" : "16:9";
-      const spokenLine = (b.spokenLine || copy?.headline || brief || "").slice(0, 400);
+      const spokenLine = (b.spokenLine || copy?.headline || rawBrief || "").slice(0, 400);
       const disclosure = mode === "presenter" || engine === "arcads" ? "ai-presenter" : null;
       const videoPrompt = directorPrompt || (mode === "presenter"
         ? buildPresenterPrompt({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, brief, spokenLine })
@@ -93,6 +130,7 @@ export async function POST(req) {
       if (engine === "arcads") {
         const scriptId = await startUgc({ script: spokenLine || copy?.headline || brief });
         const job = await saveJob({ id: newId("vid"), engine: "arcads", status: "rendering", arcadsScriptId: scriptId, ...baseJob, createdAt: Date.now() });
+        await appendComputeLog({ kind: "arcads", credits: estimateCredits("arcads"), note: job.id });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
@@ -101,6 +139,7 @@ export async function POST(req) {
         const falDuration = Number(b.targetSeconds) >= 10 ? "10" : "5"; // Kling supports 5s or 10s clips
         const { statusUrl, responseUrl } = await startFal(FAL_MODELS[engine], { prompt: videoPrompt, duration: falDuration, aspect_ratio: aspect, negative_prompt: VIDEO_NEGATIVE, cfg_scale: 0.5 });
         const job = await saveJob({ id: newId("vid"), engine, status: "rendering", falStatusUrl: statusUrl, falResponseUrl: responseUrl, ...baseJob, createdAt: Date.now() });
+        await appendComputeLog({ kind: engine, credits: estimateCredits(engine), note: job.id });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
@@ -112,6 +151,7 @@ export async function POST(req) {
         // params (the Gemini API rejects them).
         const opName = await startVeo({ prompt: videoPrompt, aspectRatio, resolution: "720p" });
         const job = await saveJob({ id: newId("vid"), engine: "veo", status: "rendering", veoOp: opName, aspectRatio, ...baseJob, createdAt: Date.now() });
+        await appendComputeLog({ kind: "veo", credits: estimateCredits("veo"), note: `${job.id} ${mode}` });
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
@@ -119,13 +159,14 @@ export async function POST(req) {
       const imgPrompt = directorPrompt || buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
       const adPng = await renderImage(imgPrompt, { final: false });
       const imageUrl = await putPublicImage(adPng, newId("src").slice(4));
-      const setId = await startVideo({ imageUrl, prompt: brief || copy?.headline || "slow cinematic push-in, subtle motion" });
+      const setId = await startVideo({ imageUrl, prompt: rawBrief || copy?.headline || "slow cinematic push-in, subtle motion" });
       const job = await saveJob({ id: newId("vid"), engine: "higgsfield", status: "rendering", cloudSetId: setId, ...baseJob, createdAt: Date.now() });
+      await appendComputeLog({ kind: "higgsfield", credits: estimateCredits("higgsfield"), note: job.id });
       return NextResponse.json({ ok: true, type, engine: "higgsfield", jobId: job.id, status: "rendering" });
     }
 
     return NextResponse.json({ ok: false, error: `unknown type ${type}` }, { status: 400 });
   } catch (e) {
-    return NextResponse.json({ ok: false, error: String(e.message || e) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: String(e.message || e) }, { status: e.status || 500 });
   }
 }
