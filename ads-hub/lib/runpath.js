@@ -1,7 +1,8 @@
 import { readSocial, writeSocial } from "./social.js";
 import { readPerformance, writePerformance, rankWinners } from "./performance.js";
 import { readQueue, readApprovals, appendCreatives, publicImageUrl } from "./store.js";
-import { metaReady, publish, fetchInsights } from "./meta.js";
+import { metaReady, publish, fetchInsights, publishTo, fetchInsightsFor } from "./meta.js";
+import { decryptToken } from "./metaCrypto.js";
 import { genCopy, buildImagePrompt, renderImage, specDims } from "./connectors.js";
 import { newId } from "./jobs.js";
 
@@ -25,8 +26,10 @@ export async function tick({ dryRun = false } = {}) {
   if (!social.autopilot?.enabled) { report.note = "autopilot off — nothing runs"; return report; }
   report.autopilot = true;
   const connected = (ch) => !!social.connections?.[ch]?.connected;
+  const chById = Object.fromEntries((social.channels || []).map((c) => [c.id, c]));
 
-  // 1) POST — due, approved, connected, token-wired
+  // 1) POST — due + approved, and EITHER a pool channel whose OWNER opted into autopilot
+  //    (D-18: the bot never touches a feed without that owner toggle) OR the legacy env channel.
   const dec = (await readApprovals()).decisions || {};
   const queue = await readQueue();
   const byId = Object.fromEntries(queue.map((c) => [c.id, c]));
@@ -35,31 +38,43 @@ export async function tick({ dryRun = false } = {}) {
   for (const item of social.schedule || []) {
     if (postCount >= MAX_POSTS_PER_TICK) break; // cap per tick (avoid function timeout)
     if (item.status !== "queued" || !item.postAt || new Date(item.postAt).getTime() > now) continue;
-    if (!connected(item.channel)) { report.skipped.push({ id: item.id, reason: "channel not connected" }); continue; }
     if (dec[item.creativeId] !== "approve" || !byId[item.creativeId]) { report.skipped.push({ id: item.id, reason: "creative not approved" }); continue; }
-    if (!metaReady(item.channel)) { report.skipped.push({ id: item.id, reason: "Meta token not wired" }); continue; }
-    if (dryRun) { report.posted.push({ id: item.id, channel: item.channel, would: true }); continue; }
+    const pool = item.channelId ? chById[item.channelId] : null;
+    if (item.channelId && !pool) { report.skipped.push({ id: item.id, reason: "channel was disconnected" }); continue; }
+    if (pool && !pool.autopilot) { report.skipped.push({ id: item.id, reason: `autopilot not enabled on "${pool.label}" — its owner controls that toggle` }); continue; }
+    if (!pool) {
+      if (!connected(item.channel)) { report.skipped.push({ id: item.id, reason: "channel not connected" }); continue; }
+      if (!metaReady(item.channel)) { report.skipped.push({ id: item.id, reason: "Meta token not wired" }); continue; }
+    }
+    if (dryRun) { report.posted.push({ id: item.id, channel: pool ? pool.label : item.channel, would: true }); continue; }
     try {
       const c = byId[item.creativeId];
       const caption = [c.headline, c.body, c.cta].filter(Boolean).join("\n\n");
       const imageUrl = await publicImageUrl(item.creativeId);
-      const postRef = await publish({ channel: item.channel, caption, imageUrl });
+      const postRef = pool
+        ? await publishTo({ kind: pool.kind, pageId: pool.pageId, igUserId: pool.igUserId, token: decryptToken(pool.tok.p), caption, imageUrl })
+        : await publish({ channel: item.channel, caption, imageUrl });
       if (!postRef || typeof postRef !== "string") throw new Error("publish returned no postRef");
       item.status = "posted"; item.postRef = postRef; item.postedAt = new Date(now).toISOString();
+      // send log (D-18): every actual publish, attributed as member + channel
+      social.postLog = [...(social.postLog || []), { at: item.postedAt, by: item.by || "", channelId: item.channelId || item.channel, channelLabel: pool ? pool.label : item.channel, creativeId: item.creativeId, postRef }].slice(-2000);
       await writeSocial(social); // persist immediately after each post so a mid-loop crash can't re-post
-      postCount++; report.posted.push({ id: item.id, channel: item.channel, postRef });
+      postCount++; report.posted.push({ id: item.id, channel: pool ? pool.label : item.channel, postRef });
     } catch (e) { report.skipped.push({ id: item.id, reason: e.message }); }
   }
 
-  // 2) TRACK — refresh insights for posted items
+  // 2) TRACK — refresh insights for posted items (pool channels use their own tokens)
   const perf = await readPerformance();
   const posts = perf.posts || [];
   const at = Object.fromEntries(posts.map((p, i) => [p.postRef, i]));
   let perfChanged = false;
-  for (const item of (social.schedule || []).filter((x) => x.status === "posted" && x.postRef && metaReady(x.channel))) {
+  for (const item of (social.schedule || []).filter((x) => x.status === "posted" && x.postRef && (x.channelId ? chById[x.channelId] : metaReady(x.channel)))) {
     if (dryRun) { report.tracked++; continue; }
     try {
-      const ins = await fetchInsights({ channel: item.channel, postRef: item.postRef });
+      const pool = item.channelId ? chById[item.channelId] : null;
+      const ins = pool
+        ? await fetchInsightsFor({ kind: pool.kind, postRef: item.postRef, token: decryptToken(pool.tok.p) })
+        : await fetchInsights({ channel: item.channel, postRef: item.postRef });
       if (!ins) continue;
       const rec = { creativeId: item.creativeId, channel: item.channel, postRef: item.postRef, postedAt: item.postedAt, ...ins, updatedAt: new Date(now).toISOString() };
       if (item.postRef in at) posts[at[item.postRef]] = rec; else { posts.push(rec); at[item.postRef] = posts.length - 1; }

@@ -180,6 +180,24 @@ via the single readQueue() filter, bulk-select for backlog clearing, Trash
 section with per-item days-left + "Put it back" + explicit "Delete now";
 anything past 30 days hard-deletes on the next trash read.
 
+## D-18 · Meta channels — workspace POOL, not per-user partitions (Cena, 2026-07-05)
+Connections are workspace-level: ONE rack everyone sees. Each entry = channel
+(FB page / IG business account) + who connected it + owner-controlled
+"team can post here" (default OFF personal / ON company pages). Each owner
+OAuths their own channels ONCE via Meta Login for Business against JOHN'S Meta
+App (team added as testers/developers — dev mode covers internal use, no App
+Review yet; `META_APP_ID` + `META_APP_SECRET` in env). Tokens AES-256-GCM
+encrypted at rest (`META_TOKEN_KEY`, falls back to a key derived from the app
+secret); page tokens re-derivable from the stored long-lived user token.
+Posting = MULTI-SELECT: an approved creative fans out to any channels the
+poster is allowed to hit in one action; every send logged as member + channel
+(`postLog` + "Recent sends"). Server-enforced: only APPROVED creatives, only
+allowed channels — channel choice never bypasses review (claims rules + the
+approval gate unchanged, D-04). Autopilot: master switch AND per-channel
+owner opt-in, default OFF everywhere — the bot never touches a personal feed
+without that owner's explicit toggle. Legacy env-token channel keeps working
+until its page joins the rack.
+
 ## D-16 · STANDING DESIGN CHARTER (Cena, 2026-07-05) — applies from the theme slice onward
 1. **One primary action per screen.** Create = the prompt box. Review =
    approve/remove. Schedule = the calendar. Everything else visually recedes.
