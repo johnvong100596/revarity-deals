@@ -54,7 +54,7 @@ export default function HeroVideo({ scenes = [], heroDur = 40, sources = ["/hero
           <>
             <div className="k"><span className="d" /> What is Revarity Ads</div>
             <h1>Turn rooms into <em>income</em>.</h1>
-            <p>Your creative studio writes the words, designs the frame, and films the dream — short-stay ads that feel like a getaway, screened and approved before a single dollar moves.</p>
+            <p>Type one sentence about your offer. You get finished ads to review. Nothing spends until you approve them.</p>
             <div className="hero-cta">
               <Link className="btn" href="/create">Make your first ad →</Link>
               <Link className="btn ghost" href="/welcome">See how it works</Link>
