@@ -46,6 +46,16 @@ function memberForRequest(req) {
   const h = req.headers.get("authorization") || "";
   if (h.startsWith("Bearer ")) key = h.slice(7).trim();
   if (!key) { try { key = (new URL(req.url).searchParams.get("key") || "").trim(); } catch {} }
+  if (!key) {
+    // PATH form — /api/mcp/<key> — because claude.ai's connector client keeps the URL's
+    // query on registration but STRIPS it on tool calls (observed live 2026-07-05). The
+    // path segment survives every proxy; this is the form the team should use.
+    try {
+      const segs = new URL(req.url).pathname.split("/").filter(Boolean);
+      const last = segs[segs.length - 1];
+      if (last && last !== "mcp") key = decodeURIComponent(last).trim();
+    } catch {}
+  }
   key = key.replace(/^["']+|["']+$/g, ""); // forgive pasted quotes
   if (!key) return null;
   for (const pair of (process.env.MCP_API_KEYS || "").split(",")) {
