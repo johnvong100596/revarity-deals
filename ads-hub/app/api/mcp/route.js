@@ -58,11 +58,15 @@ function memberForRequest(req) {
   }
   key = key.replace(/^["']+|["']+$/g, ""); // forgive pasted quotes
   if (!key) return null;
-  for (const pair of (process.env.MCP_API_KEYS || "").split(",")) {
+  const entries = (process.env.MCP_API_KEYS || "").split(",");
+  for (let e = 0; e < entries.length; e++) {
+    const pair = entries[e].trim().replace(/^["']+|["']+$/g, "");
+    if (!pair) continue;
     const i = pair.indexOf(":");
-    if (i <= 0) continue;
-    const name = pair.slice(0, i).trim();
-    const k = pair.slice(i + 1).trim();
+    // Forgive a bare key saved without the "name:" prefix (env misformat, seen live
+    // 2026-07-05) — it still authenticates, attributed as keyholder<N> in the log.
+    const name = i > 0 ? pair.slice(0, i).trim() : `keyholder${e + 1}`;
+    const k = i > 0 ? pair.slice(i + 1).trim() : pair;
     if (!name || !k) continue;
     // Accept the bare personal key, and forgive the "name:key" paste form.
     if (key === k || key === `${name}:${k}`) return name;
