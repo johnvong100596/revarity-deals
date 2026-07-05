@@ -34,9 +34,14 @@ const DAILY_CAP = () => Math.max(0, Number(process.env.MCP_DAILY_CREDITS_CAP) ||
 
 /* ── auth: Authorization: Bearer <key> → member name from MCP_API_KEYS ── */
 function memberForRequest(req) {
+  // Two ways to present the key: Authorization: Bearer <key>, or ?key=<key> in the connector
+  // URL. The query form exists because claude.ai custom connectors can't send custom headers —
+  // the URL is the only channel a member can put their key in. Internal tool, keys rotate via
+  // env; the trade-off is accepted and logged in D-17.
+  let key = "";
   const h = req.headers.get("authorization") || "";
-  if (!h.startsWith("Bearer ")) return null;
-  const key = h.slice(7).trim();
+  if (h.startsWith("Bearer ")) key = h.slice(7).trim();
+  if (!key) { try { key = (new URL(req.url).searchParams.get("key") || "").trim(); } catch {} }
   if (!key) return null;
   for (const pair of (process.env.MCP_API_KEYS || "").split(",")) {
     const i = pair.indexOf(":");
@@ -261,7 +266,7 @@ export async function POST(req) {
   const member = memberForRequest(req);
   if (!member) {
     return NextResponse.json(
-      { jsonrpc: "2.0", id: null, error: { code: -32001, message: "unauthorized — pass your personal API key as 'Authorization: Bearer <key>'" } },
+      { jsonrpc: "2.0", id: null, error: { code: -32001, message: "unauthorized — pass your personal API key as 'Authorization: Bearer <key>' or add ?key=<key> to the connector URL" } },
       { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
     );
   }
