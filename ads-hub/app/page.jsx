@@ -9,7 +9,8 @@ import StudioComposer from "@/app/components/StudioComposer";
 
 export const dynamic = "force-dynamic";
 
-// Cinematic hero scenes (stills in /public/hero; video drops in later). Crossfade is pure CSS.
+// Cinematic hero scenes (stills in /public/hero). Pure-CSS crossfade slideshow — Higgsfield-style.
+// Video hero intentionally disabled (sources={[]}): stills only on the main background, per exec direction.
 const SCENES = ["01-bedroom-city", "02-over-city", "03-sky", "04-tulum-aerial", "05-villa-door", "06-ski-resort", "07-cottage-fire", "08-highrise-night"];
 const HERO_DUR = SCENES.length * 5;
 
@@ -40,7 +41,7 @@ export default async function Studio() {
   return (
     <>
       <FirstVisit />
-      <HeroVideo scenes={SCENES} heroDur={HERO_DUR}><StudioComposer /></HeroVideo>
+      <HeroVideo scenes={SCENES} heroDur={HERO_DUR} sources={[]}><StudioComposer /></HeroVideo>
 
       <div className="home-body">
       <div className="sec"><h2>Generate across formats</h2><Link className="link" href="/create">Open the studio →</Link></div>
