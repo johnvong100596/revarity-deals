@@ -100,7 +100,8 @@ export default function SettingsClient({ config, copyModel, imageModels = [], vi
   async function resetAngles() {
     setAngErr(""); setAngBusy(true);
     try {
-      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: [] }) });
+      // null deletes the override (base library returns); [] would mean a deliberately CLEARED set.
+      const r = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: null }) });
       const d = await r.json();
       if (!d.ok) throw new Error(d.error || "reset failed");
       await reloadAngles();
