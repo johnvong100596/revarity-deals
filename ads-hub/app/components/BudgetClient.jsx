@@ -13,20 +13,20 @@ export default function BudgetClient({ budgetMonthly, kpi, angles }) {
     <>
       <div className="eyebrow">— Budget —</div>
       <h1>Plan the <em>spend</em></h1>
-      <p className="lead">Set the monthly plan and split it across angles. The hub computes target leads from your CPL ceiling — planning numbers only.</p>
+      <p className="lead">Set the monthly plan and split it across themes. We work out your target leads from your cost per lead ceiling — planning numbers only.</p>
       <div className="row">
         <div className="fld" style={{ maxWidth: 240 }}><label className="l">Monthly budget (USD)</label><input type="number" value={total} onChange={(e) => setTotal(+e.target.value || 0)} /></div>
-        <div className="fld" style={{ maxWidth: 200 }}><label className="l">Target CPL ceiling</label><input type="number" value={cpl} onChange={(e) => setCpl(+e.target.value || 0)} /></div>
-        <div className="fld" style={{ maxWidth: 200 }}><label className="l">Target cost / call</label><input type="number" value={call} onChange={(e) => setCall(+e.target.value || 0)} /></div>
+        <div className="fld" style={{ maxWidth: 200 }}><label className="l">Target cost per lead ceiling</label><input type="number" value={cpl} onChange={(e) => setCpl(+e.target.value || 0)} /></div>
+        <div className="fld" style={{ maxWidth: 200 }}><label className="l">Target cost per call</label><input type="number" value={call} onChange={(e) => setCall(+e.target.value || 0)} /></div>
       </div>
       <div className="grid cards3">
-        <div className="stat"><div className="k">Est. leads / mo</div><div className="v good">{leads}</div><div className="sub">at ${cpl} CPL</div></div>
-        <div className="stat"><div className="k">Est. calls / mo</div><div className="v">{calls}</div><div className="sub">at ${call}/call · target ≥ {kpi.calls_booked_monthly_min}</div></div>
+        <div className="stat"><div className="k">Estimated leads per month</div><div className="v good">{leads}</div><div className="sub">at ${cpl} per lead</div></div>
+        <div className="stat"><div className="k">Estimated calls per month</div><div className="v">{calls}</div><div className="sub">at ${call} per call · target ≥ {kpi.calls_booked_monthly_min}</div></div>
         <div className="stat"><div className="k">Monthly plan</div><div className="v">${total.toLocaleString()}</div><div className="sub">not committed — planning only</div></div>
       </div>
-      <div className="sec-h">Allocation by angle</div>
+      <div className="sec-h">Allocation by theme</div>
       <table>
-        <thead><tr><th>Angle</th><th>Share</th><th>Spend</th><th>Est. leads @ CPL</th></tr></thead>
+        <thead><tr><th>Theme</th><th>Share</th><th>Spend</th><th>Estimated leads</th></tr></thead>
         <tbody>
           {angles.map((a) => {
             const spend = (total * per) / 100;

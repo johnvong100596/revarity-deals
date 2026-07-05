@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 const STEPS = [
   { n: "1", t: "Tell it what you want", d: "Type a plain sentence — like “an ad about how much a Toronto condo could earn on Airbnb” — or paste an ad you already like. The studio writes the words and makes the picture (or a short video) for you." },
   { n: "2", t: "Look it over and approve", d: "You see everything it made. Keep the good ones with a thumbs-up, set the rest aside. Nothing leaves this screen without your yes." },
-  { n: "3", t: "Connect your accounts", d: "Hook up Instagram, Facebook, or Meta Ads with one button. You choose which ads go to which account — it’s your account, your call." },
+  { n: "3", t: "Connect your accounts", d: "Connect Instagram, Facebook, or Meta Ads with one button. You choose which ads go to which account — it’s your account, your call." },
   { n: "4", t: "Pick when to post", d: "Drop your approved ads onto a schedule. Not sure when? The built-in ads expert suggests the best times and which ones to push first." },
   { n: "5", t: "See what works — and do more of it", d: "Once your ads are live, you’ll see which ones get the most views. The studio then makes more like the winners, automatically." },
 ];
@@ -31,7 +31,7 @@ export default function WelcomeClient() {
         </div>
       </header>
 
-      <div className="sec"><h2>How it works — 5 simple steps</h2></div>
+      <div className="sec"><h2>How it works — 5 steps</h2></div>
       <div className="steps">
         {STEPS.map((s) => (
           <div className="stepc" key={s.n}>
