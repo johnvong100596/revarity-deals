@@ -78,11 +78,13 @@ async function mcpSpentToday() {
 
 const queueStatus = (c, decisions) => decisions[c.id] || (c.source === "mcp-idea" && !c.hasImg && !c.video_url ? "idea-queued-for-next-batch" : "pending-review");
 
-/* ── the four tools — nothing else is exposed, by design ── */
+/* ── the four tools — nothing else is exposed, by design. MCP annotations tell clients
+      honestly which are read-only (safe to auto-allow) vs. which write a draft. ── */
 const TOOLS = [
   {
     name: "submit_idea",
     description: "Submit an ad idea (brief + optional format/photo hints) as a DRAFT in the Review queue. Runs the claims lock first. Default: queued for the next batch — zero spend. Set generate_now=true to create ONE image draft immediately (cost-estimated, counted against the shared daily cap). Nothing you submit is ever published or approved by this tool — a human reviews every draft in the hub (D-04).",
+    annotations: { title: "Submit idea", readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     inputSchema: {
       type: "object",
       properties: {
@@ -97,16 +99,19 @@ const TOOLS = [
   {
     name: "list_queue",
     description: "List the Review queue — statuses only (no copy, no media). Shows where each draft sits: idea-queued / pending-review / approve / hold / reject.",
+    annotations: { title: "List queue", readOnlyHint: true, openWorldHint: false },
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "get_draft",
     description: "Status + preview link for one draft by id.",
+    annotations: { title: "Get draft", readOnlyHint: true, openWorldHint: false },
     inputSchema: { type: "object", properties: { id: { type: "string", description: "Draft id from submit_idea or list_queue." } }, required: ["id"] },
   },
   {
     name: "list_library_photos",
     description: "Names + thumbnails of the real listing photos in the Drive library, so briefs can reference real photos by name. (Real photos only — AI interiors are retired from creative.)",
+    annotations: { title: "List library photos", readOnlyHint: true, openWorldHint: false },
     inputSchema: { type: "object", properties: {} },
   },
 ];
