@@ -221,6 +221,16 @@ const SUPPORTED_FORMATS = new Set(["auto", "meta_feed_square", "meta_feed_portra
 const rpcResult = (id, result) => ({ jsonrpc: "2.0", id, result });
 const rpcError = (id, code, message) => ({ jsonrpc: "2.0", id, error: { code, message } });
 
+/**
+ * NO HTTP 401 FROM THIS ENDPOINT — EVER (Cena, 2026-07-05). Claude only attempts the OAuth
+ * dance when it sees HTTP 401/WWW-Authenticate; if the endpoint never speaks HTTP-auth,
+ * connector registration always succeeds and a bad key fails LOUDLY inside the tools instead.
+ * So: initialize / tools/list / ping are open (harmless metadata — tool names only), and the
+ * key is enforced per tools/call, with auth failures returned as JSON-RPC errors in a 200.
+ * Security unchanged: no tool runs without a valid key; caps and the submission log still apply.
+ */
+const AUTH_FAIL_MSG = "Invalid or missing key — check your connector URL. It should be https://ads.revarity.com/api/mcp?key=<your-personal-key> (no spaces or quotes around the key). Nothing ran.";
+
 async function handleMessage(msg, member) {
   if (!msg || msg.jsonrpc !== "2.0" || typeof msg.method !== "string") {
     return rpcError(msg?.id ?? null, -32600, "invalid request");
@@ -234,7 +244,7 @@ async function handleMessage(msg, member) {
           protocolVersion: SUPPORTED_PROTOCOLS.has(asked) ? asked : PROTOCOL_DEFAULT,
           capabilities: { tools: {} },
           serverInfo: { name: "revarity-ads-hub", version: "1.0.0" },
-          instructions: `Draft-scope connector for the Revarity ad studio (signed in as ${member}). Four tools: submit_idea, list_queue, get_draft, list_library_photos. Everything lands as a DRAFT for human review — nothing here approves, publishes, deletes, or spends beyond the capped generate_now. The only allowed money claim is "$0 down for qualified properties".`,
+          instructions: `Draft-scope connector for the Revarity ad studio${member ? ` (signed in as ${member})` : " (no valid key on this connection — tools will refuse until the URL carries ?key=<your-personal-key>)"}. Four tools: submit_idea, list_queue, get_draft, list_library_photos. Everything lands as a DRAFT for human review — nothing here approves, publishes, deletes, or spends beyond the capped generate_now. The only allowed money claim is "$0 down for qualified properties".`,
         });
       }
       case "ping":
@@ -243,6 +253,11 @@ async function handleMessage(msg, member) {
         return rpcResult(msg.id, { tools: TOOLS });
       case "tools/call": {
         const { name, arguments: args } = msg.params || {};
+        if (!member) {
+          // Key enforced HERE, in-band — never as HTTP auth.
+          appendMcpLog({ member: "(invalid-key)", tool: String(name || ""), note: "tools/call refused: no valid key" }).catch(() => {});
+          return rpcError(msg.id, -32001, AUTH_FAIL_MSG);
+        }
         try {
           const out = await runTool(name, args || {}, member);
           return rpcResult(msg.id, { content: [{ type: "text", text: JSON.stringify(out, null, 2) }], isError: !!out?.blocked });
@@ -263,13 +278,7 @@ async function handleMessage(msg, member) {
 }
 
 export async function POST(req) {
-  const member = memberForRequest(req);
-  if (!member) {
-    return NextResponse.json(
-      { jsonrpc: "2.0", id: null, error: { code: -32001, message: "unauthorized — pass your personal API key as 'Authorization: Bearer <key>' or add ?key=<key> to the connector URL" } },
-      { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
-    );
-  }
+  const member = memberForRequest(req); // null is fine — enforced per tools/call, in-band
   let body;
   try { body = await req.json(); } catch {
     return NextResponse.json(rpcError(null, -32700, "parse error"), { status: 400 });

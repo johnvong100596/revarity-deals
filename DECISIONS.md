@@ -223,6 +223,16 @@ WWW-Authenticate), and `/api/mcp` additionally accepts the key as
 carries; accepted trade-off, keys rotate via env). Team connects with:
 `https://ads.revarity.com/api/mcp?key=<personal-key>`.
 
+Second fix, same day — /api/mcp is now **401-free by design**: Claude only
+attempts OAuth when it sees HTTP 401/WWW-Authenticate, so the endpoint never
+speaks HTTP-auth at all. `initialize`, `tools/list` and `ping` are open
+(harmless metadata — tool names only); the key is enforced PER `tools/call`,
+and an invalid/missing key comes back as a JSON-RPC error inside a 200
+("Invalid or missing key — check your connector URL"), logged as
+`(invalid-key)` in the MCP log. Security unchanged: no tool runs without a
+valid key; caps and the submission log still apply. This failure class is
+dead permanently.
+
 Charter rulings applied to existing surface (this slice):
 - Two-typefaces-max OVERRIDES brand.json's third face: JetBrains Mono label
   treatment is retired in both palettes (labels ride the body face). Revisit
