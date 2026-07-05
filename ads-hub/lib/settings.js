@@ -75,8 +75,11 @@ export async function writeSettings(input) {
     clean.kpi = { ...(prev.kpi || {}) };
     for (const k of KPI_KEYS) if (input.kpi[k] != null && Number.isFinite(+input.kpi[k])) clean.kpi[k] = Math.max(0, +input.kpi[k]);
   }
-  // An empty array clears the override (falls back to the read-only base in config.js / brand.json).
-  if (Array.isArray(input.angles)) clean.angles = sanitizeAngles(input.angles);
+  // Angles: an EMPTY array is a deliberate cleared working set (kept); null/"reset" DELETES the
+  // override so the read-only base applies again. Formats keep empty=reset (empty formats would
+  // break specDims).
+  if (input.angles === null || input.angles === "reset") delete clean.angles;
+  else if (Array.isArray(input.angles)) clean.angles = sanitizeAngles(input.angles);
   if (Array.isArray(input.formats)) clean.formats = sanitizeFormats(input.formats);
   clean.updatedAt = new Date().toISOString();
   if (DRIVER === "cloud") { const { put } = await blobApi(); await put(KEY, JSON.stringify(clean), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" }); }
