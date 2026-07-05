@@ -17,6 +17,7 @@ const DRIVER = process.env.STORE_DRIVER || "fs";
 const APPROVAL_NOTE = "Approved set is marked ready. Pushing live to Meta is a human action outside this hub (D-04).";
 export const QUEUE_KEY = "state/queue.json";
 export const APPROVALS_KEY = "state/approvals.json";
+export const REJECT_LOG_KEY = "state/reject-log.json";
 
 function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
   return {
@@ -30,6 +31,10 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     video_url: rec.video_url || null,
     scores: rec.scores || null,
     mode: rec.mode || null, disclosure: rec.disclosure || null, script: rec.script || null,
+    // money-arc render-batch extras (Phase-1b): second placement, carousel sets, QC-gate data
+    video_url_feed: rec.video_url_feed || null,
+    carousel_ig: rec.carousel_ig || null, carousel_tt: rec.carousel_tt || null,
+    qc: rec.qc_gates || null, caption: rec.caption || null, disclaimer: rec.disclaimer || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
@@ -183,6 +188,54 @@ export async function putPublicVideo(buf, name = "vid") {
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, `${name}.mp4`), buf);
   return `/gen-video/${name}.mp4`;
+}
+
+/** Host a carousel slide (png). cloud → public Blob; fs → public/gen-carousel. */
+export async function putPublicPng(buf, name = "slide") {
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    const b = await put(`gen-carousel/${name}.png`, buf, { access: "public", addRandomSuffix: true, contentType: "image/png" });
+    return b.url;
+  }
+  const dir = path.join(process.cwd(), "public", "gen-carousel");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${name}.png`), buf);
+  return `/gen-carousel/${name}.png`;
+}
+
+/* ───────────────────────── reject-reason log (Phase-1b) ─────────────────────────
+ * Append-only audit trail of WHY drafts get rejected — feeds the "what to stop
+ * generating" loop. Written on Review save; one JSON blob/file. Single-writer
+ * (one human review session) so the blob read-modify-write race is acceptable here
+ * — unlike queue.json bulk appends (see rebuild-batch). */
+const REJECT_LOG_FILE = path.join(OUTPUT_DIR, "reject-log.json");
+function fsReadRejectLog() {
+  try { return JSON.parse(fs.readFileSync(REJECT_LOG_FILE, "utf8")); } catch { return []; }
+}
+async function cloudReadRejectLog() {
+  const url = await blobUrl(REJECT_LOG_KEY);
+  return (url && (await fetchJson(url))) || [];
+}
+export async function readRejectLog() { return DRIVER === "cloud" ? cloudReadRejectLog() : fsReadRejectLog(); }
+export async function appendRejectLog(entries = []) {
+  const clean = (Array.isArray(entries) ? entries : [])
+    .filter((e) => e && e.id)
+    .map((e) => ({ id: String(e.id), reason: String(e.reason || "").slice(0, 500), at: new Date().toISOString() }));
+  if (!clean.length) return { appended: 0 };
+  const log = await readRejectLog();
+  // skip exact repeats (same reason as that id's latest entry) so re-saves don't spam the trail
+  const latest = new Map(log.map((e) => [e.id, e.reason]));
+  const fresh = clean.filter((e) => latest.get(e.id) !== e.reason);
+  if (!fresh.length) return { appended: 0, total: log.length };
+  const next = [...log, ...fresh];
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    await put(REJECT_LOG_KEY, JSON.stringify(next), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  } else {
+    fs.mkdirSync(path.dirname(REJECT_LOG_FILE), { recursive: true });
+    fs.writeFileSync(REJECT_LOG_FILE, JSON.stringify(next, null, 2));
+  }
+  return { appended: fresh.length, total: next.length };
 }
 
 /* ───────────────────────── public API (driver-routed) ───────────────────────── */

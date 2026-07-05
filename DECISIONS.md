@@ -128,7 +128,21 @@ GDRIVE_SA_JSON, GDRIVE_PHOTOS_FOLDER_ID, ANTHROPIC_API_KEY, HF_API_KEY, HF_API_S
 SLACK_WEBHOOK_URL (+ optional HF_TTS_URL). Fonts on the runner = Liberation
 (Arial/Georgia-metric-compatible).
 
-### Phase-1b (approved) — remaining creative scope
-Approved to build next: both ad sizes (1080x1920 + 1080x1080) + carousel PNG
-export + the 2 QC gates + approve→Meta deep-link + reject-reason log. Tracked;
-not in this commit.
+### Phase-1b (approved) — remaining creative scope  ✅ BUILT
+Approved scope: both ad sizes + carousel PNG export + the 2 QC gates +
+approve→Meta deep-link + reject-reason log — shipped as one integrated slice.
+Size correction: the second size is **1080x1350** (IG feed) per OPERATOR-PLAYBOOK
+step 4 and the shipped U3–U5 precedent — the "1080x1080" in the earlier note was
+wrong; nothing ships square.
+- `lib/render.js` — size-parametrized (reels 1080x1920 / feed 1080x1350; y-offsets
+  scale by height so the 1920 output is unchanged). voPending now trips on ANY
+  silent beat (partial VO no longer reads as fully voiced).
+- `lib/carousel.js` — 5-slide PNG set per placement (S1 hook photo → S2 problem →
+  S3 we-do-it-all → S4 offer+disclaimer card → S5 DM card), text sourced ONLY from
+  the claims-locked script.
+- `lib/renderBatch.js` — each draft ships reels + feed + 10 carousel PNGs, and
+  carries `qc_gates` (gate 1 voice-read, gate 2 claims-check w/ machine precheck).
+- Review UI — the two playbook QC gates are HUMAN ticks; Approve is disabled until
+  both are ticked. Approved money-arc cards get the Meta Ads Manager deep-LINK
+  (upload/objective/AI-declare stay manual — D-04). Reject now takes a reason →
+  append-only reject log (`state/reject-log.json` cloud / output/reject-log.json fs).

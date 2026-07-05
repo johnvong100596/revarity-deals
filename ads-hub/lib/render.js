@@ -21,9 +21,22 @@ import path from "node:path";
 import ffmpegStatic from "ffmpeg-static";
 
 const GOLD = process.env.RENDER_GOLD || "c9a961"; // brand-kit gold (brand.json)
-const W = 1080, H = 1920, FPS = 30;
-const FIT = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`;
+const FPS = 30;
 const CAPBOX = "fontcolor=white:box=1:boxcolor=black@0.42:boxborderw=24";
+
+// The two playbook placements. Every ad ships in BOTH (OPERATOR-PLAYBOOK step 4):
+// 1080x1920 Reels/TikTok/Stories + 1080x1350 IG feed. Vertical y-positions were
+// tuned on 1920 and scale by height, so the reels output is unchanged.
+export const SIZES = {
+  reels: { w: 1080, h: 1920 },
+  feed: { w: 1080, h: 1350 },
+};
+const sizeOf = (size) => {
+  const s = SIZES[size];
+  if (!s) throw new Error(`render: unknown size "${size}" (use ${Object.keys(SIZES).join("/")})`);
+  return s;
+};
+const scaleY = (y, H) => Math.round((y * H) / 1920);
 
 // Fixed per-beat durations (seconds) — the money-arc rhythm from build_vo_ads.sh.
 // VO for a beat is padded/trimmed to its slide; a beat with no VO plays silent.
@@ -75,16 +88,21 @@ const ffPath = (p) => p.replace(/\\/g, "/").replace(/:/g, "\\:");
  *   photos:   [{ name, buffer }] real Drive photos (>=1; cycled across beats)
  *   script:   moneyArc draft (voLines[], captions[], disclaimer, endCard, cta)
  *   voClips:  [{ buffer, provider, voice }] aligned to voLines, or [] for none
+ *   size:     "reels" (1080x1920, default) | "feed" (1080x1350)
  * Returns { buffer, manifest }. Throws on missing ffmpeg/fonts/photos.
  */
-export async function renderMoneyArcAd({ photos = [], script, voClips = [] }) {
+export async function renderMoneyArcAd({ photos = [], script, voClips = [], size = "reels" }) {
   if (!script) throw new Error("render: script required");
   if (!photos.length) throw new Error("render: at least one real photo required (Drive bridge)");
+  const { w: W, h: H } = sizeOf(size);
+  const FIT = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}`;
   const bin = ffmpegBin();
   const F = fonts();
   const dir = await mkdtemp(path.join(os.tmpdir(), "rev-render-"));
   const voProvider = voClips.find((v) => v?.provider)?.provider || null;
-  const voPending = voClips.length === 0 || voClips.some((v) => !v?.buffer);
+  // pending if ANY beat lacks audio — a partial VO set (e.g. live TTS died mid-batch) still
+  // leaves silent beats, so it must not read as fully voiced.
+  const voPending = BEATS.some((_, i) => !voClips[i]?.buffer);
 
   try {
     // Stage photos (one per beat, cycled) + VO clips.
@@ -108,7 +126,7 @@ export async function renderMoneyArcAd({ photos = [], script, voClips = [] }) {
     for (let i = 0; i < beatFiles.length; i++) {
       const b = beatFiles[i];
       const out = path.join(dir, `beat${i}.mp4`);
-      const drawtext = `drawtext=textfile='${ffPath(b.capf)}':fontfile='${ffPath(F.bold)}':fontsize=52:line_spacing=12:${CAPBOX}:x=(w-text_w)/2:y=h-560`;
+      const drawtext = `drawtext=textfile='${ffPath(b.capf)}':fontfile='${ffPath(F.bold)}':fontsize=52:line_spacing=12:${CAPBOX}:x=(w-text_w)/2:y=h-${scaleY(560, H)}`;
       const args = ["-y", "-loop", "1", "-framerate", String(FPS), "-t", String(b.dur), "-i", b.img];
       if (b.vo) args.push("-i", b.vo);
       else args.push("-f", "lavfi", "-t", String(b.dur), "-i", "anullsrc=r=48000:cl=stereo");
@@ -130,10 +148,10 @@ export async function renderMoneyArcAd({ photos = [], script, voClips = [] }) {
     const dmf = await capFile(dir, "dm", "DM “SETUP”");
     const discf = await capFile(dir, "disc", script.disclaimer || "");
     const endDraw = [
-      `drawtext=text='Revarity':fontfile='${ffPath(F.display)}':fontcolor=0x${GOLD}:fontsize=112:x=(w-text_w)/2:y=600`,
-      `drawtext=textfile='${ffPath(claimf)}':fontfile='${ffPath(F.bold)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=820`,
-      `drawtext=textfile='${ffPath(dmf)}':fontfile='${ffPath(F.bold)}':fontcolor=0x${GOLD}:fontsize=66:x=(w-text_w)/2:y=910`,
-      `drawtext=textfile='${ffPath(discf)}':fontfile='${ffPath(F.reg)}':fontcolor=white@0.65:fontsize=26:line_spacing=8:x=(w-text_w)/2:y=1440`,
+      `drawtext=text='Revarity':fontfile='${ffPath(F.display)}':fontcolor=0x${GOLD}:fontsize=112:x=(w-text_w)/2:y=${scaleY(600, H)}`,
+      `drawtext=textfile='${ffPath(claimf)}':fontfile='${ffPath(F.bold)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=${scaleY(820, H)}`,
+      `drawtext=textfile='${ffPath(dmf)}':fontfile='${ffPath(F.bold)}':fontcolor=0x${GOLD}:fontsize=66:x=(w-text_w)/2:y=${scaleY(910, H)}`,
+      `drawtext=textfile='${ffPath(discf)}':fontfile='${ffPath(F.reg)}':fontcolor=white@0.65:fontsize=26:line_spacing=8:x=(w-text_w)/2:y=${scaleY(1440, H)}`,
       "format=yuv420p",
     ].join(",");
     await run(bin, [
@@ -164,7 +182,8 @@ export async function renderMoneyArcAd({ photos = [], script, voClips = [] }) {
     return {
       buffer,
       manifest: {
-        format: "1080x1920",
+        format: `${W}x${H}`,
+        size,
         durationSec: Math.round(total * 10) / 10,
         beats: BEATS.map((b) => b.key),
         photosUsed: Math.min(photos.length, BEATS.length),

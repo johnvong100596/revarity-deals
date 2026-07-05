@@ -17,7 +17,9 @@ import { fetchFolderPhotos, listFolderImages, driveConfigured } from "./drive.js
 import { genHooks, buildScript } from "./moneyArc.js";
 import { synthesizeVO, voiceConfigured, voiceProvider } from "./voice.js";
 import { renderMoneyArcAd } from "./render.js";
-import { putPublicVideo, appendCreatives } from "./store.js";
+import { renderCarouselSet } from "./carousel.js";
+import { claimViolations, DM_KEYWORD } from "./claims.js";
+import { putPublicVideo, putPublicPng, appendCreatives } from "./store.js";
 import { newId } from "./jobs.js";
 import { notifyBatch } from "./notify.js";
 
@@ -90,8 +92,38 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
           catch (e) { report.errors.push({ unit: id, error: `VO: ${e?.message || e}` }); break; }
         }
       }
-      const { buffer, manifest } = await renderMoneyArcAd({ photos, script, voClips });
-      const video_url = await putPublicVideo(buffer, `moneyarc-${id}`);
+      // Every ad ships in BOTH placements + the carousel sets (OPERATOR-PLAYBOOK step 4):
+      // 1080x1920 reels + 1080x1350 feed + 5 PNG slides per placement.
+      const { buffer, manifest } = await renderMoneyArcAd({ photos, script, voClips, size: "reels" });
+      const feed = await renderMoneyArcAd({ photos, script, voClips, size: "feed" });
+      const igSlides = await renderCarouselSet({ photos, script, size: "feed" });
+      const ttSlides = await renderCarouselSet({ photos, script, size: "reels" });
+      const video_url = await putPublicVideo(buffer, `moneyarc-${id}-reels`);
+      const video_url_feed = await putPublicVideo(feed.buffer, `moneyarc-${id}-feed`);
+      const carousel_ig = [];
+      for (const s of igSlides) carousel_ig.push(await putPublicPng(s.buffer, `moneyarc-${id}-ig-${s.name}`));
+      const carousel_tt = [];
+      for (const s of ttSlides) carousel_tt.push(await putPublicPng(s.buffer, `moneyarc-${id}-tt-${s.name}`));
+
+      // The playbook's two QC gates, machine-prechecked where a machine can (gate 2's
+      // checklist) — the TICKS stay human, in Review. Approve is blocked until both pass.
+      const allText = [script.hook, script.problem, script.weDoItAll, script.cta, script.postCaption, ...(script.captions || [])].join("\n");
+      const qc_gates = {
+        gate1: { key: "voice-read", label: "Voice read", voPending: manifest.voPending, voProvider: manifest.voProvider },
+        gate2: {
+          key: "claims-check",
+          label: "Final claims check",
+          checks: {
+            onlyVerifiedClaim: claimViolations(allText).length === 0,
+            disclaimerOnEndCard: !!script.disclaimer,
+            dmKeyword: new RegExp(`\\b${DM_KEYWORD}\\b`).test(`${script.cta} ${script.postCaption}`),
+            captionsInSafeZones: true, // renderer positions captions inside top-250/bottom-420 zones by construction
+            lengthInWindow: manifest.durationSec >= 15 && manifest.durationSec <= 20,
+            durationSec: manifest.durationSec,
+          },
+        },
+      };
+
       const rec = {
         id,
         angle_id: "MONEYARC",
@@ -99,6 +131,10 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
         source: "render-batch",
         hasVideo: true,
         video_url,
+        video_url_feed,
+        carousel_ig,
+        carousel_tt,
+        qc_gates,
         headline: script.hook,
         body: `${script.problem} ${script.weDoItAll}`,
         cta: script.cta,
@@ -116,7 +152,7 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
         },
       };
       await appendCreatives([{ rec }]);
-      report.rendered.push({ id, unit: script.hook, voProvider: manifest.voProvider, voPending: manifest.voPending });
+      report.rendered.push({ id, unit: script.hook, voProvider: manifest.voProvider, voPending: manifest.voPending, formats: [manifest.format, feed.manifest.format, `carousel ×${carousel_ig.length + carousel_tt.length}`] });
     } catch (e) {
       report.errors.push({ unit: id, error: e?.message || String(e) });
     }

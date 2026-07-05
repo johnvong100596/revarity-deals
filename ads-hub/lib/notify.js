@@ -32,7 +32,7 @@ export async function notifyBatch({ dryRun, rendered = [], skipped = [], errors 
   const tag = dryRun ? "[DRY-RUN] " : "";
   const lines = [
     `${tag}🎬 Revarity render batch — ${rendered.length} rendered, ${skipped.length} skipped, ${errors.length} errors`,
-    ...rendered.map((r) => `• ✅ ${r.unit || r.id}${r.voProvider ? ` · VO:${r.voProvider}` : ""}${r.voPending ? " · ⚠️ VO pending" : ""} → Review`),
+    ...rendered.map((r) => `• ✅ ${r.unit || r.id}${r.voProvider ? ` · VO:${r.voProvider}` : ""}${r.voPending ? " · ⚠️ VO pending" : ""}${Array.isArray(r.formats) ? ` · ${r.formats.join(" + ")}` : ""} → Review`),
     ...skipped.map((s) => `• ⏭️ ${s.unit || s.reason}`),
     ...errors.map((e) => `• ❌ ${e.unit || ""} ${e.error || e}`.trim()),
   ];
