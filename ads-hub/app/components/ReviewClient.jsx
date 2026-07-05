@@ -56,6 +56,61 @@ function PreviewVideo({ src }) {
   );
 }
 
+// Meta Ads Manager deep-link for an APPROVED money-arc draft. A link, never an API call —
+// uploading, picking the Messages objective and declaring AI-generated media stay human (D-04).
+const META_ACT = process.env.NEXT_PUBLIC_META_AD_ACCOUNT_ID || "";
+const metaCreateHref = () => `https://adsmanager.facebook.com/adsmanager/creation${META_ACT ? `?act=${META_ACT}` : ""}`;
+
+// The playbook's two QC gates, as human ticks on a money-arc card. Gate 2 shows the
+// machine precheck (from the render batch) but the tick itself is the reviewer's.
+function QcGates({ c, g, onTick }) {
+  if (!c.qc) return null;
+  const checks = c.qc.gate2?.checks || {};
+  const rows = [
+    ["onlyVerifiedClaim", "only the verified claim in VO/on-screen"],
+    ["disclaimerOnEndCard", "disclaimer on the end card"],
+    ["dmKeyword", `DM keyword present`],
+    ["captionsInSafeZones", "captions in safe zones"],
+    ["lengthInWindow", `15–20s (this one: ${checks.durationSec ?? "?"}s)`],
+  ];
+  return (
+    <div className="qc-gates">
+      <label className="qc-gate" title="Gate 1 of 2 — play the ad: does Zoe's read land for this register? (calm/expensive for brand, natural for UGC)">
+        <input type="checkbox" checked={!!g.voice} onChange={() => onTick("voice")} />
+        <span><b>Voice read</b>{c.qc.gate1?.voPending ? " — ⚠️ VO pending, captions only (check caption timing instead)" : c.qc.gate1?.voProvider ? ` — VO: ${c.qc.gate1.voProvider}` : ""}</span>
+      </label>
+      <label className="qc-gate" title="Gate 2 of 2 — final claims check. The ticks below are the machine precheck; confirm them with your own eyes before checking this box.">
+        <input type="checkbox" checked={!!g.claims} onChange={() => onTick("claims")} />
+        <span><b>Final claims check</b></span>
+      </label>
+      <ul className="qc-checks">
+        {rows.map(([k, label]) => (
+          <li key={k} className={checks[k] ? "ok" : "bad"}>{checks[k] ? "✓" : "✗"} {label}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Every deliverable for one money-arc draft — both placements + both carousel sets.
+// Local files always (playbook): download, then upload to Meta by hand.
+function DownloadRow({ c }) {
+  if (!c.qc) return null;
+  return (
+    <div className="dl-row">
+      <span className="muted">Files:</span>
+      {c.video_url && <a className="link" href={c.video_url} download>Reels 9:16 ↓</a>}
+      {c.video_url_feed && <a className="link" href={c.video_url_feed} download>Feed 4:5 ↓</a>}
+      {Array.isArray(c.carousel_ig) && c.carousel_ig.length > 0 && (
+        <span>IG carousel: {c.carousel_ig.map((u, i) => <a key={u} className="link" href={u} download>{i + 1}</a>).reduce((acc, x) => acc === null ? [x] : [...acc, " · ", x], null)}</span>
+      )}
+      {Array.isArray(c.carousel_tt) && c.carousel_tt.length > 0 && (
+        <span>TT photo set: {c.carousel_tt.map((u, i) => <a key={u} className="link" href={u} download>{i + 1}</a>).reduce((acc, x) => acc === null ? [x] : [...acc, " · ", x], null)}</span>
+      )}
+    </div>
+  );
+}
+
 export default function ReviewClient() {
   const [queue, setQueue] = useState([]);
   const [state, setState] = useState({});
@@ -66,6 +121,8 @@ export default function ReviewClient() {
   const [varN, setVarN] = useState(5); // variations-per-card count (1–10)
   const [varBusy, setVarBusy] = useState(null); // id of the card currently spinning variations
   const [varMsg, setVarMsg] = useState("");
+  const [gates, setGates] = useState({}); // { id: { voice: bool, claims: bool } } — QC ticks per money-arc card
+  const [reasons, setReasons] = useState({}); // { id: "why rejected" } — saved to the reject-reason log
 
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
@@ -91,6 +148,8 @@ export default function ReviewClient() {
   useEffect(() => { load(); }, [load]);
 
   const set = (id, s) => setState((p) => ({ ...p, [id]: p[id] === s ? undefined : s }));
+  const tickGate = (id, key) => setGates((p) => ({ ...p, [id]: { ...p[id], [key]: !p[id]?.[key] } }));
+  const gatesPassed = (id) => !!(gates[id]?.voice && gates[id]?.claims);
   const approveAllPass = () => setState((p) => { const n = { ...p }; queue.forEach((c) => { if (c.qa === "pass") n[c.id] = "approve"; }); return n; });
   const tally = (s) => Object.values(state).filter((v) => v === s).length;
   // Reject HIDES from the gate (kept, recoverable); the Rejected section can Restore or permanently Delete.
@@ -108,7 +167,7 @@ export default function ReviewClient() {
 
   async function save() {
     try {
-      const res = await fetch("/api/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decisions: state }) });
+      const res = await fetch("/api/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decisions: state, reasons }) });
       if (!res.ok) { setSaved("Save failed"); setTimeout(() => setSaved(""), 4000); return; }
       const data = await res.json();
       const when = data.updatedAt ? new Date(data.updatedAt).toLocaleTimeString() : "now";
@@ -117,7 +176,11 @@ export default function ReviewClient() {
     setTimeout(() => setSaved(""), 4000);
   }
   function exportSet() {
-    const approved = queue.filter((c) => state[c.id] === "approve").map((c) => ({ id: c.id, angle: c.angle_id, variant: c.variant, spec: c.spec, headline: c.headline, cta: c.cta }));
+    const approved = queue.filter((c) => state[c.id] === "approve").map((c) => ({
+      id: c.id, angle: c.angle_id, variant: c.variant, spec: c.spec, headline: c.headline, cta: c.cta,
+      // money-arc drafts carry every placement (Phase-1b) — include them so the export is the full upload set
+      ...(c.qc ? { video_reels: c.video_url, video_feed: c.video_url_feed, carousel_ig: c.carousel_ig, carousel_tt: c.carousel_tt, post_caption: c.caption, disclaimer: c.disclaimer } : {}),
+    }));
     const blob = new Blob([JSON.stringify({ count: approved.length, note: "Approved for spend. Pushing live is a human action (D-04).", approved }, null, 2)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "approved-set.json"; a.click();
   }
@@ -210,16 +273,40 @@ export default function ReviewClient() {
                   <p className="qtext">{c.body} <b>· {c.cta} →</b></p>
                   {c.script && <p className="qscript" title="What the presenter says on camera (Veo renders this as synced audio).">🎙 <em>“{c.script}”</em></p>}
                   <ScoreStrip s={c.scores} />
+                  <QcGates c={c} g={gates[c.id] || {}} onTick={(k) => tickGate(c.id, k)} />
+                  <DownloadRow c={c} />
                   <div className="acts">
-                    <button className={`ap ${st === "approve" ? "on" : ""}`} onClick={() => set(c.id, "approve")}>Approve</button>
+                    <button
+                      className={`ap ${st === "approve" ? "on" : ""}`}
+                      disabled={!!c.qc && st !== "approve" && !gatesPassed(c.id)}
+                      title={c.qc && !gatesPassed(c.id) ? "Tick both QC gates first — voice read + final claims check." : undefined}
+                      onClick={() => set(c.id, "approve")}
+                    >Approve</button>
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>
                     <button className={`rj ${st === "reject" ? "on" : ""}`} onClick={() => set(c.id, "reject")}>Reject</button>
                   </div>
+                  {st === "approve" && c.qc && (
+                    <div className="meta-next">
+                      <a className="link" href={metaCreateHref()} target="_blank" rel="noreferrer" title="Opens Meta Ads Manager. Upload the downloaded files, pick the Messages objective, and tick 'AI-generated' where asked (voice/captions). Nothing posts from here (D-04).">Open Meta Ads Manager →</a>
+                      <span className="muted"> upload the files above · Messages objective · declare AI-generated media</span>
+                    </div>
+                  )}
                   <div className="card-foot">
                     <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
                     <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Spin ${varN} variations off this creative — same script & background, varied hook. They land in the queue for review (D-04).`}>{varBusy === c.id ? "Spinning…" : `✨ ${varN} variations`}</button>
                   </div>
-                  {st === "reject" && <div className="rej-note">Rejected — still here, not deleted. Click Reject again to undo.</div>}
+                  {st === "reject" && (
+                    <div className="rej-note">
+                      Rejected — still here, not deleted. Click Reject again to undo.
+                      <input
+                        className="rej-reason"
+                        type="text"
+                        placeholder="Why? (saved to the reject log — helps the batch stop making this mistake)"
+                        value={reasons[c.id] || ""}
+                        onChange={(e) => setReasons((p) => ({ ...p, [c.id]: e.target.value }))}
+                      />
+                    </div>
+                  )}
                 </div>
               </figure>
             );

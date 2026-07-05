@@ -91,3 +91,58 @@ the Creative Engine skill via Claude Code. Not adopted as a standalone
   the deposit flow applies there).
 - Full audit logging on every RevOS AI action.
 - GHL longevity is an open master-flow risk — keep an export/migration path.
+
+### D-07 · VO provider — Higgsfield "Zoe", behind a swappable seam  ✅
+Checked whether Higgsfield's "Zoe" exposes an underlying ElevenLabs voice id: it
+does NOT — Zoe is a Higgsfield preset voice (voice_id
+`d0374db1-44b9-4f05-939e-0a9ae9dbbe6a`, voice_type "preset"), not an ElevenLabs
+voice. The voice is a locked brand asset, so continuity beats architectural
+neatness: **route VO through Higgsfield** (default `VO_PROVIDER=higgsfield`).
+All VO goes through ONE seam — `lib/voice.js synthesizeVO()` — so the provider
+swaps via a single env var with zero caller changes; ElevenLabs stays available
+as the alternate (`VO_PROVIDER=elevenlabs`). Open item: the Higgsfield audio
+HTTP endpoint isn't in the codebase — set `HF_TTS_URL` (Key auth + Zoe voice_id
+are wired). Until then the render assembles caption-only and flags VO pending.
+
+### Phase-1 render branch (`phase1-drive-realphoto-bridge`) — status
+Built (committed locally, NOT pushed pending repo-remote confirmation):
+- `lib/drive.js` — Google Drive service-account, READ-ONLY (dep-free JWT).
+- `lib/render.js` — real-photo slideshow render (ffmpeg port of build_vo_ads.sh).
+- `lib/renderBatch.js` + `app/api/cron/render` — nightly 1–2/run batch → Review (HITL).
+- `lib/notify.js` — Slack webhook summary. `lib/voice.js` — the VO seam (D-07).
+Runtime notes: render shells to ffmpeg (ffmpeg-static / FFMPEG_PATH) + needs
+FONT_*_PATH; on a runtime without them the batch preflight reports exactly what's
+missing (no crash, no half-written draft). CLAIMS_APR_UNLOCKED stays UNSET —
+APR/credit claims remain build-failing until leadership flips it on written terms.
+
+### D-08 · Nightly render runs on GitHub Actions, not Vercel  ✅
+Vercel serverless can't run ffmpeg, so the nightly render COMPUTE runs in
+`.github/workflows/nightly-render.yml` (ubuntu, ffmpeg + fonts-liberation install
+in seconds, free). It runs `ads-hub/scripts/render-batch.mjs` → the same
+`lib/renderBatch` with `STORE_DRIVER=cloud` + `BLOB_READ_WRITE_TOKEN`, so drafts
+write to the SAME Vercel Blob queue the live Review reads. Vercel keeps the
+queue/API/orchestration (the `/api/cron/render` route stays for manual dry-run).
+Removed the Vercel cron schedule for `/api/cron/render` (it would fail on
+serverless). Required GitHub repo secrets mirror the Vercel env: BLOB_READ_WRITE_TOKEN,
+GDRIVE_SA_JSON, GDRIVE_PHOTOS_FOLDER_ID, ANTHROPIC_API_KEY, HF_API_KEY, HF_API_SECRET,
+SLACK_WEBHOOK_URL (+ optional HF_TTS_URL). Fonts on the runner = Liberation
+(Arial/Georgia-metric-compatible).
+
+### Phase-1b (approved) — remaining creative scope  ✅ BUILT
+Approved scope: both ad sizes + carousel PNG export + the 2 QC gates +
+approve→Meta deep-link + reject-reason log — shipped as one integrated slice.
+Size correction: the second size is **1080x1350** (IG feed) per OPERATOR-PLAYBOOK
+step 4 and the shipped U3–U5 precedent — the "1080x1080" in the earlier note was
+wrong; nothing ships square.
+- `lib/render.js` — size-parametrized (reels 1080x1920 / feed 1080x1350; y-offsets
+  scale by height so the 1920 output is unchanged). voPending now trips on ANY
+  silent beat (partial VO no longer reads as fully voiced).
+- `lib/carousel.js` — 5-slide PNG set per placement (S1 hook photo → S2 problem →
+  S3 we-do-it-all → S4 offer+disclaimer card → S5 DM card), text sourced ONLY from
+  the claims-locked script.
+- `lib/renderBatch.js` — each draft ships reels + feed + 10 carousel PNGs, and
+  carries `qc_gates` (gate 1 voice-read, gate 2 claims-check w/ machine precheck).
+- Review UI — the two playbook QC gates are HUMAN ticks; Approve is disabled until
+  both are ticked. Approved money-arc cards get the Meta Ads Manager deep-LINK
+  (upload/objective/AI-declare stay manual — D-04). Reject now takes a reason →
+  append-only reject log (`state/reject-log.json` cloud / output/reject-log.json fs).
