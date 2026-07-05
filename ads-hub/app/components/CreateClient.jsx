@@ -243,9 +243,13 @@ export default function CreateClient({ angles, formats }) {
             <option value="auto">Auto — studio picks</option>
             {formats.map((f) => <option key={f.name} value={f.name}>{FORMAT_LABELS[f.name] || f.name} · {f.dims}</option>)}
           </select></span>
-          <span className="chip-sel" title="The story angle we build around">Theme <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
-            <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
-          </select></span>
+          {/* Themes (angle presets) are parked (ANGLES_ENABLED) — empty list hides the picker and
+              your prompt goes to the marketing brain unconstrained. */}
+          {angles.length > 0 && (
+            <span className="chip-sel" title="The story angle we build around">Theme <select value={angleId} onChange={(e) => setAngleId(e.target.value)}>
+              <option value="">Auto</option>{angles.map((a) => <option key={a.id} value={a.id}>{a.id}</option>)}
+            </select></span>
+          )}
           <span className="chip-sel" title="How long the ad runs">Length <select value={duration} onChange={(e) => setDuration(e.target.value)}>
             {LENGTHS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select></span>

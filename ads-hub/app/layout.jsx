@@ -13,14 +13,19 @@ export const metadata = {
 
 function Shell({ children }) {
   return (
-    <html lang="en">
+    // data-palette: "law" = brand-kit/brand.json as written; "family" = tokens lifted from the live
+    // Revarity properties (ATD dark theme / revarity.com greens). Cena arbitrates which one wins —
+    // the sidebar toggle exists only for that comparison and persists per browser.
+    <html lang="en" data-palette="law">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Manrope:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
+        {/* apply the saved palette before first paint (no flash) */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var p=localStorage.getItem("rev-palette");if(p==="family"||p==="law")document.documentElement.dataset.palette=p}catch(e){}` }} />
       </head>
       <body>
         <div className="aurora"><b className="b1" /><b className="b2" /><b className="b3" /></div>

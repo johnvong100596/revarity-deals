@@ -23,6 +23,16 @@ export default function Sidebar() {
 
   // restore the collapsed preference (client-only)
   useEffect(() => { try { setCollapsed(localStorage.getItem("rev_rail_collapsed") === "1"); } catch {} }, []);
+
+  // Palette comparison for Cena's arbitration: "law" = brand.json as written, "family" = what the
+  // live Revarity sites actually use. Temporary — hard-set the winner and remove this toggle after.
+  const [palette, setPalette] = useState("law");
+  useEffect(() => { try { const p = localStorage.getItem("rev-palette"); if (p === "family" || p === "law") setPalette(p); } catch {} }, []);
+  const flipPalette = () => {
+    const next = palette === "law" ? "family" : "law";
+    setPalette(next);
+    try { document.documentElement.dataset.palette = next; localStorage.setItem("rev-palette", next); } catch {}
+  };
   // reflect collapsed on <html> (so .side / .main can react) + persist
   useEffect(() => {
     try { document.documentElement.classList.toggle("rail-collapsed", collapsed); localStorage.setItem("rev_rail_collapsed", collapsed ? "1" : "0"); } catch {}
@@ -74,7 +84,12 @@ export default function Sidebar() {
             </div>
           ))}
         </nav>
-        <div className="side-foot">ads.revarity.com · operator hub<br />proposes — never spends</div>
+        <div className="side-foot">
+          ads.revarity.com · operator hub<br />proposes — never spends
+          <button className="palette-toggle" onClick={flipPalette} title={palette === "law" ? "Showing brand.json as written. Click to preview the palette the live Revarity sites actually use (ATD greens/ivory/gold, Inter)." : "Showing the live-family palette. Click to go back to brand.json as written (ink/cream/gold, Manrope)."}>
+            Palette: {palette === "law" ? "The Law (brand.json)" : "Family (live sites)"} ⇄
+          </button>
+        </div>
       </aside>
     </>
   );

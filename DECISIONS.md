@@ -146,3 +146,33 @@ wrong; nothing ships square.
   both are ticked. Approved money-arc cards get the Meta Ads Manager deep-LINK
   (upload/objective/AI-declare stay manual — D-04). Reject now takes a reason →
   append-only reject log (`state/reject-log.json` cloud / output/reject-log.json fs).
+
+### Studio-freedom slice (branch `studio-freedom-and-theme`, 2026-07-05)
+**D-13 · Angles PARKED, not deleted ✅** — Create no longer constrains generation to
+preset angles: the operator's prompt goes to the marketing brain (Opus), which
+freely decides copy, structure, and format per request. The library, Settings
+editor, and overrides are intact behind `ANGLES_ENABLED=1` (restore switch if
+free-prompt quality drops). NOT angles and unchanged: the claims lock
+(lib/claims assertClean, generate-boundary + approve-gate), QA scoring, and the
+human approve queue — infrastructure, always on.
+
+**D-14 · Palette — AWAITING CENA'S ARBITRATION ⛔** — brand.json ("the visual law",
+v1.0 2026-05-28) contradicts what ALL THREE live properties actually use
+(verified from production CSS 2026-07-05): no live site is dark-ink based, none
+use Manrope or JetBrains Mono (body = Inter everywhere), none use brand.json's
+gold hexes (#c9a961/#e0c074), and all three are green-forward (#0c2620 ATD /
+#1e4a38 revarity.com) while brand.json has no green at all. Per the no-guessing
+rule the hub ships BOTH palettes behind `html[data-palette]` + a sidebar toggle:
+"law" (brand.json verbatim, default) vs "family" (ATD dark-theme tokens:
+#121615/#0c2620/#f5f3ef/#d9a859/#46a07c + Inter). Cena picks; then hard-set the
+winner, remove the toggle, and update brand.json to match reality if "family" wins.
+Shared in both: Fraunces display (the one point of agreement), brand.json's
+label treatment (mono labels) under "law".
+
+**D-15 · Remove = 30-day trash, never silent destroy ✅** — every creative card
+(Review queue, Rejected section, home gallery) has Remove: plain confirm
+("Remove this ad? It disappears from everywhere."), soft-delete into
+`state/removed.json`, excluded from queue/gallery/counts/winner-ranking/posting
+via the single readQueue() filter, bulk-select for backlog clearing, Trash
+section with per-item days-left + "Put it back" + explicit "Delete now";
+anything past 30 days hard-deletes on the next trash read.

@@ -147,6 +147,10 @@ export default function ReviewClient() {
   const [varMsg, setVarMsg] = useState("");
   const [gates, setGates] = useState({}); // { id: { voice: bool, claims: bool } } — QC ticks per money-arc card
   const [reasons, setReasons] = useState({}); // { id: "why rejected" } — saved to the reject-reason log
+  const [trash, setTrash] = useState([]); // soft-removed items (30-day recoverable)
+  const [showTrash, setShowTrash] = useState(false);
+  const [selecting, setSelecting] = useState(false); // bulk-select mode for clearing backlog
+  const [selected, setSelected] = useState({}); // { id: true }
 
   const adSrc = (c) => {
     const bg = c.image_url || `/api/image?id=${encodeURIComponent(c.id)}`;
@@ -167,9 +171,34 @@ export default function ReviewClient() {
     const data = await res.json();
     setQueue(data.queue || []);
     setState(data.decisions || {});
+    setTrash(data.trash || []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  // ── Remove → 30-day trash (soft delete; excluded from queue/gallery/counts/ranking) ──
+  async function removeToTrash(ids) {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (!list.length) return;
+    const msg = list.length === 1
+      ? "Remove this ad? It disappears from everywhere. (You can bring it back from Trash for 30 days.)"
+      : `Remove these ${list.length} ads? They disappear from everywhere. (You can bring them back from Trash for 30 days.)`;
+    if (!window.confirm(msg)) return;
+    try {
+      const res = await fetch("/api/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: list }) });
+      if (!res.ok) return;
+      setSelected({}); setSelecting(false);
+      await load();
+    } catch {}
+  }
+  async function restoreFromTrash(id) {
+    try {
+      const res = await fetch("/api/remove", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [id], restore: true }) });
+      if (res.ok) await load();
+    } catch {}
+  }
+  const toggleSelect = (id) => setSelected((p) => ({ ...p, [id]: !p[id] }));
+  const selectedIds = () => Object.keys(selected).filter((id) => selected[id]);
 
   const set = (id, s) => setState((p) => ({ ...p, [id]: p[id] === s ? undefined : s }));
   const tickGate = (id, key) => setGates((p) => ({ ...p, [id]: { ...p[id], [key]: !p[id]?.[key] } }));
@@ -265,12 +294,23 @@ export default function ReviewClient() {
       <p className="lead">Every ad with its copy and our automatic check. Approve, hold, or reject.</p>
       <div className="bar">
         <div className="tally">Approved <b>{tally("approve")}</b> · Hold <b>{tally("hold")}</b> · Reject <b>{tally("reject")}</b> · <span className="muted">of {queue.length}</span>{saved && <span className="muted"> — {saved}</span>}{varMsg && <span className="muted"> — {varMsg}</span>}</div>
-        <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-          <span className="chip-sel" title="Versions per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
-          <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
-          <button className="btn ghost" onClick={approveAllPass}>Approve all that passed</button>
-          <button className="btn ghost" onClick={save}>Save decisions</button>
-          <button className="btn" onClick={exportSet}>Export approved ↓</button>
+        <div style={{ display: "flex", gap: 9, alignItems: "center", flexWrap: "wrap" }}>
+          {selecting ? (
+            <>
+              <button className="btn ghost" onClick={() => setSelected(Object.fromEntries(active.map((c) => [c.id, true])))}>Select all</button>
+              <button className="btn" onClick={() => removeToTrash(selectedIds())} disabled={!selectedIds().length}>Remove selected ({selectedIds().length})</button>
+              <button className="btn ghost" onClick={() => { setSelecting(false); setSelected({}); }}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <span className="chip-sel" title="Versions per card">✨ <select value={varN} onChange={(e) => setVarN(Math.min(10, Math.max(1, Number(e.target.value) || 5)))}>{Array.from({ length: 10 }, (_, i) => i + 1).map((nn) => <option key={nn} value={nn}>{nn}</option>)}</select></span>
+              <button className="btn ghost" onClick={() => setMode((m) => (m === "ink" ? "photo" : "ink"))}>Backdrop: {mode === "ink" ? "Ink" : "Photo"} ⇄</button>
+              <button className="btn ghost" onClick={() => setSelecting(true)} title="Pick several ads, then remove them all at once — they go to a 30-day Trash, not gone forever.">Select…</button>
+              <button className="btn ghost" onClick={approveAllPass}>Approve all that passed</button>
+              <button className="btn ghost" onClick={save}>Save decisions</button>
+              <button className="btn" onClick={exportSet}>Export approved ↓</button>
+            </>
+          )}
         </div>
       </div>
       {loading ? <p className="muted">Loading queue…</p> : queue.length === 0 ? (
@@ -286,8 +326,13 @@ export default function ReviewClient() {
             const badge = c.qa === "pass" ? "" : c.qa === "fail" ? "bad" : "warn";
             const blocked = claimsBlock(c);
             return (
-              <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""}`}>
+              <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""} ${selecting && selected[c.id] ? "sel" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
+                  {selecting && (
+                    <label className="sel-box" title="Select for bulk remove">
+                      <input type="checkbox" checked={!!selected[c.id]} onChange={() => toggleSelect(c.id)} />
+                    </label>
+                  )}
                   {c.video_url
                     ? <PreviewVideo src={c.video_url} />
                     : <img src={adSrc(c)} alt={c.headline} />}
@@ -324,6 +369,7 @@ export default function ReviewClient() {
                   <div className="card-foot">
                     <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
                     <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Make ${varN} versions of this ad — same script and background, different openings. They land in your approvals for review.`}>{varBusy === c.id ? "Creating…" : `✨ Make ${varN} versions`}</button>
+                    <button className="link remove-link" onClick={() => removeToTrash(c.id)} title="Removes this ad from everywhere (queue, gallery, counts, rankings). It sits in Trash for 30 days in case you change your mind.">🗑 Remove</button>
                   </div>
                   {st === "reject" && (
                     <div className="rej-note">
@@ -346,7 +392,7 @@ export default function ReviewClient() {
         {rejected.length > 0 && (
           <div className="rejected-wrap">
             <button className="btn ghost" onClick={() => setShowRejected((v) => !v)}>Rejected ({rejected.length}) {showRejected ? "▲" : "▼"}</button>
-            <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>kept out of your approvals — not deleted until you click Delete</span>
+            <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>kept out of your approvals — click Remove to send one to the 30-day Trash</span>
             {showRejected && (
               <div className="q rejected-q">
                 {rejected.map((c) => (
@@ -359,7 +405,7 @@ export default function ReviewClient() {
                       <p className="qtext">{c.headline || c.body}</p>
                       <div className="acts">
                         <button className="hd" onClick={() => restore(c.id)}>Restore</button>
-                        <button className="rj" onClick={() => removeCreative(c.id)}>Delete ✕</button>
+                        <button className="rj" onClick={() => removeToTrash(c.id)}>Remove 🗑</button>
                       </div>
                     </div>
                   </figure>
@@ -369,6 +415,31 @@ export default function ReviewClient() {
           </div>
         )}
         </>
+      )}
+      {trash.length > 0 && (
+        <div className="rejected-wrap">
+          <button className="btn ghost" onClick={() => setShowTrash((v) => !v)}>Trash ({trash.length}) {showTrash ? "▲" : "▼"}</button>
+          <span className="muted" style={{ marginLeft: 10, fontSize: 12 }}>removed from everywhere — each ad deletes itself for good after 30 days</span>
+          {showTrash && (
+            <div className="q rejected-q">
+              {trash.map((c) => (
+                <figure key={c.id} className="qc rej">
+                  <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
+                    {c.video_url ? <PreviewVideo src={c.video_url} /> : <img src={adSrc(c)} alt={c.headline} />}
+                  </div>
+                  <div className="qbody">
+                    <div className="qmeta"><span className="tag">{c.angle_id}</span><span className="tag">{SPEC_LABEL[c.spec] || c.spec}</span><span className="tag flag">{c.trash_days_left} days left</span></div>
+                    <p className="qtext">{c.headline || c.body}</p>
+                    <div className="acts">
+                      <button className="hd" onClick={() => restoreFromTrash(c.id)}>Put it back</button>
+                      <button className="rj" onClick={() => { if (window.confirm("Delete this ad forever, right now? This cannot be undone.")) removeCreative(c.id).then(() => restoreFromTrash(c.id)); }}>Delete now ✕</button>
+                    </div>
+                  </div>
+                </figure>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </>
   );

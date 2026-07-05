@@ -5,15 +5,16 @@
 import angles from "../config/ad-angles.json";
 import brand from "../config/brand.json";
 import { readSettings } from "./settings.js";
+import { anglesEnabled } from "./connectors.js";
 
 export function getConfig() {
   const formatsFull = Object.entries(brand.creative_specs).map(([name, v]) => ({ name, w: v.w, h: v.h, use: v.use }));
   return {
     budgetMonthly: angles.campaign_budget_monthly_usd,
     kpi: angles.kpi_targets,
-    angles: angles.angles.map((a) => ({
+    angles: anglesEnabled() ? angles.angles.map((a) => ({
       id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length,
-    })),
+    })) : [],
     formats: formatsFull.map((f) => ({ name: f.name, dims: `${f.w}x${f.h}`, use: f.use })),
     formatsFull,
   };
@@ -31,7 +32,10 @@ export async function loadConfig() {
     ...base,
     budgetMonthly: ov.budgetMonthly ?? base.budgetMonthly,
     kpi: { ...base.kpi, ...(ov.kpi || {}) },
-    angles: full.map((a) => ({ id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length })),
+    // Angles parked (studio-freedom): pages get an empty list unless ANGLES_ENABLED=1.
+    // anglesFull stays intact so the Settings editor can still view/curate the parked library.
+    angles: anglesEnabled() ? full.map((a) => ({ id: a.id, type: a.type, audience: a.audience, lead_magnet: a.lead_magnet || "", variants: (a.variants || []).length })) : [],
+    anglesEnabled: anglesEnabled(),
     anglesFull: full,
     anglesCustomized: Array.isArray(ov.angles) && ov.angles.length > 0,
     formats: fullFormats.map((f) => ({ name: f.name, dims: `${f.w}x${f.h}`, use: f.use })),
