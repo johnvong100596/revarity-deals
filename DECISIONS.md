@@ -198,6 +198,21 @@ anything past 30 days hard-deletes on the next trash read.
 6. **Every feature must earn its pixels.** If it can't justify surface space,
    it ships in the drawer — shipping it hidden is fine, shipping it loud is not.
 
+## D-17 · Remote MCP connector — draft scope only (Cena, 2026-07-05)
+`/api/mcp` (Streamable HTTP, stateless JSON) with per-member bearer keys in
+`MCP_API_KEYS` ("name:key,…"); team members add it to Cowork as a custom
+connector. Exactly FOUR tools, nothing more: `submit_idea` (claims-locked →
+pending draft in Review; default queues for the next batch at zero spend;
+`generate_now:true` produces ONE image draft through the P0 cost path — per-call
+estimate + shared `MCP_DAILY_CREDITS_CAP`, default 50/day), `list_queue`
+(statuses only), `get_draft` (status + preview link), `list_library_photos`
+(Drive names/thumbnails so briefs reference real photos). HARD EXCLUSIONS: no
+approve, no publish, no delete, no settings, no budget mutations via MCP —
+those stay human, in the UI (D-04). The claims lock (APR blocklist included)
+gates every submission, pre- AND post-generation. Every queue-touching call is
+logged with the sending key → `state/mcp-log.json`. Video generation stays
+operator-only in the UI.
+
 Charter rulings applied to existing surface (this slice):
 - Two-typefaces-max OVERRIDES brand.json's third face: JetBrains Mono label
   treatment is retired in both palettes (labels ride the body face). Revisit

@@ -358,12 +358,15 @@ export default function ReviewClient() {
                   )}
                   {c.video_url
                     ? <PreviewVideo src={c.video_url} />
-                    : <img src={adSrc(c)} alt={c.headline} />}
+                    : c.hasImg || c.ad_url || c.ad_photo_url || c.image_url
+                      ? <img src={adSrc(c)} alt={c.headline} />
+                      : <div className="example-frame"><span>idea — waiting for the next batch</span></div>}
                   <span className={`qbadge ${badge}`} title={c.qa !== "pass" && c.qa_reasons?.length ? c.qa_reasons[0] : undefined}>Check: {QA_LABEL[c.qa] || c.qa}</span>
                 </div>
                 <div className="qbody">
                   <div className="qmeta">
                     <span className="tag">{c.angle_id}</span>{c.variant && c.variant !== "HUB" && <span className="tag">VAR {c.variant}</span>}<span className="tag">{SPEC_LABEL[c.spec] || c.spec}</span>
+                    {c.submitted_by && <span className="tag flag" title="Sent in through the remote connector — drafts only; this queue is still the gate.">from {c.submitted_by}</span>}
                     {c.pricing_flag && <span className="tag flag">{c.pricing_flag}</span>}
                     {c.disclosure === "ai-presenter" && <span className="tag flag" title="AI presenter — not a real client. Apply the platform's AI-generated label when posting; no implied client, no return claims.">AI presenter · label on post</span>}
                   </div>
