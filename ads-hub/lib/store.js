@@ -20,6 +20,7 @@ export const APPROVALS_KEY = "state/approvals.json";
 export const REJECT_LOG_KEY = "state/reject-log.json";
 export const COMPUTE_LOG_KEY = "state/compute-log.json";
 export const REMOVED_KEY = "state/removed.json";
+export const MCP_LOG_KEY = "state/mcp-log.json";
 const TRASH_DAYS = 30;
 
 function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
@@ -38,6 +39,8 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     video_url_feed: rec.video_url_feed || null,
     carousel_ig: rec.carousel_ig || null, carousel_tt: rec.carousel_tt || null,
     qc: rec.qc_gates || null, caption: rec.caption || null, disclaimer: rec.disclaimer || null,
+    // remote-connector provenance (D-17)
+    submitted_by: rec.submitted_by || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
@@ -286,6 +289,38 @@ export async function appendRejectLog(entries = []) {
     fs.writeFileSync(REJECT_LOG_FILE, JSON.stringify(next, null, 2));
   }
   return { appended: fresh.length, total: next.length };
+}
+
+/* ───────────────────────── MCP submission log (remote connector, D-17) ─────────────────────────
+ * Append-only audit trail of EVERY remote-connector call that touches the queue — which API key
+ * (member) sent what, when, and what it cost. Same bounded-ledger pattern as the compute log. */
+const MCP_LOG_FILE = path.join(OUTPUT_DIR, "mcp-log.json");
+async function readMcpLogRaw() {
+  if (DRIVER === "cloud") {
+    const url = await blobUrl(MCP_LOG_KEY);
+    return (url && (await fetchJson(url))) || [];
+  }
+  try { return JSON.parse(fs.readFileSync(MCP_LOG_FILE, "utf8")); } catch { return []; }
+}
+export async function readMcpLog() { return readMcpLogRaw(); }
+export async function appendMcpLog(entry) {
+  try {
+    if (!entry || !entry.member) return false;
+    const log = await readMcpLogRaw();
+    log.push({
+      member: String(entry.member), tool: String(entry.tool || ""), draft_id: entry.draft_id || null,
+      credits: Number(entry.credits) || 0, note: String(entry.note || "").slice(0, 300), at: new Date().toISOString(),
+    });
+    const trimmed = log.slice(-2000);
+    if (DRIVER === "cloud") {
+      const { put } = await blobApi();
+      await put(MCP_LOG_KEY, JSON.stringify(trimmed), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+    } else {
+      fs.mkdirSync(path.dirname(MCP_LOG_FILE), { recursive: true });
+      fs.writeFileSync(MCP_LOG_FILE, JSON.stringify(trimmed, null, 2));
+    }
+    return true;
+  } catch { return false; } // audit-log hiccup must not fail a submission
 }
 
 /* ───────────────────────── compute-spend ledger (engine-audit P0-1c) ─────────────────────────

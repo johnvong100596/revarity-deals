@@ -87,7 +87,7 @@ export async function listFolderImages(folderId = process.env.GDRIVE_PHOTOS_FOLD
     const token = await accessToken();
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and mimeType contains 'image/' and trashed = false`,
-      fields: "files(id,name,mimeType,modifiedTime,size)",
+      fields: "files(id,name,mimeType,modifiedTime,size,thumbnailLink)",
       orderBy: "modifiedTime desc",
       pageSize: String(Math.min(100, max)),
       // Shared Drives support (harmless for My Drive folders too).
