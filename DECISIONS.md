@@ -1,5 +1,12 @@
 # Decisions — Marketing Engine Initiative
 
+## ★ NORTH STAR
+> **One studio, many brands, many hands — anyone prompts from chat, the machine builds inside per-brand rails, humans approve, owners post to their own channels.**
+
+Every future slice either serves that sentence or doesn't ship. It is the test above all decisions below.
+
+---
+
 Locked vs open, scoped to this initiative. Two open decisions (D-01, D-02) gate
 downstream work and need Malcolm. Four are already decided (D-03 → D-06).
 
