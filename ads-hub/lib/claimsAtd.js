@@ -30,15 +30,25 @@ export function priceConfirmed() { return String(process.env.ATD_PRICE_CONFIRMED
 export function trialConfirmed() { return String(process.env.ATD_TRIAL_CONFIRMED || "") === "1"; }
 export function guaranteeConfirmed() { return String(process.env.ATD_GUARANTEE_CONFIRMED || "") === "1"; }
 
-/* Specific investment-return numbers — NEVER allowed in ATD creative (the app shows these, ads don't).
-   Catches "12% ROI", "8% cap rate", "$40k profit", "2.5x return", "cash-on-cash 14%", "$1,200/mo cash flow". */
+/* Specific investment-return claims — NEVER allowed in ATD creative (the app shows these; ads don't).
+   Catches digit AND spelled-out forms, k/m amounts, and multiplier verbs. A "return metric" is any of:
+   roi / cap rate / return / yield / cash-on-cash / coc / irr / profit / income / cash flow / appreciation. */
+const NUMWORD = "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|double|triple|quadruple)";
+const RETURN_WORD = "(?:roi|cap\\s*rate|returns?|yield|cash[-\\s]?on[-\\s]?cash|coc|irr|profit|passive\\s+income|income|cash\\s*flow|cashflow|equity|appreciation)";
 const RETURN_NUMBERS = [
-  /\b\d+(\.\d+)?\s*%\s*(roi|cap\s*rate|return|yield|cash[-\s]?on[-\s]?cash|coc|irr|appreciation)\b/i,
-  /\b(roi|cap\s*rate|return|yield|cash[-\s]?on[-\s]?cash|coc|irr)\s*(of|:|=|\bis\b)?\s*\d+(\.\d+)?\s*%/i,
-  /\b\d+(\.\d+)?\s*x\s*(return|roi|your\s+money|cash)\b/i,
-  /\$\s?\d[\d,]*\+?\s*(k|m)?\s*(in\s+)?(profit|return|equity|cash\s*flow|cashflow|passive\s+income)\b/i,
-  /\b(profit|return|cash\s*flow|cashflow|equity)\s*(of|:|=)?\s*\$\s?\d[\d,]*/i,
-  /\b\d[\d,]*\+?\s*(a|per|\/)\s*(month|mo|year|yr)\s*(in\s+)?(profit|cash\s*flow|cashflow|passive\s+income|returns?)\b/i,
+  // percentage (digit or word) adjacent to a return metric, either order
+  new RegExp(`\\b(\\d+(?:\\.\\d+)?|${NUMWORD})\\s*(?:%|percent)\\s*(?:${RETURN_WORD})`, "i"),
+  new RegExp(`\\b${RETURN_WORD}\\s*(?:of|:|=|is|around|about|up\\s+to)?\\s*(\\d+(?:\\.\\d+)?|${NUMWORD})\\s*(?:%|percent)`, "i"),
+  // "cap rate of fifteen" / "returns of twelve" — metric + number word/digit with no % at all
+  new RegExp(`\\b${RETURN_WORD}\\s*(?:of|:|=|is|around|about|up\\s+to)\\s*(\\d+(?:\\.\\d+)?|${NUMWORD})\\b`, "i"),
+  // multipliers: "2.5x return", "double/triple your money/investment/capital/returns"
+  /\b\d+(\.\d+)?\s*x\s*(return|roi|your\s+money|cash|investment|capital)\b/i,
+  /\b(double|triple|quadruple|2x|3x|4x|5x|10x)\s+(your\s+)?(money|capital|investment|returns?|cash|income|portfolio)\b/i,
+  // dollar amounts tied to a return metric, either order — incl. $2k, $40k, $1,200
+  new RegExp(`\\$\\s?\\d[\\d,]*\\+?\\s*[km]?\\b[^.]{0,20}?\\b(?:${RETURN_WORD})`, "i"),
+  new RegExp(`\\b(?:${RETURN_WORD})\\b[^.]{0,20}?\\$\\s?\\d[\\d,]*\\+?\\s*[km]?\\b`, "i"),
+  // "$3k monthly income", "2k per month profit", "$2,000 each month" (amount + timeframe [+ return word])
+  /\$?\s?\d[\d,]*\+?\s*[km]?\s*(a|per|\/|each)\s*(month|mo|year|yr|week)\b/i,
 ];
 
 /* Income promises + guarantees — banned always (shared spirit with Revarity, ATD-tuned). */
@@ -66,10 +76,13 @@ const APR_CREDIT = [
   /\b(soft|hard)\s*(pull|check|inquiry)\b/i, /\bfinanc(e|ing)\b/i,
 ];
 
-/* DM-keyword CTAs — a Revarity mechanic; BLOCKED for ATD (its CTA is the site). */
+/* Off-site response CTAs — a Revarity/DM mechanic; BLOCKED for ATD (its CTA is the SITE, always).
+   Covers DM, message, text, email, and comment/reply-with-a-keyword routing. */
 const DM_CTA = [
-  /\bDM\b/i, /\bdirect\s*message\b/i, /\bmessage\s+(us|me)\b/i,
-  /\bcomment\s+["“]?\w+["”]?\s+below\b/i, /\bsend\s+(us\s+)?a\s+dm\b/i,
+  /\bDM\b/i, /\bdirect\s*message\b/i, /\bmessage\s+(us|me)\b/i, /\bsend\s+(us\s+)?a\s+dm\b/i,
+  /\btext\s+(us|me|["“]?\w+["”]?)\b/i, /\bemail\s+(us|me|["“]?[\w@.]+["”]?)\b/i,
+  /\bcomment\s+["“]?\w+["”]?/i, /\breply\s+(to\s+this|with|below|in\s+the\s+comments)\b/i,
+  /\bsend\s+["“]?\w+["”]?\s+(to|via)\b/i,
 ];
 
 /* Unconfirmed factual claims — blocked until the matching env flag confirms them in writing. */

@@ -74,6 +74,14 @@ export async function POST(req) {
   await primeAngles(); // load operator angle overrides so getAngle() inside the builders sees edited/custom angles
 
   try {
+    // ATD = real product screenshots / report outputs ONLY. No AI image OR video generation for it —
+    // that would be fabricated proof (D-19). Copy is fine (text, claims-locked). This one guard closes
+    // every AI-imagery path (image, Veo/Kling/Higgsfield video) in one place; operators attach a real
+    // screenshot to an ATD draft in Review instead.
+    if (brand === "atd" && type !== "copy") {
+      const e = new Error("AnalyzeTheDeal ads use REAL product screenshots / report outputs (demo data) — AI image/video generation is off for ATD. Generate copy here, then attach a real screenshot to the draft in Review.");
+      e.status = 422; throw e;
+    }
     // Claims lock, BEFORE any compute is spent: operator inputs + director copy + the verified
     // list itself (a "verified" APR claim still stays out until CLAIMS_APR_UNLOCKED).
     assertInputClean(brand, rawBrief, claimsVerified, directorPrompt, b.spokenLine, provided?.headline, provided?.body, provided?.cta);
@@ -159,8 +167,10 @@ export async function POST(req) {
         return NextResponse.json({ ok: true, type, engine, jobId: job.id, status: "rendering" });
       }
 
-      // Higgsfield — subtle motion on a brand still (silent ambient; b-roll only).
-      const imgPrompt = directorPrompt || buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief });
+      // Higgsfield — subtle motion on a brand still (silent ambient; b-roll only). brand passed so
+      // the ATD real-screenshot guard fires here too (defense-in-depth; the top-of-try ATD block
+      // already refuses ATD video before we reach this).
+      const imgPrompt = directorPrompt || buildImagePrompt({ headline: copy?.headline || brief, angleId, spec, extra: brief, brand });
       const adPng = await renderImage(imgPrompt, { final: false });
       const imageUrl = await putPublicImage(adPng, newId("src").slice(4));
       const setId = await startVideo({ imageUrl, prompt: rawBrief || copy?.headline || "slow cinematic push-in, subtle motion" });

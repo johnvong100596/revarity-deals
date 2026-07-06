@@ -92,16 +92,18 @@ export async function tick({ dryRun = false } = {}) {
     if (made >= MAX_DD_PER_TICK || done.has(w.postRef)) continue;
     const base = byId[w.creativeId];
     if (!base) continue;
+    // ATD winners are NOT auto-fabricated (real-screenshot brand, D-19) — skip double-down for them.
+    if ((base.brand || "revarity") === "atd") { done.add(w.postRef); report.skipped.push({ reason: `double-down skipped for ATD winner ${w.creativeId} (real-screenshot brand)` }); continue; }
     if (dryRun) { report.doubledDown.push({ from: w.creativeId, would: true }); done.add(w.postRef); made++; continue; }
     try {
       const brief = `Fresh variation in the spirit of a proven winner (angle ${base.angle_id}, headline "${base.headline}") — same winning angle, new hook + visual.`;
-      const [copy] = await genCopy({ angleId: base.angle_id, brief, n: 1 });
+      const [copy] = await genCopy({ angleId: base.angle_id, brief, n: 1, brand: base.brand || "revarity" });
       if (!copy?.headline) throw new Error("genCopy produced nothing");
       const spec = base.spec || "meta_feed_square";
-      const adPng = await renderImage(buildImagePrompt({ headline: copy.headline, angleId: base.angle_id, spec, extra: brief }), {});
+      const adPng = await renderImage(buildImagePrompt({ headline: copy.headline, angleId: base.angle_id, spec, extra: brief, brand: base.brand || "revarity" }), {});
       const d = specDims(spec);
       const id = `hub-generated/${newId("dd").slice(3)}`;
-      await appendCreatives([{ rec: { id, angle_id: base.angle_id, variant: "DOUBLEDOWN", spec, dimensions: `${d.w}x${d.h}`, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, source: "doubledown", from: w.creativeId, created_at: now, qa: { image_layer_verdict: "review", image_layer_reasons: ["auto-made from a winner — review before approve"], qa_model: "" } }, adPng }]);
+      await appendCreatives([{ rec: { id, brand: base.brand || "revarity", angle_id: base.angle_id, variant: "DOUBLEDOWN", spec, dimensions: `${d.w}x${d.h}`, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, source: "doubledown", from: w.creativeId, created_at: now, qa: { image_layer_verdict: "review", image_layer_reasons: ["auto-made from a winner — review before approve"], qa_model: "" } }, adPng }]);
       done.add(w.postRef); made++; report.doubledDown.push({ from: w.creativeId, newId: id });
     } catch (e) { report.skipped.push({ reason: "double-down: " + e.message }); }
   }
