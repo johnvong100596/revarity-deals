@@ -57,7 +57,7 @@ export async function GET(_req, { params }) {
       await primeOverrides(); // honor custom format dimensions when stamping the finished video's record
       const d = specDims(job.spec || "");
       const rec = {
-        id: `hub-generated/${job.id}`, angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,
+        id: `hub-generated/${job.id}`, brand: job.brand || "revarity", angle_id: job.angleId || "CUSTOM", variant: "HUB", spec: job.spec,
         dimensions: `${d.w}x${d.h}`, headline: job.headline || "", body: "", cta: "",
         source: "hub", brief: job.brief || "", created_at: job.createdAt || Date.now(), video_url: job.result_url,
         scores: job.scores || null, mode: job.mode || "broll", disclosure: job.disclosure || null, script: job.script || null,

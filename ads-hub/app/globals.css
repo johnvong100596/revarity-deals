@@ -554,3 +554,26 @@ html.home .hcomposer-go{margin-left:0}
 .empty-teach .example{opacity:.75;width:100%}
 .empty-teach .acts button{cursor:default}
 .example-frame{aspect-ratio:1/1;display:grid;place-items:center;background:repeating-linear-gradient(45deg,var(--glass2),var(--glass2) 12px,transparent 12px,transparent 24px);color:var(--mut-dark);font-family:var(--font-label);font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+
+/* ── D-19 brand separation: ATD renders on its own light ivory/green/gold tokens, never Revarity's
+      dark theme. Scoped to a card (.qc.brand-atd) or the composer (.composer.brand-atd) so one queue
+      shows both brands without leakage. Tokens verified from analyzethedeal.com production CSS. */
+.brand-atd{
+  --bg:#f5f3ef;--bg2:#fff;--glass:rgba(12,38,32,.04);--glass2:rgba(12,38,32,.03);
+  --line:rgba(12,38,32,.16);--line-soft:rgba(12,38,32,.10);
+  --txt:#1c1c1c;--cream:#1c1c1c;--cream-soft:#33322e;--mut:#54514a;--mut-dark:#6b6556;
+  --gold:#0c2620;--gold-bright:#d9a859;--violet:#0c2620;--cyan:#8a6b2c;--green:#2e7d55;--mint:#2e7d55;
+}
+/* ATD card = light surface in the dark queue (this is the visual brand separation) */
+.qc.brand-atd{background:#fff;border-color:rgba(12,38,32,.16);color:#1c1c1c}
+.qc.brand-atd .qtext{color:#33322e}.qc.brand-atd .tag{color:#54514a;border-color:rgba(12,38,32,.18)}
+.qc.brand-atd .qframe{background:#eef1ea}
+/* brand chips on the composer + badges on cards */
+.brand-pick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.brand-pick-l{font-family:var(--font-label);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.brand-chip{cursor:pointer;font:inherit;font-size:12.5px;padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--mut);transition:.15s}
+.brand-chip.on{background:var(--gold);color:#0c1a13;border-color:var(--gold);font-weight:600}
+.brand-chip.atd.on{background:#0c2620;color:#f5f3ef;border-color:#0c2620}
+.brand-pick-hint{font-size:11px;color:var(--mut-dark)}
+.brand-badge.rev{color:var(--gold-bright);border-color:var(--gold)}
+.brand-badge.atd{color:#0c2620;background:#d9a859;border-color:#d9a859;font-weight:600}

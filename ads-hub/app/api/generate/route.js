@@ -7,7 +7,7 @@ import { startUgc } from "@/lib/arcads";
 import { appendCreatives, putPublicImage, appendComputeLog } from "@/lib/store";
 import { saveJob, newId } from "@/lib/jobs";
 import { scoreCreative } from "@/lib/score";
-import { claimViolations } from "@/lib/claims";
+import { normalizeBrand, claimViolationsFor } from "@/lib/brands";
 import { estimateCredits } from "@/lib/computeCost";
 
 export const runtime = "nodejs";
@@ -26,23 +26,25 @@ export const maxDuration = 60;
  */
 
 // Use director/operator-provided copy if present, else generate it.
-async function resolveCopy({ provided, angleId, brief, reference }) {
+async function resolveCopy({ provided, angleId, brief, reference, brand }) {
   if (provided && (provided.headline || provided.body || provided.cta)) {
     return { headline: provided.headline || "", body: provided.body || "", cta: provided.cta || "Learn more", pricing_flag: null, hook: "custom" };
   }
-  const [c] = await genCopy({ angleId, brief, reference, n: 1 });
+  const [c] = await genCopy({ angleId, brief, reference, n: 1, brand });
   return c;
 }
 
-// The claims lock at the generate boundary (engine-audit P0-3). Advisory before; BLOCKING now:
-// a violating input never spends compute, a violating generated line never reaches the queue.
-// Plain-language error per the UX spec — protection, not restriction.
-const CLAIMS_BLOCKED_MSG = (hits) =>
-  `That wording can't go in an ad yet — it trips the claims lock (${[...new Set(hits.map((h) => h.kind))].join(", ")}). ` +
-  `Unconfirmed money/credit promises go in your DM replies instead of the video; move them to the ad once you have them on paper.`;
-function assertInputClean(...texts) {
-  const hits = claimViolations(texts.filter(Boolean).join("\n"));
-  if (hits.length) { const e = new Error(CLAIMS_BLOCKED_MSG(hits)); e.status = 422; throw e; }
+// The claims lock at the generate boundary (engine-audit P0-3), now BRAND-ROUTED (D-19): the ATD
+// regime blocks ROI/income/APR/DM-CTA, the Revarity regime blocks its money-arc set. Advisory before;
+// BLOCKING now — a violating input never spends compute, a violating generated line never queues.
+const CLAIMS_BLOCKED_MSG = (hits, brand) =>
+  `That wording can't go in a ${brand === "atd" ? "AnalyzeTheDeal" : "Revarity"} ad — it trips the claims lock (${[...new Set(hits.map((h) => h.kind))].join(", ")}). ` +
+  (brand === "atd"
+    ? "ATD ads say what the product does and send people to analyzethedeal.com — no ROI/profit numbers, no income promises, no APR/credit or DM-keyword language."
+    : "Unconfirmed money/credit promises go in your DM replies instead of the video; move them to the ad once you have them on paper.");
+function assertInputClean(brand, ...texts) {
+  const hits = claimViolationsFor(brand, texts.filter(Boolean).join("\n"));
+  if (hits.length) { const e = new Error(CLAIMS_BLOCKED_MSG(hits, brand)); e.status = 422; throw e; }
 }
 // The promise-split (UX14): verified promises are allowed context; unverified ones are an
 // explicit KEEP-OUT list handed to the copywriter.
@@ -57,6 +59,7 @@ export async function POST(req) {
   let b = {};
   try { b = await req.json(); } catch {}
   const type = b.type || "image";
+  const brand = normalizeBrand(b.brand);
   const angleId = b.angleId || "";
   const rawBrief = (b.brief || "").slice(0, 2000);
   const claimsVerified = (b.claimsVerified || "").slice(0, 800);
@@ -73,24 +76,25 @@ export async function POST(req) {
   try {
     // Claims lock, BEFORE any compute is spent: operator inputs + director copy + the verified
     // list itself (a "verified" APR claim still stays out until CLAIMS_APR_UNLOCKED).
-    assertInputClean(rawBrief, claimsVerified, directorPrompt, b.spokenLine, provided?.headline, provided?.body, provided?.cta);
+    assertInputClean(brand, rawBrief, claimsVerified, directorPrompt, b.spokenLine, provided?.headline, provided?.body, provided?.cta);
 
     if (type === "copy") {
-      const variants = await genCopy({ angleId, brief, reference, n });
-      // Post-generation claims gate: a violating AI line is dropped, never returned.
-      const clean = variants.filter((v) => claimViolations([v.headline, v.body, v.cta].filter(Boolean).join("\n")).length === 0);
-      if (!clean.length) { const e = new Error(CLAIMS_BLOCKED_MSG(claimViolations(variants.map((v) => `${v.headline} ${v.body} ${v.cta}`).join("\n")))); e.status = 422; throw e; }
+      const variants = await genCopy({ angleId, brief, reference, n, brand });
+      // Post-generation claims gate (brand-routed): a violating AI line is dropped, never returned.
+      const clean = variants.filter((v) => claimViolationsFor(brand, [v.headline, v.body, v.cta].filter(Boolean).join("\n")).length === 0);
+      if (!clean.length) { const e = new Error(CLAIMS_BLOCKED_MSG(claimViolationsFor(brand, variants.map((v) => `${v.headline} ${v.body} ${v.cta}`).join("\n")), brand)); e.status = 422; throw e; }
       const scored = await Promise.all(clean.map(async (v) => ({ ...v, scores: await scoreCreative({ ...v, angleId, spec, brief }) })));
-      await appendComputeLog({ kind: "copy", credits: estimateCredits("copy"), note: `copy x${clean.length}` });
-      return NextResponse.json({ ok: true, type, variants: scored, dropped: variants.length - clean.length });
+      await appendComputeLog({ kind: "copy", credits: estimateCredits("copy"), note: `copy x${clean.length} (${brand})` });
+      return NextResponse.json({ ok: true, type, brand, variants: scored, dropped: variants.length - clean.length });
     }
 
     if (type === "image") {
-      const copy = await resolveCopy({ provided, angleId, brief, reference });
+      const copy = await resolveCopy({ provided, angleId, brief, reference, brand });
       if (!copy) throw new Error("copy generation returned nothing");
       // Claims gate BEFORE the paid render — a violating line never spends compute.
-      assertInputClean(copy.headline, copy.body, copy.cta);
-      const prompt = directorPrompt || buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief });
+      assertInputClean(brand, copy.headline, copy.body, copy.cta);
+      // ATD imagery = real screenshots only; buildImagePrompt throws FABRICATED_PROOF for ATD.
+      const prompt = directorPrompt || buildImagePrompt({ headline: copy.headline, angleId, spec, extra: brief, brand });
       const [adPng, scores] = await Promise.all([
         renderImage(prompt, { final: b.final !== false }), // ultra-realism: default to the PRO image model
 
@@ -99,7 +103,7 @@ export async function POST(req) {
       const d = specDims(spec);
       const id = `hub-generated/${newId("ad").slice(4)}`;
       const rec = {
-        id, angle_id: angleId || "CUSTOM", variant: "HUB", spec, dimensions: `${d.w}x${d.h}`,
+        id, brand, angle_id: angleId || "CUSTOM", variant: "HUB", spec, dimensions: `${d.w}x${d.h}`,
         headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag,
         source: "hub", brief, created_at: Date.now(), scores,
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated — review before approve"], qa_model: "" },
@@ -113,9 +117,9 @@ export async function POST(req) {
       const mode = b.mode === "presenter" ? "presenter" : "broll";
       let engine = b.engine || "kling";
       if (mode === "presenter") engine = "veo"; // presenter commercials need Veo's native synced dialogue
-      const copy = await resolveCopy({ provided, angleId, brief, reference });
+      const copy = await resolveCopy({ provided, angleId, brief, reference, brand });
       // Claims gate BEFORE the paid render — a violating line never spends compute.
-      assertInputClean(copy?.headline, copy?.body, copy?.cta);
+      assertInputClean(brand, copy?.headline, copy?.body, copy?.cta);
       const d = specDims(spec);
       const aspect = d.aspect === "9:16" ? "9:16" : d.aspect === "1:1" ? "1:1" : "16:9";
       const spokenLine = (b.spokenLine || copy?.headline || rawBrief || "").slice(0, 400);
@@ -124,7 +128,7 @@ export async function POST(req) {
         ? buildPresenterPrompt({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, brief, spokenLine })
         : buildBrollPrompt({ headline: copy?.headline || brief, angleId, brief }));
       const scores = await scoreCreative({ headline: copy?.headline, body: copy?.body, cta: copy?.cta, angleId, spec, brief, hasVideo: true });
-      const baseJob = { type: "video", angleId, spec, headline: copy?.headline || "", brief, mode, disclosure, scores, script: disclosure ? spokenLine : null };
+      const baseJob = { type: "video", brand, angleId, spec, headline: copy?.headline || "", brief, mode, disclosure, scores, script: disclosure ? spokenLine : null };
 
       // Arcads — gated UGC talking-head lane (fails closed until ARCADS_CLIENT_ID/SECRET set).
       if (engine === "arcads") {

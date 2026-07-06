@@ -26,6 +26,7 @@ const LENGTHS = [["auto", "Auto length"], ["8", "~8s"], ["15", "~15s"], ["30", "
 export default function CreateClient({ angles, formats }) {
   const sp = useSearchParams();
   const [idea, setIdea] = useState(() => sp.get("brief") || "");
+  const [brand, setBrand] = useState(() => (sp.get("brand") === "atd" ? "atd" : "revarity")); // D-19 which brand this ad is for
   const [output, setOutput] = useState(() => sp.get("output") || "auto");
   const [format, setFormat] = useState(() => sp.get("spec") || "auto");
   const [angleId, setAngleId] = useState(() => sp.get("angle") || "");
@@ -122,7 +123,7 @@ export default function CreateClient({ angles, formats }) {
   // Map a director shot to a /api/generate body. Claims fields ride EVERY generate so the
   // server-side claims lock sees the promise split no matter which path fired the shot.
   function shotBody(shot) {
-    const base = { spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId, targetSeconds: shot.durationSec || undefined, claimsVerified, claimsNot };
+    const base = { brand, spec: shot.spec || format, directorPrompt: shot.prompt, headline: shot.headline, spokenLine: shot.spokenLine, angleId, targetSeconds: shot.durationSec || undefined, claimsVerified, claimsNot };
     if (shot.kind === "image") return { ...base, type: "image" };
     if (shot.kind === "presenter") return { ...base, type: "video", mode: "presenter", engine: "veo" };
     if (shot.kind === "ugc") return { ...base, type: "video", engine: "arcads" };
@@ -136,7 +137,7 @@ export default function CreateClient({ angles, formats }) {
     try {
       const res = await fetch("/api/director", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot }),
+        body: JSON.stringify({ brand, idea, inspiration: inspirationText(), wantVoice, wantMusic, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "planning failed");
@@ -159,7 +160,7 @@ export default function CreateClient({ angles, formats }) {
   async function directGenerate() {
     setBusy(true); setErr("");
     try {
-      const base = { spec: format, brief: idea, reference: inspirationText(), angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot };
+      const base = { brand, spec: format, brief: idea, reference: inspirationText(), angleId, targetSeconds: duration === "auto" ? null : Number(duration), claimsVerified, claimsNot };
       if (output === "copy") await runGenerate({ ...base, type: "copy", n: 3 }, "Copy");
       else if (output === "image") await runGenerate({ ...base, type: "image" }, "Image");
       else if (output === "presenter") await runGenerate({ ...base, type: "video", mode: "presenter", engine: "veo" }, "Presenter");
@@ -183,7 +184,7 @@ export default function CreateClient({ angles, formats }) {
     try {
       const res = await fetch("/api/variations", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idea, inspiration: inspirationText(), n: nIdeas, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration) }),
+        body: JSON.stringify({ brand, idea, inspiration: inspirationText(), n: nIdeas, output, format, angleId, targetSeconds: duration === "auto" ? null : Number(duration) }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "variations failed");
@@ -198,7 +199,7 @@ export default function CreateClient({ angles, formats }) {
     try {
       const res = await fetch("/api/concepts", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ angleId, n: nIdeas, output, format }),
+        body: JSON.stringify({ brand, angleId, n: nIdeas, output, format }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "concept generation failed");
@@ -222,9 +223,18 @@ export default function CreateClient({ angles, formats }) {
       {/* D-16: the prompt box is THE screen. One primary button. Everything else lives in the
           "More options" drawer — except the promise check, which surfaces itself the moment
           the prompt sounds like money (claims safety earns its pixels only when relevant). */}
-      <div className="composer">
+      <div className={"composer" + (brand === "atd" ? " brand-atd" : "")}>
+        {/* D-19: which brand this ad is for — picks the claims regime, voice, CTA style, and tokens. */}
+        <div className="brand-pick" role="radiogroup" aria-label="Brand">
+          <span className="brand-pick-l">Brand</span>
+          <button type="button" className={`brand-chip ${brand === "revarity" ? "on" : ""}`} aria-pressed={brand === "revarity"} onClick={() => setBrand("revarity")}>Revarity</button>
+          <button type="button" className={`brand-chip atd ${brand === "atd" ? "on" : ""}`} aria-pressed={brand === "atd"} onClick={() => setBrand("atd")}>AnalyzeTheDeal</button>
+          <span className="brand-pick-hint">{brand === "atd" ? "Direct-to-site CTA · no ROI/income numbers · real screenshots only" : "Money-arc · DM “SETUP” · $0-down offer"}</span>
+        </div>
         <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
-          placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with the opening, scenes, and lines.'} />
+          placeholder={brand === "atd"
+            ? 'e.g. "Investors waste hours in spreadsheets guessing if a rental pencils out — ATD runs every strategy and gives one clear verdict in seconds. Sign up at analyzethedeal.com."'
+            : 'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with the opening, scenes, and lines.'} />
 
         {(claimish || moreOpen) && (
           <div className="promise-split">

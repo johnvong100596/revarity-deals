@@ -23,6 +23,7 @@ export async function POST(req) {
       formatPref: b.format || "auto",
       angleId: b.angleId || "",
       targetSeconds: b.targetSeconds || null,
+      brand: b.brand || "revarity",
     });
     if (!plan) return NextResponse.json({ ok: false, error: "Couldn't make variations — confirm ANTHROPIC_API_KEY is set and give a base concept to vary." }, { status: 502 });
     return NextResponse.json({ ok: true, plan });

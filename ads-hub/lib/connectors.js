@@ -2,6 +2,7 @@ import brand from "../config/brand.json";
 import angles from "../config/ad-angles.json";
 import { readSettings } from "./settings.js";
 import { claimViolations, VERIFIED_CLAIM, DISCLAIMER } from "./claims.js";
+import { getBrand, claimViolationsFor } from "./brands.js";
 
 /**
  * Direct-REST generation connectors (serverless-safe, fetch-only — no CLI, no SDK deps).
@@ -64,27 +65,29 @@ export function specDims(spec) {
   return s ? { w: s.w, h: s.h, aspect: s.w === s.h ? "1:1" : s.h > s.w ? "9:16" : "16:9", label: spec, use: s.use } : { w: 1080, h: 1080, aspect: "1:1", label: spec || "meta_feed_square" };
 }
 
-// SINGLE claims regime lives in lib/claims.js (money-arc / financing). Do NOT reintroduce a second
-// (legacy free-entry / $375-mo / at-cost) guard here — one regime only.
+// Brand voice + claims are now brand-routed (D-19): Revarity money-arc lives in lib/claims.js, ATD in
+// lib/claimsAtd.js, both selected via lib/brands.js. The Revarity VOICE below is the default; brandVoice()
+// returns the right preamble per brand so copy/angle generation never hard-codes one brand.
 const VOICE = [
   "Brand: Revarity — done-for-you short-term-rental (Airbnb) setup for property owners. We handle design, furniture, photography, and launch, end-to-end.",
   "Voice: direct, premium, honest. No hype adjectives, no emoji, no fake scarcity or countdowns.",
   "Offer (money-arc): the real barrier to launching an Airbnb is the ~$30,000 setup, not the property. We do all of it, and that setup can be financed.",
   `Claims (SINGLE regime — enforced by lib/claims.js): the ONLY financial claim allowed in creative is "${VERIFIED_CLAIM}". NEVER state or imply "0%", "APR", interest, or any credit-check language (locked until leadership unlocks per Malcolm's written terms). NEVER promise guaranteed returns/approval/income/occupancy. No fake urgency or countdowns. Every end card carries: "${DISCLAIMER}".`,
 ].join(" ");
+function brandVoice(brand) { return getBrand(brand).voice || VOICE; }
 
-// Claims flag — delegates to the single regime (lib/claims). Returns the first violation kind, or null.
-function pricingFlag(text) {
-  const v = claimViolations(text);
+// Claims flag — delegates to the brand's regime (lib/brands). Returns the first violation kind, or null.
+function pricingFlag(text, brand) {
+  const v = claimViolationsFor(brand, text);
   return v.length ? v[0].kind : null;
 }
 
 /** Generate N original copy variants. Returns [{ headline, body, cta, pricing_flag }]. */
-export async function genCopy({ angleId, brief = "", reference = "", n = 1 }) {
+export async function genCopy({ angleId, brief = "", reference = "", n = 1, brand = "revarity" }) {
   if (!ANTHROPIC_KEY()) throw new Error("ANTHROPIC_API_KEY not set — required for copy generation.");
   const angle = getAngle(angleId);
   const prompt = [
-    VOICE,
+    brandVoice(brand),
     angle ? `Angle ${angle.id}: audience = ${angle.audience}; lead magnet = ${angle.lead_magnet || "—"}; visual direction = ${angle.visual_direction || "—"}.` : "",
     brief ? `Operator brief (what they want this round): ${brief}` : "",
     reference ? `Reference patterns to MIMIC IN SPIRIT (never copy wording — learn the framework): ${reference}` : "",
@@ -103,7 +106,7 @@ export async function genCopy({ angleId, brief = "", reference = "", n = 1 }) {
   let parsed; try { parsed = JSON.parse(txt); } catch { try { const m = txt.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : { variants: [] }; } catch { parsed = { variants: [] }; } }
   return (parsed.variants || []).slice(0, n).map((v) => ({
     headline: v.headline || "", body: v.body || "", cta: v.cta || "Learn more", hook: v.hook || "custom",
-    pricing_flag: pricingFlag(`${v.headline} ${v.body}`),
+    pricing_flag: pricingFlag(`${v.headline} ${v.body} ${v.cta}`, brand),
   }));
 }
 
@@ -132,13 +135,24 @@ export async function genAngle({ brief = "", existing = [] } = {}) {
   return a;
 }
 
-/** Build a brand-locked image prompt (template — deterministic, no extra model call). */
-export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_feed_square", extra = "" }) {
+/** ATD imagery is REAL product screenshots / report outputs (demo data only) — NEVER AI-fabricated
+ *  app UI (that would be fake proof, same principle as Revarity's real-photos rule). AI image
+ *  generation for the ATD brand is refused; the ATD visual path is a real-screenshot upload. */
+export class FabricatedProofError extends Error {
+  constructor(msg) { super(msg); this.code = "FABRICATED_PROOF"; this.status = 422; }
+}
+
+/** Build a brand-locked image prompt (template — deterministic, no extra model call). Brand-aware
+ *  palette (D-19 / brand.json v2.0); throws for ATD (no AI-fabricated screenshots). */
+export function buildImagePrompt({ headline = "", angleId = "", spec = "meta_feed_square", extra = "", brand = "revarity" }) {
+  if (getBrand(brand).id === "atd") {
+    throw new FabricatedProofError("ATD ads use REAL product screenshots / report outputs (demo data), not AI-generated images — upload a screenshot instead of generating one.");
+  }
   const angle = getAngle(angleId);
   const d = specDims(spec);
   return [
     `Premium editorial advertising visual, ${d.aspect} aspect (${d.w}x${d.h}). ${d.use}.`,
-    `Brand palette: deep ink (#0a0a0b) and warm cream (#f5f1e8) with gold (#c9a961) accents; radial gold glow on dark for atmosphere; generous negative space.`,
+    `Brand palette: deep green (#0c2620) and warm ivory (#f5f3ef) with gold (#d9a859) accents; radial gold glow on dark for atmosphere; generous negative space.`,
     angle?.visual_direction ? `Art direction: ${angle.visual_direction}` : "Art direction: clean, premium real-estate / short-term-rental aesthetic.",
     `ULTRA-photorealistic — indistinguishable from a real professional photograph; absolutely no illustration, cartoon, 3D-render, or AI-looking artifacts. Tasteful, never stock-photo gloss. No purple, no SaaS-blue, no emoji.`,
     extra ? `Operator note: ${extra}` : "",

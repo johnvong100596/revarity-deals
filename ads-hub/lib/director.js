@@ -2,6 +2,7 @@ import { ANTHROPIC_KEY, getAngle, COPY_MODEL } from "./connectors.js";
 import { hasArcads } from "./arcads.js";
 import { hasVeo } from "./veo.js";
 import brand from "../config/brand.json";
+import { getBrand } from "./brands.js";
 
 /**
  * The "Director" — the creative-routing brain. Takes a freeform idea OR a full script (e.g. the
@@ -18,10 +19,10 @@ import brand from "../config/brand.json";
  */
 const MODEL = process.env.DIRECTOR_MODEL || COPY_MODEL; // best Claude for ad/shot prompt-writing (centralized default)
 
-const BRAND = [
-  "Brand: Revarity — done-for-you short-term-rental (Airbnb) BUSINESS builder for serious investors with real capital. Premium, high-trust, high-ticket. Voice: direct, honest, no hype, no fake scarcity, NO guaranteed-return/occupancy/income claims.",
-  "Offer (state honestly): clients come in free, pay nothing until they accept a deal; they fund their own unit at cost (no markups); management billed monthly AFTER setup. Not a course/guru program.",
-].join(" ");
+// Brand block is brand-routed (D-19): the single source is lib/brands.js voice, so the director,
+// copy, and claims never disagree on the offer. (Fixes the old two-regimes conflict where this
+// const still pitched free-entry/at-cost while lib/claims.js was money-arc.)
+const brandBlock = (brandId) => getBrand(brandId).voice;
 
 const ENGINE_CATALOG = (engines) => engines.map((e) => `- ${e.key}: ${e.desc}`).join("\n");
 
@@ -71,7 +72,7 @@ const clampShots = (arr) => (Array.isArray(arr) ? arr : []).slice(0, 12).map((s,
  * Plan a creative from a freeform idea/script.
  * @returns { title, summary, shots[], voice|null, music|null, guardrailFlags[], model } or null on failure.
  */
-export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null, claimsVerified = "", claimsNot = "" } = {}) {
+export async function planFromScript({ idea = "", inspiration = "", wantVoice = false, wantMusic = false, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null, claimsVerified = "", claimsNot = "", brand = "revarity" } = {}) {
   if (!ANTHROPIC_KEY()) return null;
   if (!idea.trim()) return null;
 
@@ -82,7 +83,7 @@ export async function planFromScript({ idea = "", inspiration = "", wantVoice = 
   const angle = angleId ? getAngle(angleId) : null;
 
   const sys = [
-    `You are the CREATIVE DIRECTOR + media router for an ad studio. ${BRAND}`,
+    `You are the CREATIVE DIRECTOR + media router for an ad studio. ${brandBlock(brand)}`,
     angle ? `Target angle: ${angle.id} — audience ${angle.audience}; visual direction ${angle.visual_direction || "—"}.` : "",
     "Read the operator's idea or full script and break it into an ordered list of SHOTS. For EACH shot, choose the single engine that renders it best, and choose the placement/format. You are the decision-maker — pick what produces the best result for THIS context.",
     "",
@@ -177,12 +178,12 @@ const HARD_GUARDRAILS = "GUARDRAILS (hard): a presenter is a BRAND SPOKESPERSON,
  * Up to N (≤10) VARIATIONS of one base concept for A/B testing — same script + background, varied hook.
  * Returns the plan shape (each variation is one shot), or null.
  */
-export async function planVariations({ idea = "", inspiration = "", n = 5, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null } = {}) {
+export async function planVariations({ idea = "", inspiration = "", n = 5, outputPref = "auto", formatPref = "auto", angleId = "", targetSeconds = null, brand = "revarity" } = {}) {
   if (!ANTHROPIC_KEY() || !idea.trim()) return null;
   const count = Math.min(10, Math.max(1, Number(n) || 5));
   const angle = angleId ? getAngle(angleId) : null;
   const sys = [
-    `You are the CREATIVE DIRECTOR + media router for an ad studio. ${BRAND}`,
+    `You are the CREATIVE DIRECTOR + media router for an ad studio. ${brandBlock(brand)}`,
     angle ? `Target angle: ${angle.id} — audience ${angle.audience}; visual direction ${angle.visual_direction || "—"}.` : "",
     `Produce EXACTLY ${count} VARIATIONS of ONE core concept for A/B testing. Hold the SCRIPT / voiceover line and the BACKGROUND / scene SIMILAR across all of them — same setting, same engine, same format. Vary ONLY the hook / opening line, the headline wording, small framing-lighting-detail tweaks, and the CTA emphasis. Each variation is an independent sibling test, NOT a multi-shot sequence.`,
     "Return each variation as ONE shot object (n = 1..N), reusing the same engine + spec across the set unless one variation clearly needs a tweak.",
@@ -208,7 +209,7 @@ export async function planVariations({ idea = "", inspiration = "", n = 5, outpu
  * Up to N (≤10) NEW, distinct content concepts for an angle, cohesive with the brand's recent designs.
  * `recent` = array of recent creatives [{headline, body, angle_id, spec}]. Returns the plan shape, or null.
  */
-export async function planFromAngle({ angleId = "", recent = [], n = 5, outputPref = "auto", formatPref = "auto" } = {}) {
+export async function planFromAngle({ angleId = "", recent = [], n = 5, outputPref = "auto", formatPref = "auto", brand = "revarity" } = {}) {
   if (!ANTHROPIC_KEY()) return null;
   const count = Math.min(10, Math.max(1, Number(n) || 5));
   const angle = angleId ? getAngle(angleId) : null;
@@ -216,7 +217,7 @@ export async function planFromAngle({ angleId = "", recent = [], n = 5, outputPr
     .map((c, i) => `${i + 1}. [${c.angle_id || "—"} · ${c.spec || "—"}] "${String(c.headline || "").slice(0, 90)}"${c.body ? ` — ${String(c.body).slice(0, 90)}` : ""}`)
     .join("\n");
   const sys = [
-    `You are the CREATIVE DIRECTOR for an ad studio. ${BRAND}`,
+    `You are the CREATIVE DIRECTOR for an ad studio. ${brandBlock(brand)}`,
     angle ? `TARGET ANGLE: ${angle.id} — audience ${angle.audience}; lead magnet ${angle.lead_magnet || "—"}; visual direction ${angle.visual_direction || "—"}.` : "No angle was chosen — pick the best-fit angle(s) for this brand and keep the set coherent.",
     `Generate EXACTLY ${count} NEW, DISTINCT content concepts for this angle. They must feel cohesive with the brand's RECENT designs (provided below) — same visual language, voice, and quality bar — but each concept is a FRESH idea, NOT a variation of another.`,
     "Return each concept as ONE shot object (n = 1..N), ready to render.",

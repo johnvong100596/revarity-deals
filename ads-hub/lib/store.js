@@ -25,7 +25,7 @@ const TRASH_DAYS = 30;
 
 function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
   return {
-    id, angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
+    id, brand: rec.brand || "revarity", angle_id: rec.angle_id, variant: rec.variant, spec: rec.spec, dimensions: rec.dimensions,
     headline: rec.headline, body: rec.body, cta: rec.cta, pricing_flag: rec.pricing_flag || null,
     qa: rec.qa?.image_layer_verdict || "—", qa_reasons: rec.qa?.image_layer_reasons || [],
     qa_model: rec.qa?.qa_model || "",

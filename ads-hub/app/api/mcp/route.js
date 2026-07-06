@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { claimViolations } from "@/lib/claims";
-import { genCopy, buildImagePrompt, renderImage, primeAngles, specDims } from "@/lib/connectors";
+import { normalizeBrand, claimViolationsFor, getBrand } from "@/lib/brands";
+import { genCopy, buildImagePrompt, renderImage, primeAngles, specDims, FabricatedProofError } from "@/lib/connectors";
 import { scoreCreative } from "@/lib/score";
 import { appendCreatives, readQueue, readApprovals, publicImageUrl, appendComputeLog, readComputeLog, appendMcpLog } from "@/lib/store";
 import { listFolderImages, driveConfigured } from "@/lib/drive";
@@ -74,12 +74,14 @@ function memberForRequest(req) {
   return null;
 }
 
-/* ── plain-language claims gate (same lock as everywhere else; APR blocklist included) ── */
-function claimsGate(...texts) {
-  const hits = claimViolations(texts.filter(Boolean).join("\n"));
+/* ── plain-language claims gate, BRAND-ROUTED (D-19; APR blocklist included in both regimes) ── */
+function claimsGate(brand, ...texts) {
+  const hits = claimViolationsFor(brand, texts.filter(Boolean).join("\n"));
   if (!hits.length) return null;
   const kinds = [...new Set(hits.map((h) => h.kind))].join(", ");
-  return `That wording trips the claims lock (${kinds}) and can't become an ad. The only allowed money claim is "$0 down for qualified properties"; APR/credit language and urgency/guarantee/income promises are blocked. Move unconfirmed promises to DM replies and resubmit.`;
+  return brand === "atd"
+    ? `That wording trips the AnalyzeTheDeal claims lock (${kinds}) and can't become an ad. ATD ads say what the product does and send people to analyzethedeal.com — no ROI/profit numbers, no income promises, no APR/credit or DM-keyword language, and no unconfirmed price/trial/guarantee claims.`
+    : `That wording trips the claims lock (${kinds}) and can't become an ad. The only allowed money claim is "$0 down for qualified properties"; APR/credit language and urgency/guarantee/income promises are blocked. Move unconfirmed promises to DM replies and resubmit.`;
 }
 
 async function mcpSpentToday() {
@@ -103,9 +105,10 @@ const TOOLS = [
       type: "object",
       properties: {
         brief: { type: "string", description: "The ad idea in plain words — offer angle, scene, feeling. The marketing brain writes the actual copy." },
+        brand: { type: "string", enum: ["revarity", "atd"], description: "Which brand this ad is for (default revarity). ATD = AnalyzeTheDeal: site CTA, no ROI/income numbers, real screenshots only." },
         format: { type: "string", enum: ["auto", "meta_feed_square", "meta_feed_portrait", "meta_story_vertical", "meta_landscape", "before_after_split"], description: "Placement hint (default auto)." },
         photo_hints: { type: "string", description: "Optional: which real library photos to lean on (use list_library_photos for names)." },
-        generate_now: { type: "boolean", description: "true = generate one image draft immediately (estimated ~2 credits, daily-capped). Default false = free, queued for the next batch." },
+        generate_now: { type: "boolean", description: "true = generate one image draft immediately (estimated ~2 credits, daily-capped). Default false = free, queued for the next batch. Not available for ATD (its ads use real screenshots, not AI images)." },
       },
       required: ["brief"],
     },
@@ -134,13 +137,14 @@ async function runTool(name, args, member) {
   if (name === "submit_idea") {
     const brief = String(args?.brief || "").trim().slice(0, 2000);
     if (!brief) throw Object.assign(new Error("brief is required"), { invalidParams: true });
+    const brand = normalizeBrand(args?.brand);
     const format = SUPPORTED_FORMATS.has(args?.format) ? args.format : "auto";
     const photoHints = String(args?.photo_hints || "").trim().slice(0, 400);
 
-    // Claims lock BEFORE anything is stored or spent (APR blocklist included).
-    const blocked = claimsGate(brief, photoHints);
+    // Claims lock BEFORE anything is stored or spent — the submitting brand's regime.
+    const blocked = claimsGate(brand, brief, photoHints);
     if (blocked) {
-      await appendMcpLog({ member, tool: name, note: `BLOCKED by claims lock: ${brief.slice(0, 120)}` });
+      await appendMcpLog({ member, tool: name, note: `BLOCKED by ${brand} claims lock: ${brief.slice(0, 120)}` });
       return { blocked: true, reason: blocked };
     }
 
@@ -149,7 +153,7 @@ async function runTool(name, args, member) {
     if (!args?.generate_now) {
       // Default: FREE — the idea lands as a pending draft card; the next batch / an operator picks it up.
       const rec = {
-        id, angle_id: "MCP", variant: "IDEA", spec: format, dimensions: null,
+        id, brand, angle_id: "MCP", variant: "IDEA", spec: format, dimensions: null,
         headline: brief.slice(0, 90), body: brief, cta: "",
         source: "mcp-idea", submitted_by: member, photo_hints: photoHints || null, created_at: Date.now(),
         qa: {
@@ -166,6 +170,13 @@ async function runTool(name, args, member) {
       return { draft_id: id, status: "idea-queued-for-next-batch", spend: "0 credits", note: "A human reviews every draft in the hub before anything else happens." };
     }
 
+    // ATD ads use REAL screenshots, not AI images — generate_now would fabricate proof. Refuse it
+    // (the idea still queues free above for an operator to attach a real screenshot).
+    if (brand === "atd") {
+      await appendMcpLog({ member, tool: name, note: `ATD generate_now refused (real-screenshot brand): ${brief.slice(0, 100)}` });
+      return { blocked: true, reason: "AnalyzeTheDeal ads use REAL product screenshots (demo data), not AI-generated images — resubmit without generate_now to queue the idea, and an operator attaches a real screenshot in the hub." };
+    }
+
     // generate_now: the P0 cost path — per-call estimate + shared daily cap, then ONE image draft.
     const est = estimateCredits("image");
     const cap = DAILY_CAP();
@@ -177,22 +188,22 @@ async function runTool(name, args, member) {
 
     await primeAngles();
     const fullBrief = photoHints ? `${brief}\nLean on these REAL library photos: ${photoHints}` : brief;
-    const [copy] = await genCopy({ angleId: "", brief: fullBrief, n: 1 });
+    const [copy] = await genCopy({ angleId: "", brief: fullBrief, n: 1, brand });
     if (!copy) throw new Error("copy generation returned nothing — try again");
-    const copyBlocked = claimsGate(copy.headline, copy.body, copy.cta);
+    const copyBlocked = claimsGate(brand, copy.headline, copy.body, copy.cta);
     if (copyBlocked) {
       await appendMcpLog({ member, tool: name, note: `BLOCKED post-gen by claims lock: ${brief.slice(0, 120)}` });
       return { blocked: true, reason: `The generated copy tripped the claims lock before any image was rendered (no spend). ${copyBlocked}` };
     }
     const spec = format === "auto" ? "meta_feed_square" : format;
-    const prompt = buildImagePrompt({ headline: copy.headline, angleId: "", spec, extra: fullBrief });
+    const prompt = buildImagePrompt({ headline: copy.headline, angleId: "", spec, extra: fullBrief, brand });
     const [adPng, scores] = await Promise.all([
       renderImage(prompt, { final: true }),
       scoreCreative({ headline: copy.headline, body: copy.body, cta: copy.cta, angleId: "", spec, brief: fullBrief }),
     ]);
     const d = specDims(spec);
     const rec = {
-      id, angle_id: "MCP", variant: "HUB", spec, dimensions: `${d.w}x${d.h}`,
+      id, brand, angle_id: "MCP", variant: "HUB", spec, dimensions: `${d.w}x${d.h}`,
       headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag,
       source: "mcp", submitted_by: member, brief: fullBrief, created_at: Date.now(), scores,
       qa: { image_layer_verdict: "review", image_layer_reasons: [`generated from ${member}'s idea via the remote connector — review before approve`], qa_model: "" },

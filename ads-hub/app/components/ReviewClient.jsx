@@ -1,18 +1,20 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { claimViolations } from "@/lib/claims";
+import { claimViolationsFor, getBrand } from "@/lib/brands";
 import { estimateCredits } from "@/lib/computeCost";
 
-// The claims lock at the APPROVE gate (engine-audit P0-3): a card whose copy trips the lock —
-// or carries the $0-down offer with no disclaimer machinery — can't be approved for spend.
-// Client-side aprUnlocked() correctly reads locked (the env flag is server-only).
+// The claims lock at the APPROVE gate (engine-audit P0-3), BRAND-ROUTED (D-19): each card is checked
+// by ITS brand's regime — an ATD card by the ATD lock (ROI/income/APR/DM-CTA), a Revarity card by the
+// money-arc lock. Client-side env flags read locked (server-only), which is the safe default.
 function claimsBlock(c) {
+  const brand = c.brand || "revarity";
   const text = [c.headline, c.body, c.cta, c.script, c.caption].filter(Boolean).join("\n");
-  const hits = claimViolations(text);
-  if (hits.length) return `Claims lock: ${[...new Set(hits.map((h) => h.kind))].join(", ")} — unconfirmed money/credit language can't ship. Route it to DM replies, or rebuild through the money-arc pipeline.`;
-  if (/\b(\$\s?0|zero)[\s-]*down\b/i.test(text) && !c.disclaimer) return "This ad makes the $0-down offer but has no disclaimer end card — route it through the money-arc pipeline, which burns the disclaimer in.";
+  const hits = claimViolationsFor(brand, text);
+  if (hits.length) return `Claims lock (${getBrand(brand).label}): ${[...new Set(hits.map((h) => h.kind))].join(", ")} — this can't ship. Rebuild it clean before approving.`;
+  if (brand === "revarity" && /\b(\$\s?0|zero)[\s-]*down\b/i.test(text) && !c.disclaimer) return "This ad makes the $0-down offer but has no disclaimer end card — route it through the money-arc pipeline, which burns the disclaimer in.";
   return null;
 }
+const BRAND_BADGE = { revarity: "Revarity", atd: "AnalyzeTheDeal" };
 
 // Human-readable names for internal spec keys (display only — the keys stay internal).
 const SPEC_LABEL = {
@@ -353,7 +355,7 @@ export default function ReviewClient() {
             const badge = c.qa === "pass" ? "" : c.qa === "fail" ? "bad" : "warn";
             const blocked = claimsBlock(c);
             return (
-              <figure key={c.id} className={`qc ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""} ${selecting && selected[c.id] ? "sel" : ""}`}>
+              <figure key={c.id} className={`qc ${getBrand(c.brand).tokenClass || ""} ${st === "approve" ? "appr" : st === "reject" ? "rej" : st === "hold" ? "hold" : ""} ${selecting && selected[c.id] ? "sel" : ""}`}>
                 <div className={`qframe ${c.vertical ? "v" : "sq"}`}>
                   {selecting && (
                     <label className="sel-box" title="Select for bulk remove">
@@ -369,6 +371,7 @@ export default function ReviewClient() {
                 </div>
                 <div className="qbody">
                   <div className="qmeta">
+                    <span className={`tag brand-badge ${c.brand === "atd" ? "atd" : "rev"}`} title="Which brand this ad is for — its own claims regime and look.">{BRAND_BADGE[c.brand] || "Revarity"}</span>
                     <span className="tag">{c.angle_id}</span>{c.variant && c.variant !== "HUB" && <span className="tag">VAR {c.variant}</span>}<span className="tag">{SPEC_LABEL[c.spec] || c.spec}</span>
                     {c.submitted_by && <span className="tag flag" title="Sent in through the remote connector — drafts only; this queue is still the gate.">from {c.submitted_by}</span>}
                     {c.pricing_flag && <span className="tag flag">{c.pricing_flag}</span>}

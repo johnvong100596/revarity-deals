@@ -180,6 +180,32 @@ via the single readQueue() filter, bulk-select for backlog clearing, Trash
 section with per-item days-left + "Put it back" + explicit "Delete now";
 anything past 30 days hard-deletes on the next trash read.
 
+## D-19 · ATD brand separation in the machine (Cena, 2026-07-05) — NEW FOCUS
+Running AnalyzeTheDeal (ATD) signup ads through the same hub, with hard brand
+separation so nothing leaks across brands in one queue.
+- **Claims regime, separate file** (`lib/claimsAtd.js`, same assertClean shape):
+  CTA ALWAYS direct-to-site (analyzethedeal.com / sign up), NEVER a DM keyword.
+  Blocks: income promises, guaranteed returns, ANY specific ROI/profit/cap-rate/
+  cash-flow/multiple NUMBER (the calculator shows numbers in-app; ads never quote
+  them), all APR/credit language, and DM-keyword CTAs. Unconfirmed price/trial/
+  guarantee claims are BLOCKED until Cena confirms in writing via env flags
+  (`ATD_PRICE_CONFIRMED` / `ATD_TRIAL_CONFIRMED` / `ATD_GUARANTEE_CONFIRMED`) —
+  mirrors CLAIMS_APR_UNLOCKED. Allowed with no flag: what the product DOES.
+- **Brand field** (`revarity | atd`) on every brief + draft, routed by
+  `lib/brands.js` (single registry: claims module + voice + CTA style + color
+  tokens per brand). The claims engine, copy voice, director, and MCP connector
+  all pick the regime by brand; `store.shape()` persists `rec.brand`. Review +
+  gallery cards show a brand badge; ATD cards render on ATD's light ivory/green
+  (#0c2620) / gold (#d9a859) / Inter tokens (`.brand-atd` scope), never Revarity
+  gold-on-dark. No cross-brand leakage in one queue.
+- **ATD visual asset class**: real product screenshots / report outputs (demo
+  data only) — AI image generation is REFUSED for the ATD brand
+  (`FabricatedProofError`), same "no AI-fabricated proof" principle as Revarity's
+  real-photos rule. Screenshot-intake UI is the next slice (see the plan).
+- Side-effect fix: the director's brand block now comes from `lib/brands.js`, so
+  the old two-regimes conflict (director pitched free-entry/at-cost while
+  lib/claims.js was money-arc) is resolved — one source of brand voice.
+
 ## D-18 · Meta channels — workspace POOL, not per-user partitions (Cena, 2026-07-05)
 Connections are workspace-level: ONE rack everyone sees. Each entry = channel
 (FB page / IG business account) + who connected it + owner-controlled

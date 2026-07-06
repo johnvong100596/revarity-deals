@@ -118,13 +118,14 @@ export default function CreativeGallery({ creatives = [] }) {
     <>
       <div className="sgrid">
         {creatives.filter((c) => !removed[c.id]).map((c) => (
-          <div className={"cg-card" + (menuId === c.id ? " menu-open" : "")} key={c.id}>
+          <div className={"cg-card" + (c.brand === "atd" ? " brand-atd" : "") + (menuId === c.id ? " menu-open" : "")} key={c.id}>
             <button className="cg-open" onClick={() => setLightbox(c)} aria-label={`Review ${c.headline || "creative"}`}>
               <div className={`sg-frame ${c.vertical ? "v" : "sq"}`}>
                 {isVideo(c.src)
                   ? <HoverVideo src={c.src} />
                   : <img src={c.src} alt={c.headline} loading="lazy" />}
                 <div className="sg-badges">
+                  <span className={`chip brand-badge ${c.brand === "atd" ? "atd" : "rev"}`}>{c.brand === "atd" ? "ATD" : "Revarity"}</span>
                   <span className={`chip ${badgeClass(c.qa)}`}>QA {c.qa}</span>
                   {c.pricing_flag && <span className="chip warn">{c.pricing_flag}</span>}
                 </div>

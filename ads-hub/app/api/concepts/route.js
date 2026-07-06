@@ -28,6 +28,7 @@ export async function POST(req) {
       n: b.n,
       outputPref: b.output || "auto",
       formatPref: b.format || "auto",
+      brand: b.brand || "revarity",
     });
     if (!plan) return NextResponse.json({ ok: false, error: "Couldn't generate concepts — confirm ANTHROPIC_API_KEY is set." }, { status: 502 });
     return NextResponse.json({ ok: true, plan });

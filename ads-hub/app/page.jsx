@@ -93,6 +93,7 @@ export default async function Studio() {
       ) : (
         <CreativeGallery creatives={gallery.map((c) => ({
           id: c.id,
+          brand: c.brand || "revarity",
           headline: c.headline || "",
           body: c.body || "",
           cta: c.cta || "",
