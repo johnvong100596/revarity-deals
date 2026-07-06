@@ -113,7 +113,7 @@ export default function ScheduleClient() {
               const v = pickSel[p.pageId] || {};
               return (
                 <div key={p.pageId} className="keyrow" style={{ gap: 14, flexWrap: "wrap", padding: "8px 0", borderBottom: "1px solid var(--line-soft)" }}>
-                  <b style={{ minWidth: 180 }}>{p.name}</b>
+                  <b style={{ minWidth: 180 }}>{p.name}{p.via && !p.via.startsWith("me/") ? <span className="muted" style={{ fontWeight: 400, fontSize: 11 }}> · {p.via.split("/")[0]}</span> : null}</b>
                   <label style={{ fontSize: 12.5 }}><input type="checkbox" checked={!!v.fb} onChange={() => setPickSel((s) => ({ ...s, [p.pageId]: { ...v, fb: !v.fb } }))} /> Facebook page</label>
                   {p.ig ? <label style={{ fontSize: 12.5 }}><input type="checkbox" checked={!!v.ig} onChange={() => setPickSel((s) => ({ ...s, [p.pageId]: { ...v, ig: !v.ig } }))} /> Instagram (@{p.ig.username || "linked"})</label> : <span className="muted" style={{ fontSize: 11.5 }}>no linked IG</span>}
                   <label style={{ fontSize: 12.5 }} title="Company pages open to the whole team by default; personal stays yours-only until you flip the toggle."><input type="checkbox" checked={!!v.company} onChange={() => setPickSel((s) => ({ ...s, [p.pageId]: { ...v, company: !v.company } }))} /> company page</label>
