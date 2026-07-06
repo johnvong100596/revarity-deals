@@ -113,13 +113,58 @@ export async function exchangeCodeForLongToken({ code, redirectUri }) {
   return { token: long.access_token, expiresIn: long.expires_in || null };
 }
 
-/** The pages (and linked IG business accounts) this user can post to. Returns [{pageId,name,pageToken,ig:{id,username}|null}]. */
+/** Non-throwing Graph GET → { ok, json, error } so enumeration can log every path's outcome. */
+async function gTry(path, params) {
+  try {
+    const url = new URL(`${G}/${path}`);
+    for (const [k, v] of Object.entries(params || {})) url.searchParams.set(k, v);
+    const r = await fetch(url);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return { ok: false, error: `${r.status} ${JSON.stringify(j.error || j).slice(0, 160)}`, json: j };
+    return { ok: true, json: j };
+  } catch (e) { return { ok: false, error: String(e?.message || e).slice(0, 160) }; }
+}
+const PAGE_FIELDS = "id,name,access_token,instagram_business_account{id,username}";
+const toTarget = (p, via) => ({
+  pageId: p.id, name: p.name, pageToken: p.access_token || null, via,
+  ig: p.instagram_business_account ? { id: p.instagram_business_account.id, username: p.instagram_business_account.username || "" } : null,
+});
+
+/**
+ * Enumerate EVERY page this user's own token can reach — classic profile pages AND pages owned by
+ * (or shared into) any Business portfolio they belong to — merged + deduped for one picker.
+ * Self-service / own-assets-only: it only ever sees what THIS token can enumerate; no admin on
+ * company anything is required. Never throws — returns { pages, debug } so the callback logs exactly
+ * what the token saw (Cena's ask: see what /me/accounts vs /me/businesses actually enumerate).
+ */
+export async function enumerateTargets(userToken) {
+  const debug = { steps: [] };
+  const byId = new Map();
+  const add = (p, via) => { if (p?.id && !byId.has(p.id)) byId.set(p.id, toTarget(p, via)); };
+
+  // 1) classic + role-assigned pages
+  const acc = await gTry("me/accounts", { access_token: userToken, fields: PAGE_FIELDS, limit: "100" });
+  debug.steps.push({ path: "me/accounts", ok: acc.ok, count: acc.json?.data?.length || 0, error: acc.error });
+  (acc.json?.data || []).forEach((p) => add(p, "me/accounts"));
+
+  // 2) business-portfolio pages: /me/businesses → owned_pages + client_pages per portfolio
+  const biz = await gTry("me/businesses", { access_token: userToken, fields: "id,name", limit: "50" });
+  debug.steps.push({ path: "me/businesses", ok: biz.ok, count: biz.json?.data?.length || 0, error: biz.error });
+  for (const b of biz.json?.data || []) {
+    for (const edge of ["owned_pages", "client_pages"]) {
+      const r = await gTry(`${b.id}/${edge}`, { access_token: userToken, fields: PAGE_FIELDS, limit: "100" });
+      debug.steps.push({ path: `${b.id}/${edge}`, business: b.name, ok: r.ok, count: r.json?.data?.length || 0, error: r.error });
+      (r.json?.data || []).forEach((p) => add(p, `${b.name}/${edge}`));
+    }
+  }
+  const pages = [...byId.values()];
+  debug.total = pages.length;
+  return { pages, debug };
+}
+
+/** Back-comat thin wrapper (classic path only). */
 export async function listPagesWithIG(userToken) {
-  const j = await gTok("me/accounts", { access_token: userToken, fields: "id,name,access_token,instagram_business_account{id,username}", limit: "50" });
-  return (j.data || []).map((p) => ({
-    pageId: p.id, name: p.name, pageToken: p.access_token,
-    ig: p.instagram_business_account ? { id: p.instagram_business_account.id, username: p.instagram_business_account.username || "" } : null,
-  }));
+  return (await enumerateTargets(userToken)).pages;
 }
 
 /** Re-derive a fresh page token from a stored long-lived user token (self-heal on OAuth errors). */
