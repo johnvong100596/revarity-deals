@@ -85,15 +85,23 @@ export const OAUTH_SCOPES = [
   "instagram_basic", "instagram_content_publish", "read_insights", "business_management",
 ].join(",");
 
-/** The Meta Login dialog URL (each owner connects their own channels once). */
+// Facebook Login for Business config (Cena's LB config, full permission set, user-token variation).
+// When a config_id is present the CONFIG governs the permission/asset set — scope= is ignored, so we
+// pass config_id instead. Env-overridable; defaults to the created config so it works without extra env.
+const LOGIN_CONFIG_ID = () => process.env.META_LOGIN_CONFIG_ID || "1002221862805045";
+
+/** The Meta Login dialog URL (each owner connects their own channels once). Uses the FB Login for
+ *  Business config_id when set (asset/permission set defined by the config); classic scope otherwise. */
 export function oauthStartUrl({ redirectUri, state }) {
   if (!metaAppReady()) return null;
   const u = new URL(`https://www.facebook.com/${V}/dialog/oauth`);
   u.searchParams.set("client_id", APP_ID());
   u.searchParams.set("redirect_uri", redirectUri);
   u.searchParams.set("state", state);
-  u.searchParams.set("scope", OAUTH_SCOPES);
   u.searchParams.set("response_type", "code");
+  const cfg = LOGIN_CONFIG_ID();
+  if (cfg) u.searchParams.set("config_id", cfg); // LB flow — config defines assets/permissions (scope ignored)
+  else u.searchParams.set("scope", OAUTH_SCOPES); // classic fallback
   return u.toString();
 }
 
