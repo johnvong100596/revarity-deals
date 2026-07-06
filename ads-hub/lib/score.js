@@ -12,7 +12,7 @@ import { ANTHROPIC_KEY, getAngle, specDims, COPY_MODEL } from "./connectors.js";
  * STILL reaches the Review queue. Scoring is an enhancement, not a gate — unlike publishing it fails OPEN.
  * (D-04: scoring never publishes or spends; D-03 unaffected — it only reads copy/brief, never generates.)
  *
- *   SCORE_MODEL  Anthropic model for scoring (default: COPY_MODEL = claude-opus-4-8)
+ *   SCORE_MODEL  Anthropic model for scoring (default: COPY_MODEL = claude-sonnet-5)
  */
 const SCORE_MODEL = process.env.SCORE_MODEL || COPY_MODEL;
 
