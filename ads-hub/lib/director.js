@@ -14,7 +14,7 @@ import brand from "../config/brand.json";
  * and surfaced as guardrailFlags: presenter/host OK, fake-client testimonials and guaranteed-return
  * claims NOT; AI-generated disclosure required on shipped ads. (D-04: planning never publishes/spends.)
  *
- *   DIRECTOR_MODEL  Anthropic model (default: COPY_MODEL = claude-opus-4-8)
+ *   DIRECTOR_MODEL  Anthropic model (default: COPY_MODEL = claude-sonnet-5)
  */
 const MODEL = process.env.DIRECTOR_MODEL || COPY_MODEL; // best Claude for ad/shot prompt-writing (centralized default)
 

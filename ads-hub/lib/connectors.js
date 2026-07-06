@@ -5,7 +5,7 @@ import { claimViolations, VERIFIED_CLAIM, DISCLAIMER } from "./claims.js";
 
 /**
  * Direct-REST generation connectors (serverless-safe, fetch-only — no CLI, no SDK deps).
- *   copy   → Anthropic Messages API   (COPY_MODEL, default claude-opus-4-8)
+ *   copy   → Anthropic Messages API   (COPY_MODEL, default claude-sonnet-5)
  *   image  → Google Gemini API "Nano Banana"  (IMG_MODEL, default gemini-3.1-flash-image-preview)
  *   video  → Higgsfield (lib/higgsfield.js)
  * Brand-locked + pricing-guarded (D-01: $375/mo flat is OK; setup fee / rev-share are NOT).
@@ -13,7 +13,7 @@ import { claimViolations, VERIFIED_CLAIM, DISCLAIMER } from "./claims.js";
  */
 // Single source of truth for the marketing/ads "brain" model — imported by director, score, research,
 // swipe, recommend, and the Settings display. Best Claude for ads/prompt-writing. Override per-env.
-export const COPY_MODEL = process.env.COPY_MODEL || "claude-opus-4-8";
+export const COPY_MODEL = process.env.COPY_MODEL || "claude-sonnet-5";
 const IMG_MODEL = process.env.IMG_MODEL || "gemini-3.1-flash-image-preview";
 const IMG_FINAL = process.env.IMG_FINAL_MODEL || "gemini-3-pro-image-preview";
 
