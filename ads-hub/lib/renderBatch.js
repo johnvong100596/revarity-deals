@@ -58,7 +58,8 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
 
   if (!pf.ok) {
     report.skipped.push({ reason: `preflight: ${pf.reasons.join("; ")}` });
-    return report; // quiet: a known-pending runtime gap, not an error to Slack-spam
+    await notifyBatch(report); // a broken nightly must be VISIBLE, not silent (D-20)
+    return report;
   }
 
   let photos = [];
@@ -68,7 +69,8 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
     report.errors.push({ error: `Drive fetch: ${e?.message || e}` });
   }
   if (!photos.length) {
-    report.skipped.push({ reason: "no real photos in the Drive folder" });
+    report.skipped.push({ reason: "no real photos in the Drive library — check the /best-of folder is shared with the service account and holds image files" });
+    await notifyBatch(report); // fire the digest/alert every run, even a zero-photo night (D-20)
     return report;
   }
 
