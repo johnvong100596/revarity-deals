@@ -57,6 +57,11 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       SLACK_WEBHOOK_URL_FAILURES: ${{ secrets.SLACK_WEBHOOK_URL_FAILURES }}
       RENDER_BATCH_LIMIT: "2"
+      # Use the apt-installed SYSTEM ffmpeg, not the bundled ffmpeg-static binary:
+      # ffmpeg-static is built without libfreetype, so it lacks the `drawtext`
+      # filter the money-arc captions require. The system build (installed below)
+      # has it. render.js/carousel.js honor FFMPEG_PATH over ffmpeg-static.
+      FFMPEG_PATH: /usr/bin/ffmpeg
       # Liberation fonts (installed below) — Arial/Georgia-metric-compatible.
       FONT_BOLD_PATH: /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
       FONT_REG_PATH: /usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf
@@ -67,7 +72,13 @@ jobs:
         with:
           node-version: "20"
       - name: Install ffmpeg + Liberation fonts
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-liberation
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg fonts-liberation
+          # Fail loud NOW if the system ffmpeg lacks the drawtext filter the
+          # money-arc captions require (better than a cryptic mid-render error).
+          ffmpeg -hide_banner -filters | grep -q ' drawtext ' \
+            && echo "✓ system ffmpeg has drawtext ($(command -v ffmpeg))" \
+            || { echo "✗ system ffmpeg is missing the drawtext filter"; exit 1; }
       - name: Install deps
         run: npm ci
       - name: Run nightly render batch
