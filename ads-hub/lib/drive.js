@@ -23,16 +23,23 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const DRIVE = "https://www.googleapis.com/drive/v3";
 
 function loadServiceAccount() {
-  const raw = process.env.GDRIVE_SA_JSON
-    || (process.env.GDRIVE_SA_JSON_B64 ? Buffer.from(process.env.GDRIVE_SA_JSON_B64, "base64").toString("utf8") : "");
-  if (!raw) return null;
-  try {
-    const sa = JSON.parse(raw);
-    if (!sa.client_email || !sa.private_key) return null;
-    return sa;
-  } catch {
-    return null;
+  // Try BOTH sources and use the first that actually parses into a usable key.
+  // A non-empty-but-malformed GDRIVE_SA_JSON must NOT shadow a valid _B64 (raw
+  // multi-line JSON pasted into a secret is easy to corrupt via the private_key
+  // newlines; base64 is the safe path). Precedence is "first that works", not
+  // "first that's set" — so either secret being valid is sufficient.
+  const candidates = [];
+  if (process.env.GDRIVE_SA_JSON) candidates.push(process.env.GDRIVE_SA_JSON);
+  if (process.env.GDRIVE_SA_JSON_B64) {
+    try { candidates.push(Buffer.from(process.env.GDRIVE_SA_JSON_B64, "base64").toString("utf8")); } catch { /* bad base64 → skip */ }
   }
+  for (const raw of candidates) {
+    try {
+      const sa = JSON.parse(raw);
+      if (sa.client_email && sa.private_key) return sa;
+    } catch { /* try the next candidate */ }
+  }
+  return null;
 }
 
 export function driveConfigured() {
