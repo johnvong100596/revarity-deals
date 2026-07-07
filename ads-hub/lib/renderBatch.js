@@ -166,10 +166,12 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
     }
   }
 
-  // Single write for the whole batch — no per-item read-modify-write race.
+  // Persist each draft as its OWN blob (isolated) — never a read-modify-write of
+  // the shared queue.json. This is what makes the render immune to a concurrent
+  // writer (hourly cron double-down, human Create, MCP) clobbering it mid-render.
   if (created.length) {
     try {
-      await appendCreatives(created);
+      await appendCreatives(created, { isolated: true });
       report.persisted = created.length;
     } catch (e) {
       // Persistence failed: the drafts rendered but are NOT in Review. Demote the

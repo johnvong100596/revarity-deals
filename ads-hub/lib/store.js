@@ -16,6 +16,10 @@ import { OUTPUT_DIR, APPROVALS_FILE } from "./paths.js";
 const DRIVER = process.env.STORE_DRIVER || "fs";
 const APPROVAL_NOTE = "Approved set is marked ready. Pushing live to Meta is a human action outside this hub (D-04).";
 export const QUEUE_KEY = "state/queue.json";
+// Per-item draft blobs (one card per key). The render batch writes here instead of
+// read-modify-writing the shared queue.json, so a concurrent writer (hourly cron
+// double-down, human Create, MCP) can't clobber a draft during the ~9-min render.
+export const QUEUE_ITEMS_PREFIX = "queue-items/";
 export const APPROVALS_KEY = "state/approvals.json";
 export const REJECT_LOG_KEY = "state/reject-log.json";
 export const COMPUTE_LOG_KEY = "state/compute-log.json";
@@ -92,9 +96,37 @@ async function blobUrl(key) {
 async function fetchJson(url) {
   try { const r = await fetch(url, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; }
 }
-async function cloudReadQueue() {
+// The legacy single queue.json (human Create / MCP / double-down append here).
+async function readLegacyQueue() {
   const url = await blobUrl(QUEUE_KEY);
   return (url && (await fetchJson(url))) || [];
+}
+// The per-item draft blobs (render batch writes here; clobber-proof). Paginate:
+// Blob list() caps at ~1000/page, so follow the cursor or drafts past 1000 would
+// silently vanish from every reader (and become undeletable).
+async function listQueueItems() {
+  try {
+    const { list } = await blobApi();
+    const all = [];
+    let cursor;
+    do {
+      const res = await list({ prefix: QUEUE_ITEMS_PREFIX, cursor });
+      all.push(...(res.blobs || []));
+      cursor = res.hasMore ? res.cursor : undefined;
+    } while (cursor);
+    const cards = await Promise.all(all.map((b) => fetchJson(b.url)));
+    return cards.filter(Boolean);
+  } catch { return []; }
+}
+// Readers see BOTH sources, unioned + deduped by id, newest first. Only readers
+// union — appends/deletes still target their own store so neither can copy the
+// other's rows back into itself (which would re-expose render drafts to clobber).
+async function cloudReadQueue() {
+  const [legacy, items] = await Promise.all([readLegacyQueue(), listQueueItems()]);
+  const byId = new Map();
+  for (const c of legacy) if (c && c.id) byId.set(c.id, c);
+  for (const c of items) if (c && c.id) byId.set(c.id, c); // per-item wins on id collision
+  return [...byId.values()].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 }
 async function cloudGetImage(id, variant) {
   const url = await blobUrl(`creatives/${id}${suffixFor(variant)}`);
@@ -126,9 +158,25 @@ function fsAppend(items) {
   }
   return items.length;
 }
-async function cloudAppend(items) {
+async function cloudAppend(items, { isolated = false } = {}) {
   const { put } = await blobApi();
-  const queue = await cloudReadQueue();
+  // Isolated: write each card as its OWN blob under queue-items/ — no read-modify-
+  // write of the shared queue.json, so a concurrent writer can't clobber these.
+  if (isolated) {
+    let count = 0;
+    for (const { rec, adPng } of items) {
+      const id = rec.id;
+      if (adPng) await put(`creatives/${id}.ad.png`, adPng, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png" });
+      const q = encodeURIComponent(id);
+      const card = shape(rec, id, !!adPng, null, adPng ? `/api/image?id=${q}&v=ad` : null, null);
+      await put(`${QUEUE_ITEMS_PREFIX}${encodeURIComponent(id)}.json`, JSON.stringify(card), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+      count++;
+    }
+    return count;
+  }
+  // Default: prepend into the shared queue.json (reads ONLY the legacy blob, never
+  // the per-item union — so it can't absorb render drafts and re-expose them).
+  const queue = await readLegacyQueue();
   for (const { rec, adPng } of items) {
     const id = rec.id;
     if (adPng) await put(`creatives/${id}.ad.png`, adPng, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "image/png" });
@@ -138,7 +186,7 @@ async function cloudAppend(items) {
   await put(QUEUE_KEY, JSON.stringify(queue), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
   return queue.length;
 }
-export async function appendCreatives(items) { return DRIVER === "cloud" ? cloudAppend(items) : fsAppend(items); }
+export async function appendCreatives(items, opts) { return DRIVER === "cloud" ? cloudAppend(items, opts) : fsAppend(items); }
 
 /* ───────────────────────── permanently delete a creative ─────────────────────────
  * Only invoked from the Review "Rejected" section's explicit Delete action (two-step: reject → delete).
@@ -152,8 +200,11 @@ function fsDelete(id) {
 }
 async function cloudDelete(id) {
   const { put, del } = await blobApi();
-  const queue = (await cloudReadQueue()).filter((c) => c.id !== id);
-  await put(QUEUE_KEY, JSON.stringify(queue), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  // Remove from BOTH stores: filter the legacy queue.json (read legacy only, so we
+  // don't write per-item rows back into it) and delete the per-item blob if present.
+  const legacy = (await readLegacyQueue()).filter((c) => c.id !== id);
+  await put(QUEUE_KEY, JSON.stringify(legacy), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+  try { const u = await blobUrl(`${QUEUE_ITEMS_PREFIX}${encodeURIComponent(id)}.json`); if (u) await del(u); } catch {}
   try { for (const v of ["ad", "ad-photo"]) { const u = await blobUrl(`creatives/${id}${suffixFor(v)}`); if (u) await del(u); } } catch {}
 }
 export async function deleteCreative(id) {
