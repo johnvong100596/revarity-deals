@@ -82,6 +82,12 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
     return report;
   }
 
+  // Collect every rendered draft and persist them in ONE queue.json write after
+  // the loop. Calling appendCreatives() once per unit races on the Blob
+  // read-modify-write (public-URL reads lag writes via the CDN), so the second
+  // append reads a stale queue and clobbers the first — silently dropping all but
+  // the last draft of a multi-render night. One batched write has no such race.
+  const created = [];
   for (const hook of hooks.slice(0, n)) {
     const id = newId("moneyarc");
     try {
@@ -153,10 +159,23 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
           qa_model: "",
         },
       };
-      await appendCreatives([{ rec }]);
+      created.push({ rec }); // persisted in one batched write after the loop (avoids the queue.json append race)
       report.rendered.push({ id, unit: script.hook, voProvider: manifest.voProvider, voPending: manifest.voPending, formats: [manifest.format, feed.manifest.format, `carousel ×${carousel_ig.length + carousel_tt.length}`] });
     } catch (e) {
       report.errors.push({ unit: id, error: e?.message || String(e) });
+    }
+  }
+
+  // Single write for the whole batch — no per-item read-modify-write race.
+  if (created.length) {
+    try {
+      await appendCreatives(created);
+      report.persisted = created.length;
+    } catch (e) {
+      // Persistence failed: the drafts rendered but are NOT in Review. Demote the
+      // "rendered" claims to errors so the report/Slack alert is honest.
+      report.errors.push({ error: `queue append (${created.length} draft${created.length === 1 ? "" : "s"} not persisted): ${e?.message || e}` });
+      report.rendered = [];
     }
   }
 
