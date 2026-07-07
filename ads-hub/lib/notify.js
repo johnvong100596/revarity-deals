@@ -58,20 +58,26 @@ export async function notifyBatch({ dryRun, rendered = [], skipped = [], errors 
       `Review + approve → ${HUB_REVIEW_URL}`,
     ].filter(Boolean).join("\n");
     results.digest = await notifySlack(digest);
-  } else if (!errors.length) {
-    // nothing rendered and nothing broke — a quiet heartbeat only on a real (non-dry) run
-    if (!dryRun) results.digest = await notifySlack(`🎬 Revarity nightly — no new drafts this run${skipped.length ? ` (${skipped.length} skipped)` : ""}.`);
   }
 
-  // ── (b) immediate failure / claims-lock alert, with reasons ──
+  // ── (b) alert: failures AND anything that BLOCKED drafts from being produced ──
+  // A broken or empty nightly is not a quiet event: a preflight gap (bad Drive key,
+  // missing fonts/ffmpeg) or an empty photo library means zero drafts landed, and
+  // that must be VISIBLE on the failures channel with the reason — not a soft
+  // "no drafts" note that reads like a normal quiet night (D-20).
   const claimsBlocks = errors.filter((e) => /CLAIMS_LOCK/i.test(e.error || String(e)));
-  if (errors.length) {
+  const blocked = !rendered.length && (errors.length || skipped.length);
+  if (errors.length || blocked) {
     const alert = [
-      `${tag}🚨 Revarity render — ${errors.length} failure${errors.length === 1 ? "" : "s"}${claimsBlocks.length ? ` (${claimsBlocks.length} claims-lock)` : ""}`,
+      `${tag}🚨 Revarity render — ${rendered.length ? `${rendered.length} drafted, ` : ""}${errors.length ? `${errors.length} failure${errors.length === 1 ? "" : "s"}` : "no drafts produced"}${claimsBlocks.length ? ` (${claimsBlocks.length} claims-lock)` : ""}`,
       ...errors.map((e) => `• ${/CLAIMS_LOCK/i.test(e.error || String(e)) ? "⛔ claims-lock" : "❌ render"}${e.unit ? ` [${e.unit}]` : ""}: ${(e.error || String(e)).slice(0, 300)}`),
+      ...skipped.map((s) => `• ⚠️ skipped: ${(s.reason || String(s)).slice(0, 300)}`),
       `Hub → ${HUB_REVIEW_URL}`,
     ].join("\n");
     results.failure = await notifyFailure(alert);
+  } else if (!rendered.length && !dryRun) {
+    // truly nothing to do and nothing wrong — a quiet heartbeat so silence never means "broken"
+    results.digest = await notifySlack(`🎬 Revarity nightly — no new drafts this run.`);
   }
 
   return results;
