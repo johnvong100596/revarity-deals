@@ -9,8 +9,14 @@ name: Nightly money-arc render
 #
 # Required repo secrets (mirror the Vercel env): BLOB_READ_WRITE_TOKEN,
 # GDRIVE_SA_JSON, GDRIVE_PHOTOS_FOLDER_ID, ANTHROPIC_API_KEY, HF_API_KEY,
-# HF_API_SECRET, SLACK_WEBHOOK_URL. Optional: HF_TTS_URL (until set → caption-only
-# drafts flagged "VO pending"; no fabricated audio).
+# HF_API_SECRET, SLACK_WEBHOOK_URL. Optional: SLACK_WEBHOOK_URL_FAILURES (D-20
+# split channel; falls back to SLACK_WEBHOOK_URL when unset), HF_TTS_URL (until
+# set → caption-only drafts flagged "VO pending"; no fabricated audio).
+#
+# GDRIVE_SA_JSON is multi-line JSON — pasting it raw into a GitHub secret is easy
+# to corrupt (the private_key newlines). Safer: base64 the whole key file into
+# GDRIVE_SA_JSON_B64 (single line) — lib/drive.js reads either. On macOS/Linux:
+#   base64 -w0 service-account.json   (or `base64 -i service-account.json`)
 
 on:
   schedule:
@@ -43,10 +49,13 @@ jobs:
       HF_API_SECRET: ${{ secrets.HF_API_SECRET }}
       HF_TTS_URL: ${{ secrets.HF_TTS_URL }}
       # Real photos (read-only service account) + hook generation.
+      # SA key: raw JSON (GDRIVE_SA_JSON) OR base64 (GDRIVE_SA_JSON_B64) — lib/drive.js reads either.
       GDRIVE_SA_JSON: ${{ secrets.GDRIVE_SA_JSON }}
+      GDRIVE_SA_JSON_B64: ${{ secrets.GDRIVE_SA_JSON_B64 }}
       GDRIVE_PHOTOS_FOLDER_ID: ${{ secrets.GDRIVE_PHOTOS_FOLDER_ID }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SLACK_WEBHOOK_URL_FAILURES: ${{ secrets.SLACK_WEBHOOK_URL_FAILURES }}
       RENDER_BATCH_LIMIT: "2"
       # Liberation fonts (installed below) — Arial/Georgia-metric-compatible.
       FONT_BOLD_PATH: /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf
