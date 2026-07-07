@@ -161,7 +161,7 @@ async function runTool(name, args, member) {
           qa_model: "",
         },
       };
-      await appendCreatives([{ rec }]);
+      await appendCreatives([{ rec }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
       await appendMcpLog({ member, tool: name, draft_id: id, credits: 0, note: `queued: ${brief.slice(0, 120)}` });
       return { draft_id: id, status: "idea-queued-for-next-batch", spend: "0 credits", note: "A human reviews every draft in the hub before anything else happens." };
     }
@@ -197,7 +197,7 @@ async function runTool(name, args, member) {
       source: "mcp", submitted_by: member, brief: fullBrief, created_at: Date.now(), scores,
       qa: { image_layer_verdict: "review", image_layer_reasons: [`generated from ${member}'s idea via the remote connector — review before approve`], qa_model: "" },
     };
-    await appendCreatives([{ rec, adPng }]);
+    await appendCreatives([{ rec, adPng }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
     await appendComputeLog({ kind: "image", credits: est, note: `mcp:${member} ${id}` });
     await appendMcpLog({ member, tool: name, draft_id: id, credits: est, note: `generated now: ${brief.slice(0, 120)}` });
     return {

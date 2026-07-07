@@ -104,7 +104,7 @@ export async function POST(req) {
         source: "hub", brief, created_at: Date.now(), scores,
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated — review before approve"], qa_model: "" },
       };
-      await appendCreatives([{ rec, adPng }]);
+      await appendCreatives([{ rec, adPng }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
       await appendComputeLog({ kind: "image", credits: estimateCredits("image"), note: spec });
       return NextResponse.json({ ok: true, type, id, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, scores });
     }

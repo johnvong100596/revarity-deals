@@ -63,7 +63,7 @@ export async function GET(_req, { params }) {
         scores: job.scores || null, mode: job.mode || "broll", disclosure: job.disclosure || null, script: job.script || null,
         qa: { image_layer_verdict: "review", image_layer_reasons: ["hub-generated video — review before approve"], qa_model: "" },
       };
-      await appendCreatives([{ rec }]);
+      await appendCreatives([{ rec }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
       job.queued = true;
       await saveJob(job);
     } catch { /* leave unqueued; a later poll will retry the append */ }

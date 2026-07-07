@@ -101,7 +101,7 @@ export async function tick({ dryRun = false } = {}) {
       const adPng = await renderImage(buildImagePrompt({ headline: copy.headline, angleId: base.angle_id, spec, extra: brief }), {});
       const d = specDims(spec);
       const id = `hub-generated/${newId("dd").slice(3)}`;
-      await appendCreatives([{ rec: { id, angle_id: base.angle_id, variant: "DOUBLEDOWN", spec, dimensions: `${d.w}x${d.h}`, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, source: "doubledown", from: w.creativeId, created_at: now, qa: { image_layer_verdict: "review", image_layer_reasons: ["auto-made from a winner — review before approve"], qa_model: "" } }, adPng }]);
+      await appendCreatives([{ rec: { id, angle_id: base.angle_id, variant: "DOUBLEDOWN", spec, dimensions: `${d.w}x${d.h}`, headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag, source: "doubledown", from: w.creativeId, created_at: now, qa: { image_layer_verdict: "review", image_layer_reasons: ["auto-made from a winner — review before approve"], qa_model: "" } }, adPng }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
       done.add(w.postRef); made++; report.doubledDown.push({ from: w.creativeId, newId: id });
     } catch (e) { report.skipped.push({ reason: "double-down: " + e.message }); }
   }
