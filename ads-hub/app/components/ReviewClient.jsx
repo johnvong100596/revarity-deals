@@ -152,6 +152,10 @@ export default function ReviewClient() {
   const [selecting, setSelecting] = useState(false); // bulk-select mode for clearing backlog
   const [selected, setSelected] = useState({}); // { id: true }
   const [barMore, setBarMore] = useState(false); // D-16: secondary tools recede into one ⋯ menu
+  const [editing, setEditing] = useState(null); // id of the draft whose script is open for in-place edit
+  const [editForm, setEditForm] = useState({}); // { headline, body, cta, caption }
+  const [editMsg, setEditMsg] = useState(""); // inline claims-lock / error message
+  const [editBusy, setEditBusy] = useState(false);
   // deep link from the command menu: /review#trash opens straight into Trash
   useEffect(() => { try { if (window.location.hash === "#trash") setShowTrash(true); } catch {} }, []);
 
@@ -294,6 +298,34 @@ export default function ReviewClient() {
     finally { setVarBusy(null); setTimeout(() => setVarMsg(""), 7000); }
   }
 
+  // ── In-place script editing (open → edit → save re-runs the claims lock → re-caption/flag re-render) ──
+  function openEditor(c) {
+    setEditing(c.id);
+    setEditForm({ headline: c.headline || "", body: c.body || "", cta: c.cta || "", caption: c.caption || "" });
+    setEditMsg("");
+  }
+  const closeEditor = () => { setEditing(null); setEditMsg(""); };
+  async function saveEdit(c) {
+    if (editBusy) return;
+    setEditBusy(true); setEditMsg("");
+    // money-arc drafts are formula-locked: only the hook (headline) + post caption travel; the
+    // $0-down line + disclaimer stay the fixed, claims-cleared spine.
+    const patch = c.qc
+      ? { headline: editForm.headline, caption: editForm.caption }
+      : { headline: editForm.headline, body: editForm.body, cta: editForm.cta, caption: editForm.caption };
+    try {
+      const res = await fetch("/api/draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: c.id, patch }) });
+      const data = await res.json();
+      if (res.status === 422) { setEditMsg(`Claims lock — ${(data.kinds || []).join(", ")}: unconfirmed money/credit or urgency language can't ship. Nothing was saved.`); setEditBusy(false); return; }
+      if (!res.ok || !data.ok) { setEditMsg(`Couldn't save — ${data.error || res.status}. Nothing changed.`); setEditBusy(false); return; }
+      setQueue((q) => q.map((x) => (x.id === c.id ? { ...x, ...data.card } : x)));
+      setSaved(data.card?.render_stale ? "Script saved — this video needs a re-render before it can be approved." : "Script saved.");
+      setTimeout(() => setSaved(""), 6000);
+      closeEditor();
+    } catch (e) { setEditMsg(`Couldn't save — ${String(e?.message || e)}.`); }
+    setEditBusy(false);
+  }
+
   return (
     <>
       <div className="eyebrow">— Review &amp; approve —</div>
@@ -380,11 +412,12 @@ export default function ReviewClient() {
                   <QcGates c={c} g={gates[c.id] || {}} onTick={(k) => tickGate(c.id, k)} />
                   <DownloadRow c={c} />
                   {blocked && <div className="claims-block">⚠ {blocked}</div>}
+                  {c.render_stale && <div className="claims-block">⚠ Script edited — the video still shows the old captions/voice, so it can&rsquo;t be approved until it&rsquo;s re-rendered. (Static ads re-caption live.)</div>}
                   <div className="acts">
                     <button
                       className={`ap ${st === "approve" ? "on" : ""}`}
-                      disabled={st !== "approve" && (!!blocked || (!!c.qc && !gatesPassed(c.id)))}
-                      title={blocked || (c.qc && !gatesPassed(c.id) ? "Tick both QC gates first — voice read + final claims check." : undefined)}
+                      disabled={st !== "approve" && (!!blocked || !!c.render_stale || (!!c.qc && !gatesPassed(c.id)))}
+                      title={blocked || (c.render_stale ? "Edited video needs a re-render before approval — its captions/voice don't match the new script yet." : (c.qc && !gatesPassed(c.id) ? "Tick both QC gates first — voice read + final claims check." : undefined))}
                       onClick={() => set(c.id, "approve")}
                     >Approve</button>
                     <button className={`hd ${st === "hold" ? "on" : ""}`} onClick={() => set(c.id, "hold")}>Hold</button>
@@ -397,10 +430,39 @@ export default function ReviewClient() {
                     </div>
                   )}
                   <div className="card-foot">
+                    <button className="link" onClick={() => (editing === c.id ? closeEditor() : openEditor(c))} title="Edit the words in place. Saving re-runs the claims check; a static ad re-captions live, a video is flagged for re-render.">✏️ Edit script</button>
                     <a className="link remake-link" href={remakeHref(c)} title="Open this in the studio with its idea prefilled — tweak and regenerate to perfect it.">✎ Edit &amp; remake</a>
                     <button className="link var-spin" onClick={() => spinVariations(c)} disabled={!!varBusy} title={`Make ${varN} versions of this ad — same script and background, different openings. They land in your approvals for review.`}>{varBusy === c.id ? "Creating…" : `✨ Make ${varN} versions`}</button>
                     <button className="link remove-link" onClick={() => removeToTrash(c.id)} title="Removes this ad from everywhere (queue, gallery, counts, rankings). It sits in Trash for 30 days in case you change your mind.">🗑 Remove</button>
                   </div>
+                  {editing === c.id && (
+                    <div className="script-edit" style={{ marginTop: 10, padding: 12, border: "1px solid var(--line, #d8d2c4)", borderRadius: 10, background: "rgba(0,0,0,0.02)", display: "grid", gap: 8 }}>
+                      <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600 }}>
+                        {c.qc ? "Opening hook" : "Headline"}
+                        <textarea value={editForm.headline} onChange={(e) => setEditForm((f) => ({ ...f, headline: e.target.value }))} rows={2} style={{ width: "100%", font: "inherit", padding: 6 }} />
+                      </label>
+                      {c.qc ? (
+                        <p className="muted" style={{ fontSize: 11, margin: 0 }}>Body, CTA and the disclaimer are locked by the money-arc formula (the verified $0-down line stays fixed). Editing the hook re-renders the video.</p>
+                      ) : (
+                        <>
+                          <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600 }}>Body
+                            <textarea value={editForm.body} onChange={(e) => setEditForm((f) => ({ ...f, body: e.target.value }))} rows={3} style={{ width: "100%", font: "inherit", padding: 6 }} />
+                          </label>
+                          <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600 }}>Call to action
+                            <input value={editForm.cta} onChange={(e) => setEditForm((f) => ({ ...f, cta: e.target.value }))} style={{ width: "100%", font: "inherit", padding: 6 }} />
+                          </label>
+                        </>
+                      )}
+                      <label style={{ display: "grid", gap: 4, fontSize: 12, fontWeight: 600 }}>Post caption
+                        <textarea value={editForm.caption} onChange={(e) => setEditForm((f) => ({ ...f, caption: e.target.value }))} rows={2} style={{ width: "100%", font: "inherit", padding: 6 }} />
+                      </label>
+                      {editMsg && <div className="claims-block">⚠ {editMsg}</div>}
+                      <div className="acts">
+                        <button className="ap" onClick={() => saveEdit(c)} disabled={editBusy}>{editBusy ? "Saving…" : "Save script"}</button>
+                        <button className="hd" onClick={closeEditor} disabled={editBusy}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                   {st === "reject" && (
                     <div className="rej-note">
                       Rejected — still here, not deleted. Click Reject again to undo.
