@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { OUTPUT_DIR, APPROVALS_FILE } from "./paths.js";
+import { claimViolations } from "./claims.js";
 
 /**
  * Storage abstraction. All pages/API call these functions; the driver decides where data lives.
@@ -42,9 +43,11 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     // money-arc render-batch extras (Phase-1b): second placement, carousel sets, QC-gate data
     video_url_feed: rec.video_url_feed || null,
     carousel_ig: rec.carousel_ig || null, carousel_tt: rec.carousel_tt || null,
-    qc: rec.qc_gates || null, caption: rec.caption || null, disclaimer: rec.disclaimer || null,
+    qc: rec.qc_gates || rec.qc || null, caption: rec.caption || null, disclaimer: rec.disclaimer || null,
     // remote-connector provenance (D-17)
     submitted_by: rec.submitted_by || null,
+    // in-place script edit (Review): a video whose text changed needs a re-render before approve
+    render_stale: rec.render_stale || null, edited_at: rec.edited_at || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
@@ -187,6 +190,55 @@ async function cloudAppend(items, { isolated = false } = {}) {
   return queue.length;
 }
 export async function appendCreatives(items, opts) { return DRIVER === "cloud" ? cloudAppend(items, opts) : fsAppend(items); }
+
+/* ───────────────────────── in-place text edit (Review "Edit script") ─────────────────────────
+ * Update a draft's TEXT surfaces in place. The API layer re-runs the claims lock on the edit
+ * BEFORE calling this, so a violating edit never persists. Money-arc render drafts are formula-
+ * locked — only the opening hook (headline) + post caption are editable; body/cta/disclaimer stay
+ * the fixed, claims-cleared spine. A VIDEO draft's captions/VO are burned in, so an edit no longer
+ * matches the pixels → it's flagged render_stale and Review blocks approval until a re-render clears
+ * it (ffmpeg runs on GitHub Actions, not here). A STATIC draft's copy IS the card text, so it
+ * updates live. Persists as an isolated per-item blob (race-free; supersedes any legacy copy). */
+const EDITABLE_TEXT = ["headline", "body", "cta", "caption"];
+export function editableFields(card) {
+  return card && card.qc ? ["headline", "caption"] : EDITABLE_TEXT; // money-arc: hook + caption only
+}
+async function readOneCreative(id) {
+  const q = await readQueueRaw();
+  return q.find((c) => c.id === id) || null;
+}
+export async function updateCreative(id, patch = {}) {
+  const card = await readOneCreative(id);
+  if (!card) return { ok: false, error: "not_found" };
+  const allow = editableFields(card);
+  const clean = {};
+  for (const k of allow) if (k in patch && typeof patch[k] === "string") clean[k] = patch[k].slice(0, 2000);
+
+  if (DRIVER === "cloud") {
+    // Per-item blobs store SHAPED cards read back verbatim (no re-shape), so merge onto the
+    // shaped card and rewrite the blob. Isolated → race-free; supersedes any legacy copy of this id.
+    const next = { ...card, ...clean, edited_at: Date.now() };
+    if (card.video_url) next.render_stale = true; // burned captions/VO now mismatch → GH-Actions re-render
+    if (card.qc?.gate2?.checks) { // re-run the money-arc gate-2 "only verified claim" precheck
+      const allText = [next.headline, next.body, next.cta, next.caption, next.disclaimer].filter(Boolean).join("\n");
+      next.qc = { ...next.qc, gate2: { ...next.qc.gate2, checks: { ...next.qc.gate2.checks, onlyVerifiedClaim: claimViolations(allText).length === 0 } } };
+    }
+    const { put } = await blobApi();
+    await put(`${QUEUE_ITEMS_PREFIX}${encodeURIComponent(id)}.json`, JSON.stringify(next), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+    return { ok: true, card: next };
+  }
+
+  // fs (dev): patch the RAW rec on disk so it round-trips through fsReadQueue's shape().
+  const base = String(id).split("/").pop();
+  const file = path.join(OUTPUT_DIR, HUB_DIR_NAME, `${base}.json`);
+  let raw = {};
+  try { raw = JSON.parse(fs.readFileSync(file, "utf8")); } catch {}
+  Object.assign(raw, clean, { edited_at: Date.now() });
+  if (card.video_url) raw.render_stale = true;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(raw, null, 2));
+  return { ok: true, card: { ...card, ...clean, edited_at: raw.edited_at, render_stale: raw.render_stale || card.render_stale || null } };
+}
 
 /* ───────────────────────── permanently delete a creative ─────────────────────────
  * Only invoked from the Review "Rejected" section's explicit Delete action (two-step: reject → delete).
