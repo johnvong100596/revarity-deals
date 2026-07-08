@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { claimViolations } from "@/lib/claims";
 import { estimateCredits } from "@/lib/computeCost";
+import PostPreview from "@/app/components/PostPreview";
 
 // The claims lock at the APPROVE gate (engine-audit P0-3): a card whose copy trips the lock —
 // or carries the $0-down offer with no disclaimer machinery — can't be approved for spend.
@@ -150,15 +151,11 @@ function PreviewModal({ c, onClose }) {
   const vertical = !!c.vertical || /story|vertical|reel/i.test(c.spec || "");
   const imgSrc = c.image_url || c.ad_url || c.ad_photo_url || `/api/image?id=${encodeURIComponent(c.id)}`;
   const media = c.video_url
-    ? <video src={c.video_url.includes("#") ? c.video_url : `${c.video_url}#t=0.1`} autoPlay muted loop playsInline controls style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", background: "#000" }} />
-    : <img src={imgSrc} alt={c.headline || "ad preview"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />;
+    ? [{ type: "video", src: c.video_url }]
+    : Array.isArray(c.carousel_ig) && c.carousel_ig.length
+      ? c.carousel_ig.map((u) => ({ type: "image", src: u }))
+      : [{ type: "image", src: imgSrc }];
   const caption = (c.caption || [c.headline, c.body, c.cta].filter(Boolean).join(" ")).trim();
-  const cta = c.cta && c.cta.length > 1 && c.cta.length < 28 ? c.cta : "Learn more";
-  const igAspect = vertical ? "9 / 16" : "4 / 5";
-  const fbAspect = vertical ? "9 / 16" : "1 / 1";
-  const Avatar = () => (
-    <span style={{ width: 32, height: 32, borderRadius: 999, flexShrink: 0, background: "conic-gradient(from 210deg, #d9a859, #7e6128, #d9a859)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>R</span>
-  );
   const stop = (e) => e.stopPropagation();
 
   return (
@@ -173,42 +170,8 @@ function PreviewModal({ c, onClose }) {
         </div>
         <button onClick={onClose} aria-label="Close preview" style={{ border: "none", cursor: "pointer", width: 38, height: 38, borderRadius: 999, background: "rgba(255,255,255,0.14)", color: "#fff", fontSize: 22, lineHeight: 1 }}>×</button>
       </div>
-
-      <div onClick={stop} style={{ width: "100%", maxWidth: 390, background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", color: "#111", fontFamily: "system-ui, -apple-system, sans-serif", flexShrink: 0 }}>
-        {platform === "instagram" ? (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px" }}>
-              <Avatar />
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 13 }}>revarity</div><div style={{ fontSize: 11, color: "#737373" }}>Sponsored</div></div>
-              <span style={{ color: "#737373" }}>⋯</span>
-            </div>
-            <div style={{ aspectRatio: igAspect, width: "100%", background: "#000" }}>{media}</div>
-            <div style={{ padding: "9px 12px 4px", fontSize: 21, letterSpacing: 8 }}>♡ 💬 ➤<span style={{ float: "right", letterSpacing: 0 }}>🔖</span></div>
-            <div style={{ padding: "0 12px 14px", fontSize: 13, lineHeight: 1.45 }}>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>1,204 likes</div>
-              <div><b>revarity</b> {caption}</div>
-              <div style={{ marginTop: 10 }}><div style={{ textAlign: "center", border: "1px solid #dbdbdb", background: "#fafafa", borderRadius: 8, padding: "9px", fontWeight: 600, fontSize: 13 }}>{cta} ›</div></div>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 12px 8px" }}>
-              <Avatar />
-              <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>Revarity</div><div style={{ fontSize: 11, color: "#65676b" }}>Sponsored · 🌐</div></div>
-              <span style={{ color: "#65676b" }}>⋯</span>
-            </div>
-            <div style={{ padding: "0 12px 10px", fontSize: 14, lineHeight: 1.45 }}>{caption}</div>
-            <div style={{ aspectRatio: fbAspect, width: "100%", background: "#000" }}>{media}</div>
-            <div style={{ background: "#f0f2f5", padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: "#65676b", textTransform: "uppercase" }}>revarity.com</div>
-                <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.headline || caption.slice(0, 60)}</div>
-              </div>
-              <div style={{ background: "#e4e6eb", borderRadius: 6, padding: "8px 14px", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>{cta}</div>
-            </div>
-            <div style={{ padding: "8px 12px", fontSize: 13, color: "#65676b", display: "flex", justifyContent: "space-around", borderTop: "1px solid #eceef0" }}><span>👍 Like</span><span>💬 Comment</span><span>↪ Share</span></div>
-          </>
-        )}
+      <div onClick={stop} style={{ flexShrink: 0 }}>
+        <PostPreview platform={platform} media={media} caption={caption} headline={c.headline} cta={c.cta} vertical={vertical} disclaimer={c.disclaimer} />
       </div>
       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 12, flexShrink: 0 }}>Mockup preview · this is how it&rsquo;ll read in-feed, not the live post</div>
     </div>

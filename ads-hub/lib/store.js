@@ -36,7 +36,7 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     qa_model: rec.qa?.qa_model || "",
     vertical: (rec.spec || "").includes("story") || (rec.spec || "").includes("vertical"),
     source: rec.source || null, created_at: rec.created_at || null,
-    hasImg, image_url: image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
+    hasImg: hasImg || !!rec.image_url, image_url: image_url || rec.image_url || null, ad_url: ad_url || null, ad_photo_url: ad_photo_url || null,
     video_url: rec.video_url || null,
     scores: rec.scores || null,
     mode: rec.mode || null, disclosure: rec.disclosure || null, script: rec.script || null,
