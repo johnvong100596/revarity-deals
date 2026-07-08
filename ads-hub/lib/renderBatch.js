@@ -22,7 +22,7 @@ import { synthesizeVO, voiceConfigured, voiceProvider } from "./voice.js";
 import { renderMoneyArcAd } from "./render.js";
 import { renderCarouselSet } from "./carousel.js";
 import { claimViolations, DM_KEYWORD } from "./claims.js";
-import { putPublicVideo, putPublicPng, appendCreatives, readQueue } from "./store.js";
+import { putPublicVideo, putPublicPng, appendCreatives, readQueue, fetchLibraryPhotoBuffers } from "./store.js";
 import { newId } from "./jobs.js";
 import { notifyBatch } from "./notify.js";
 
@@ -127,14 +127,18 @@ export async function runRenderBatch({ dryRun = false, limit = process.env.RENDE
     return report;
   }
 
+  // Photo source: the on-site Photo Library is the source of truth (operators drop
+  // photos in at ads.revarity.com/library). Fall back to the Drive /best-of folder
+  // while the Library is still empty, so nothing breaks before the first upload/import.
   let photos = [];
   try {
-    photos = await fetchFolderPhotos(undefined, { count: 8 });
+    photos = await fetchLibraryPhotoBuffers(8);
+    if (!photos.length) photos = await fetchFolderPhotos(undefined, { count: 8 });
   } catch (e) {
-    report.errors.push({ error: `Drive fetch: ${e?.message || e}` });
+    report.errors.push({ error: `photo fetch: ${e?.message || e}` });
   }
   if (!photos.length) {
-    report.skipped.push({ reason: "no real photos in the Drive library — check the /best-of folder is shared with the service account and holds image files" });
+    report.skipped.push({ reason: "no real photos — add some in the Photo Library (ads.revarity.com/library) or the Drive /best-of folder" });
     report.notify = await notifyBatch(report); // fire the digest/alert every run, even a zero-photo night (D-20)
     return report;
   }

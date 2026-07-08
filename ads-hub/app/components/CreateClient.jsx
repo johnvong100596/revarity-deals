@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { estimateCredits, estimatePlan } from "@/lib/computeCost";
 
@@ -53,6 +53,25 @@ export default function CreateClient({ angles, formats }) {
   const [claimsNot, setClaimsNot] = useState("");
   // D-16 progressive disclosure: ONE drawer for everything that isn't the prompt box.
   const [moreOpen, setMoreOpen] = useState(false);
+  // Photo-first: a quick drop into the shared Photo Library (its full page lives under Make).
+  const [libCount, setLibCount] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoMsg, setPhotoMsg] = useState("");
+  const photoInputRef = useRef(null);
+  useEffect(() => { (async () => { try { const r = await fetch("/api/library", { cache: "no-store" }); const d = await r.json(); setLibCount(d.count ?? 0); } catch {} })(); }, []);
+  async function uploadPhotos(fileList) {
+    const files = Array.from(fileList || []).filter((f) => f.type?.startsWith("image/"));
+    if (!files.length) return;
+    setPhotoBusy(true); setPhotoMsg(`Adding ${files.length}…`);
+    try {
+      const fd = new FormData(); files.forEach((f) => fd.append("files", f));
+      const r = await fetch("/api/library/upload", { method: "POST", body: fd });
+      const d = await r.json();
+      setLibCount((c) => (c ?? 0) + (d.added || 0));
+      setPhotoMsg(d.added ? `Added ${d.added} to your library` : `Upload failed${d.error ? ` — ${d.error}` : ""}`);
+    } catch { setPhotoMsg("Upload failed"); }
+    setPhotoBusy(false); setTimeout(() => setPhotoMsg(""), 5000);
+  }
   // …except the promise check, which surfaces CONTEXTUALLY the moment the prompt sounds like money.
   const claimish = /(\$|%|\bdown\b|financ|apr|credit|guarantee|\bfree\b|price|cost)/i.test(idea) || !!claimsVerified || !!claimsNot;
   // Nothing renders without an explicit OK (engine-audit P0-1a + UX16).
@@ -225,6 +244,15 @@ export default function CreateClient({ angles, formats }) {
       <div className="composer">
         <textarea className="idea" rows={6} value={idea} onChange={(e) => setIdea(e.target.value)}
           placeholder={'e.g. "A confident host walks through a Tulum penthouse and explains how we build Airbnbs for serious investors…" — or paste a full script with the opening, scenes, and lines.'} />
+
+        {/* Photo-first: drop real photos into the shared library the render engine builds from. */}
+        <div className="chips" style={{ margin: "8px 0 2px", alignItems: "center" }}>
+          <button type="button" className="chip" onClick={() => photoInputRef.current?.click()} disabled={photoBusy}
+            title="Add real photos to the shared library — the render engine builds from these">📷 {photoBusy ? "Adding…" : "Add photos"}</button>
+          <input ref={photoInputRef} type="file" accept="image/*" multiple hidden onChange={(e) => { uploadPhotos(e.target.files); e.target.value = ""; }} />
+          <a className="chip" href="/library">Photo library{libCount != null ? ` (${libCount})` : ""} →</a>
+          <span className="helper" style={{ fontSize: 12 }}>{photoMsg || "Real photos power the render engine."}</span>
+        </div>
 
         {(claimish || moreOpen) && (
           <div className="promise-split">

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { claimViolations } from "@/lib/claims";
 import { genCopy, buildImagePrompt, renderImage, primeAngles, specDims } from "@/lib/connectors";
 import { scoreCreative } from "@/lib/score";
-import { appendCreatives, readQueue, readApprovals, publicImageUrl, appendComputeLog, readComputeLog, appendMcpLog } from "@/lib/store";
+import { appendCreatives, readQueue, readApprovals, publicImageUrl, appendComputeLog, readComputeLog, appendMcpLog, listLibraryPhotos } from "@/lib/store";
 import { listFolderImages, driveConfigured } from "@/lib/drive";
 import { estimateCredits } from "@/lib/computeCost";
 import { newId } from "@/lib/jobs";
@@ -105,6 +105,7 @@ const TOOLS = [
         brief: { type: "string", description: "The ad idea in plain words — offer angle, scene, feeling. The marketing brain writes the actual copy." },
         format: { type: "string", enum: ["auto", "meta_feed_square", "meta_feed_portrait", "meta_story_vertical", "meta_landscape", "before_after_split"], description: "Placement hint (default auto)." },
         photo_hints: { type: "string", description: "Optional: which real library photos to lean on (use list_library_photos for names)." },
+        photos: { type: "array", items: { type: "string" }, description: "Optional: Photo Library IDs to build this draft from (get them from list_library_photos). Real photos only." },
         generate_now: { type: "boolean", description: "true = generate one image draft immediately (estimated ~2 credits, daily-capped). Default false = free, queued for the next batch." },
       },
       required: ["brief"],
@@ -137,6 +138,19 @@ async function runTool(name, args, member) {
     const format = SUPPORTED_FORMATS.has(args?.format) ? args.format : "auto";
     const photoHints = String(args?.photo_hints || "").trim().slice(0, 400);
 
+    // Optional: build from specific Photo Library photos (validate against the site library).
+    const photoIds = Array.isArray(args?.photos) ? args.photos.map((x) => String(x)).slice(0, 20) : [];
+    let sourcePhotos = [];
+    if (photoIds.length) {
+      const lib = await listLibraryPhotos();
+      const byId = new Map(lib.map((p) => [p.id, p]));
+      const unknown = photoIds.filter((pid) => !byId.has(pid));
+      if (unknown.length) {
+        throw Object.assign(new Error(`unknown photo id(s): ${unknown.join(", ")} — use list_library_photos for valid ids`), { invalidParams: true });
+      }
+      sourcePhotos = photoIds.map((pid) => byId.get(pid).url);
+    }
+
     // Claims lock BEFORE anything is stored or spent (APR blocklist included).
     const blocked = claimsGate(brief, photoHints);
     if (blocked) {
@@ -151,7 +165,8 @@ async function runTool(name, args, member) {
       const rec = {
         id, angle_id: "MCP", variant: "IDEA", spec: format, dimensions: null,
         headline: brief.slice(0, 90), body: brief, cta: "",
-        source: "mcp-idea", submitted_by: member, photo_hints: photoHints || null, created_at: Date.now(),
+        source: "mcp-idea", submitted_by: member, photo_hints: photoHints || null,
+        sourcePhotos: sourcePhotos.length ? sourcePhotos : undefined, created_at: Date.now(),
         qa: {
           image_layer_verdict: "review",
           image_layer_reasons: [
@@ -194,7 +209,7 @@ async function runTool(name, args, member) {
     const rec = {
       id, angle_id: "MCP", variant: "HUB", spec, dimensions: `${d.w}x${d.h}`,
       headline: copy.headline, body: copy.body, cta: copy.cta, pricing_flag: copy.pricing_flag,
-      source: "mcp", submitted_by: member, brief: fullBrief, created_at: Date.now(), scores,
+      source: "mcp", submitted_by: member, brief: fullBrief, sourcePhotos: sourcePhotos.length ? sourcePhotos : undefined, created_at: Date.now(), scores,
       qa: { image_layer_verdict: "review", image_layer_reasons: [`generated from ${member}'s idea via the remote connector — review before approve`], qa_model: "" },
     };
     await appendCreatives([{ rec, adPng }], { isolated: true }); // per-item blob — immune to concurrent queue.json writers
@@ -233,9 +248,15 @@ async function runTool(name, args, member) {
   }
 
   if (name === "list_library_photos") {
-    if (!driveConfigured()) return { configured: false, note: "The Drive photo library isn't connected in this environment yet." };
+    // The on-site Photo Library is the source of truth; its ids are valid for submit_idea photos:[].
+    const lib = await listLibraryPhotos();
+    if (lib.length) {
+      return { count: lib.length, photos: lib.map((p) => ({ name: p.name, id: p.id, thumbnail: p.url, source: p.source })) };
+    }
+    // Fallback while the library is empty: the read-only Drive folder (import it at /library).
+    if (!driveConfigured()) return { configured: false, note: "No photos yet — add some at ads.revarity.com/library." };
     const files = await listFolderImages(undefined, { max: 40 });
-    return { count: files.length, photos: files.map((f) => ({ name: f.name, id: f.id, thumbnail: f.thumbnailLink || null })) };
+    return { count: files.length, photos: files.map((f) => ({ name: f.name, id: f.id, thumbnail: f.thumbnailLink || null, source: "drive" })), note: "From Drive — import into the site library (/library) to build from these." };
   }
 
   throw Object.assign(new Error(`unknown tool: ${name}`), { methodNotFound: true });

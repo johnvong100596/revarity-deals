@@ -48,6 +48,8 @@ function shape(rec, id, hasImg, image_url, ad_url, ad_photo_url) {
     submitted_by: rec.submitted_by || null,
     // in-place script edit (Review): a video whose text changed needs a re-render before approve
     render_stale: rec.render_stale || null, edited_at: rec.edited_at || null,
+    // photo-first creation: the specific Library photos this draft was built from (provenance)
+    sourcePhotos: rec.sourcePhotos || null,
   };
 }
 const suffixFor = (v) => (v === "ad" ? ".ad.png" : v === "ad-photo" ? ".ad-photo.png" : ".png");
@@ -190,6 +192,84 @@ async function cloudAppend(items, { isolated = false } = {}) {
   return queue.length;
 }
 export async function appendCreatives(items, opts) { return DRIVER === "cloud" ? cloudAppend(items, opts) : fsAppend(items); }
+
+/* ───────────────────────── site photo Library (photo-first creation) ─────────────────────────
+ * A site-wide library of REAL photos operators drop in (upload) or import from Drive — the single
+ * source of truth every prompter shares. Blob-backed, per-item (clobber-proof, same pattern as the
+ * render queue): each photo is { id, url, name, source, created_at }; the image bytes are their own
+ * public blob. The render pipeline draws its real photos from here (Drive is a fallback while empty),
+ * and the MCP connector lists it so Slack/Cowork prompt against the same set. fs mode → output/library/. */
+export const LIBRARY_PREFIX = "library-items/"; // per-item index JSON
+const LIBRARY_IMG_PREFIX = "library-img/"; // the image bytes
+const LIBRARY_DIR = path.join(OUTPUT_DIR, "library");
+const libId = () => `lib_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const extFor = (ct = "") => (/png/i.test(ct) ? "png" : /webp/i.test(ct) ? "webp" : /gif/i.test(ct) ? "gif" : "jpg");
+
+export async function listLibraryPhotos() {
+  if (DRIVER === "cloud") {
+    try {
+      const { list } = await blobApi();
+      const all = [];
+      let cursor;
+      do {
+        const res = await list({ prefix: LIBRARY_PREFIX, cursor });
+        all.push(...(res.blobs || []));
+        cursor = res.hasMore ? res.cursor : undefined;
+      } while (cursor);
+      const recs = (await Promise.all(all.map((b) => fetchJson(b.url)))).filter(Boolean);
+      return recs.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    } catch { return []; }
+  }
+  try {
+    if (!fs.existsSync(LIBRARY_DIR)) return [];
+    return fs.readdirSync(LIBRARY_DIR).filter((f) => f.endsWith(".json"))
+      .map((f) => { try { return JSON.parse(fs.readFileSync(path.join(LIBRARY_DIR, f), "utf8")); } catch { return null; } })
+      .filter(Boolean).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  } catch { return []; }
+}
+
+export async function addLibraryPhoto({ buffer, name, source = "upload", contentType = "image/jpeg" }) {
+  const id = libId();
+  const ext = extFor(contentType);
+  const safeName = (String(name || "photo").replace(/[^\w.\- ]+/g, "").trim().slice(0, 120)) || "photo";
+  if (DRIVER === "cloud") {
+    const { put } = await blobApi();
+    const img = await put(`${LIBRARY_IMG_PREFIX}${id}.${ext}`, buffer, { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType });
+    const rec = { id, url: img.url, name: safeName, source, created_at: Date.now() };
+    await put(`${LIBRARY_PREFIX}${id}.json`, JSON.stringify(rec), { access: "public", addRandomSuffix: false, allowOverwrite: true, contentType: "application/json" });
+    return rec;
+  }
+  fs.mkdirSync(LIBRARY_DIR, { recursive: true });
+  fs.writeFileSync(path.join(LIBRARY_DIR, `${id}.${ext}`), buffer);
+  const rec = { id, url: `/api/library/img/${id}.${ext}`, name: safeName, source, created_at: Date.now() };
+  fs.writeFileSync(path.join(LIBRARY_DIR, `${id}.json`), JSON.stringify(rec, null, 2));
+  return rec;
+}
+
+export async function deleteLibraryPhoto(id) {
+  if (!id) return false;
+  if (DRIVER === "cloud") {
+    const { del } = await blobApi();
+    const idxUrl = await blobUrl(`${LIBRARY_PREFIX}${id}.json`);
+    const rec = idxUrl ? await fetchJson(idxUrl) : null;
+    try { if (rec?.url) await del(rec.url); } catch {}
+    try { if (idxUrl) await del(idxUrl); } catch {}
+    return true;
+  }
+  try { for (const f of fs.readdirSync(LIBRARY_DIR)) if (f.startsWith(`${id}.`)) fs.unlinkSync(path.join(LIBRARY_DIR, f)); } catch {}
+  return true;
+}
+
+/** Render helper: pull up to `limit` Library photos as { name, buffer } (mirrors drive.fetchFolderPhotos). */
+export async function fetchLibraryPhotoBuffers(limit = 8) {
+  const recs = (await listLibraryPhotos()).slice(0, limit);
+  const out = [];
+  for (const r of recs) {
+    try { const res = await fetch(r.url, { cache: "no-store" }); if (res.ok) out.push({ name: r.name, buffer: Buffer.from(await res.arrayBuffer()) }); }
+    catch (e) { console.warn(`[library] skip ${r.name}:`, e?.message || e); }
+  }
+  return out;
+}
 
 /* ───────────────────────── in-place text edit (Review "Edit script") ─────────────────────────
  * Update a draft's TEXT surfaces in place. The API layer re-runs the claims lock on the edit

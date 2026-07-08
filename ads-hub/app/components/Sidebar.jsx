@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 // Grouped so it reads by job-to-be-done, not a flat list. Malcolm/David/Vu all see everything (no role gating).
 const GROUPS = [
   { title: "", items: [{ href: "/welcome", label: "Guide" }, { href: "/", label: "Overview" }] },
-  { title: "Make", items: [{ href: "/create", label: "Create" }, { href: "/swipe", label: "Mine winners" }] },
+  { title: "Make", items: [{ href: "/create", label: "Create" }, { href: "/library", label: "Photo library" }, { href: "/swipe", label: "Mine winners" }] },
   { title: "Decide", items: [{ href: "/review", label: "Review & approve" }] },
   { title: "Publish", items: [{ href: "/schedule", label: "Schedule" }] },
   { title: "Plan", items: [{ href: "/budget", label: "Budget" }, { href: "/monitor", label: "Monitor" }] },
