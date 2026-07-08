@@ -135,6 +135,86 @@ function DownloadRow({ c }) {
   );
 }
 
+// Expand a draft into a life-size mockup — how it actually reads as an Instagram or a
+// Facebook post. Presentation only (real media + real copy); Esc / backdrop / × closes.
+function PreviewModal({ c, onClose }) {
+  const [platform, setPlatform] = useState("instagram");
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [onClose]);
+
+  const vertical = !!c.vertical || /story|vertical|reel/i.test(c.spec || "");
+  const imgSrc = c.image_url || c.ad_url || c.ad_photo_url || `/api/image?id=${encodeURIComponent(c.id)}`;
+  const media = c.video_url
+    ? <video src={c.video_url.includes("#") ? c.video_url : `${c.video_url}#t=0.1`} autoPlay muted loop playsInline controls style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", background: "#000" }} />
+    : <img src={imgSrc} alt={c.headline || "ad preview"} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />;
+  const caption = (c.caption || [c.headline, c.body, c.cta].filter(Boolean).join(" ")).trim();
+  const cta = c.cta && c.cta.length > 1 && c.cta.length < 28 ? c.cta : "Learn more";
+  const igAspect = vertical ? "9 / 16" : "4 / 5";
+  const fbAspect = vertical ? "9 / 16" : "1 / 1";
+  const Avatar = () => (
+    <span style={{ width: 32, height: 32, borderRadius: 999, flexShrink: 0, background: "conic-gradient(from 210deg, #d9a859, #7e6128, #d9a859)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>R</span>
+  );
+  const stop = (e) => e.stopPropagation();
+
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Ad preview"
+      style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(10,10,12,0.82)", WebkitBackdropFilter: "blur(4px)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", alignItems: "center", padding: "24px 16px", overflowY: "auto" }}>
+      <div onClick={stop} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
+        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.12)", borderRadius: 999, padding: 3 }}>
+          {[["instagram", "Instagram"], ["facebook", "Facebook"]].map(([k, label]) => (
+            <button key={k} onClick={() => setPlatform(k)}
+              style={{ border: "none", cursor: "pointer", borderRadius: 999, padding: "7px 18px", fontSize: 13, fontWeight: 600, background: platform === k ? "#fff" : "transparent", color: platform === k ? "#111" : "rgba(255,255,255,0.85)" }}>{label}</button>
+          ))}
+        </div>
+        <button onClick={onClose} aria-label="Close preview" style={{ border: "none", cursor: "pointer", width: 38, height: 38, borderRadius: 999, background: "rgba(255,255,255,0.14)", color: "#fff", fontSize: 22, lineHeight: 1 }}>×</button>
+      </div>
+
+      <div onClick={stop} style={{ width: "100%", maxWidth: 390, background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", color: "#111", fontFamily: "system-ui, -apple-system, sans-serif", flexShrink: 0 }}>
+        {platform === "instagram" ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 12px" }}>
+              <Avatar />
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 13 }}>revarity</div><div style={{ fontSize: 11, color: "#737373" }}>Sponsored</div></div>
+              <span style={{ color: "#737373" }}>⋯</span>
+            </div>
+            <div style={{ aspectRatio: igAspect, width: "100%", background: "#000" }}>{media}</div>
+            <div style={{ padding: "9px 12px 4px", fontSize: 21, letterSpacing: 8 }}>♡ 💬 ➤<span style={{ float: "right", letterSpacing: 0 }}>🔖</span></div>
+            <div style={{ padding: "0 12px 14px", fontSize: 13, lineHeight: 1.45 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>1,204 likes</div>
+              <div><b>revarity</b> {caption}</div>
+              <div style={{ marginTop: 10 }}><div style={{ textAlign: "center", border: "1px solid #dbdbdb", background: "#fafafa", borderRadius: 8, padding: "9px", fontWeight: 600, fontSize: 13 }}>{cta} ›</div></div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "12px 12px 8px" }}>
+              <Avatar />
+              <div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>Revarity</div><div style={{ fontSize: 11, color: "#65676b" }}>Sponsored · 🌐</div></div>
+              <span style={{ color: "#65676b" }}>⋯</span>
+            </div>
+            <div style={{ padding: "0 12px 10px", fontSize: 14, lineHeight: 1.45 }}>{caption}</div>
+            <div style={{ aspectRatio: fbAspect, width: "100%", background: "#000" }}>{media}</div>
+            <div style={{ background: "#f0f2f5", padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: "#65676b", textTransform: "uppercase" }}>revarity.com</div>
+                <div style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.headline || caption.slice(0, 60)}</div>
+              </div>
+              <div style={{ background: "#e4e6eb", borderRadius: 6, padding: "8px 14px", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>{cta}</div>
+            </div>
+            <div style={{ padding: "8px 12px", fontSize: 13, color: "#65676b", display: "flex", justifyContent: "space-around", borderTop: "1px solid #eceef0" }}><span>👍 Like</span><span>💬 Comment</span><span>↪ Share</span></div>
+          </>
+        )}
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 12, flexShrink: 0 }}>Mockup preview · this is how it&rsquo;ll read in-feed, not the live post</div>
+    </div>
+  );
+}
+
 export default function ReviewClient() {
   const [queue, setQueue] = useState([]);
   const [state, setState] = useState({});
@@ -156,6 +236,7 @@ export default function ReviewClient() {
   const [editForm, setEditForm] = useState({}); // { headline, body, cta, caption }
   const [editMsg, setEditMsg] = useState(""); // inline claims-lock / error message
   const [editBusy, setEditBusy] = useState(false);
+  const [preview, setPreview] = useState(null); // card being previewed full-size (IG/FB mockup), or null
   // deep link from the command menu: /review#trash opens straight into Trash
   useEffect(() => { try { if (window.location.hash === "#trash") setShowTrash(true); } catch {} }, []);
 
@@ -392,10 +473,20 @@ export default function ReviewClient() {
                       <input type="checkbox" checked={!!selected[c.id]} onChange={() => toggleSelect(c.id)} />
                     </label>
                   )}
+                  {(c.video_url || c.hasImg || c.ad_url || c.ad_photo_url || c.image_url) && (
+                    <button
+                      type="button"
+                      className="qframe-expand"
+                      onClick={(e) => { e.stopPropagation(); setPreview(c); }}
+                      title="See it full-size — how it looks on Instagram & Facebook"
+                      aria-label="Preview on Instagram and Facebook"
+                      style={{ position: "absolute", top: 8, left: 8, zIndex: 3, width: 30, height: 30, borderRadius: 8, border: "none", cursor: "pointer", background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 15, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                    >⤢</button>
+                  )}
                   {c.video_url
                     ? <PreviewVideo src={c.video_url} />
                     : c.hasImg || c.ad_url || c.ad_photo_url || c.image_url
-                      ? <img src={adSrc(c)} alt={c.headline} />
+                      ? <img src={adSrc(c)} alt={c.headline} onClick={() => setPreview(c)} style={{ cursor: "zoom-in" }} />
                       : <div className="example-frame"><span>idea — waiting for the next batch</span></div>}
                   <span className={`qbadge ${badge}`} title={c.qa !== "pass" && c.qa_reasons?.length ? c.qa_reasons[0] : undefined}>Check: {QA_LABEL[c.qa] || c.qa}</span>
                 </div>
@@ -533,6 +624,7 @@ export default function ReviewClient() {
           )}
         </div>
       )}
+      {preview && <PreviewModal c={preview} onClose={() => setPreview(null)} />}
     </>
   );
 }
